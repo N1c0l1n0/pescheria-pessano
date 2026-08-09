@@ -524,9 +524,8 @@ export const PokeBuilder: React.FC = () => {
 
             {/* 1. Nome Persona per la Poke */}
             <div
-              className="glass-panel"
+              className="glass-panel poke-card-panel"
               style={{
-                padding: '1.75rem',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'var(--color-ice-blue)',
                 border: '1px solid rgba(11, 37, 69, 0.08)',
@@ -540,6 +539,8 @@ export const PokeBuilder: React.FC = () => {
                   fontSize: '1.05rem',
                   color: 'var(--color-ocean-dark)',
                   marginBottom: '0.65rem',
+                  lineHeight: 1.35,
+                  wordBreak: 'break-word',
                 }}
               >
                 1. Nome persona per questa Poke <span style={{ color: 'var(--color-coral)' }}>*</span>
@@ -572,9 +573,8 @@ export const PokeBuilder: React.FC = () => {
 
             {/* 2. Selezione Formato */}
             <div
-              className="glass-panel"
+              className="glass-panel poke-card-panel"
               style={{
-                padding: '1.75rem',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'white',
                 border: '1px solid rgba(11, 37, 69, 0.08)',
@@ -586,9 +586,8 @@ export const PokeBuilder: React.FC = () => {
                   fontSize: '1.15rem',
                   color: 'var(--color-ocean-dark)',
                   marginBottom: '1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
+                  lineHeight: 1.35,
+                  wordBreak: 'break-word',
                 }}
               >
                 2. Scegli il Formato {pokePersonName.trim() ? `(per ${pokePersonName.trim()})` : ''}
@@ -641,16 +640,15 @@ export const PokeBuilder: React.FC = () => {
 
             {/* 3. Basi */}
             <div
-              className="glass-panel"
+              className="glass-panel poke-card-panel"
               style={{
-                padding: '1.75rem',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'white',
                 border: '1px solid rgba(11, 37, 69, 0.08)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', margin: 0 }}>
                   3. Basi <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>(Selezionate {selectedBasi.length}/{selectedFormat.maxBasi})</span>
                 </h3>
               </div>
@@ -686,16 +684,15 @@ export const PokeBuilder: React.FC = () => {
 
             {/* 4. Proteine */}
             <div
-              className="glass-panel"
+              className="glass-panel poke-card-panel"
               style={{
-                padding: '1.75rem',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'white',
                 border: '1px solid rgba(11, 37, 69, 0.08)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', margin: 0 }}>
                   4. Proteine <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>(Selezionate {selectedProteine.length}/{selectedFormat.maxProteine})</span>
                 </h3>
               </div>
@@ -738,16 +735,15 @@ export const PokeBuilder: React.FC = () => {
 
             {/* 5. Ingredienti Secondari (Topping) */}
             <div
-              className="glass-panel"
+              className="glass-panel poke-card-panel"
               style={{
-                padding: '1.75rem',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'white',
                 border: '1px solid rgba(11, 37, 69, 0.08)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', margin: 0 }}>
                   5. Ingredienti Secondari (Topping) <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>(Selezionati {selectedIngredienti.length}/{selectedFormat.maxSecondari})</span>
                 </h3>
               </div>
@@ -790,16 +786,15 @@ export const PokeBuilder: React.FC = () => {
 
             {/* 6. Salse */}
             <div
-              className="glass-panel"
+              className="glass-panel poke-card-panel"
               style={{
-                padding: '1.75rem',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'white',
                 border: '1px solid rgba(11, 37, 69, 0.08)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', margin: 0 }}>
                   6. Salse <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>(Selezionate {selectedSalse.length}/{selectedFormat.maxSalse})</span>
                 </h3>
               </div>
@@ -842,9 +837,8 @@ export const PokeBuilder: React.FC = () => {
 
             {/* 7. Semi di Sesamo */}
             <div
-              className="glass-panel"
+              className="glass-panel poke-card-panel"
               style={{
-                padding: '1.5rem 1.75rem',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'var(--color-ice-blue)',
                 border: '1px solid rgba(11, 37, 69, 0.08)',
