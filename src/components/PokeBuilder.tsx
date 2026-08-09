@@ -590,7 +590,7 @@ export const PokeBuilder: React.FC = () => {
                   wordBreak: 'break-word',
                 }}
               >
-                2. Scegli il Formato {pokePersonName.trim() ? `(per ${pokePersonName.trim()})` : ''}
+                2. Scegli il Formato
               </h3>
 
               <div
@@ -924,8 +924,8 @@ export const PokeBuilder: React.FC = () => {
                 {editingPokeId ? <Edit3 size={22} /> : <PlusCircle size={22} color="var(--color-sea-blue)" />}
                 <span>
                   {editingPokeId
-                    ? `Salva Modifiche Poke di "${pokePersonName.trim() || '...'}"`
-                    : `Aggiungi Poke ${pokePersonName.trim() ? `di "${pokePersonName.trim()}"` : ''} all'Ordine (€${currentPokePrice.toFixed(2)})`}
+                    ? 'Salva Modifiche Poke'
+                    : `Aggiungi questa Poke all'Ordine (€${currentPokePrice.toFixed(2)})`}
                 </span>
               </button>
 
