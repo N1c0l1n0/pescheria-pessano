@@ -68,11 +68,11 @@ export const Header: React.FC = () => {
             >
               <Anchor size={20} color="white" />
             </div>
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div
                 className="font-serif"
                 style={{
-                  fontSize: '1.3rem',
+                  fontSize: 'clamp(1.05rem, 4vw, 1.3rem)',
                   fontWeight: 700,
                   lineHeight: 1.1,
                   whiteSpace: 'nowrap',
@@ -82,9 +82,9 @@ export const Header: React.FC = () => {
               </div>
               <div
                 style={{
-                  fontSize: '0.7rem',
+                  fontSize: '0.65rem',
                   color: 'var(--color-sea-blue)',
-                  letterSpacing: '0.1em',
+                  letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                   fontWeight: 600,
                   whiteSpace: 'nowrap',
@@ -112,7 +112,7 @@ export const Header: React.FC = () => {
           </nav>
 
           {/* Right Header Status & Call */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             
             {/* Live Store Status Badge */}
             <div
@@ -132,9 +132,14 @@ export const Header: React.FC = () => {
             <a
               href="tel:019692623"
               className="btn btn-coral"
-              style={{ padding: '0.55rem 1.1rem', fontSize: '0.875rem', whiteSpace: 'nowrap', flexShrink: 0 }}
+              style={{
+                padding: '0.45rem 0.85rem',
+                fontSize: '0.8rem',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
             >
-              <Phone size={16} />
+              <Phone size={15} />
               <span>019 692623</span>
             </a>
 
