@@ -70,7 +70,7 @@ export const Header: React.FC = () => {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div
-                className="font-serif"
+                className="font-serif brand-title"
                 style={{
                   fontSize: 'clamp(1.05rem, 4vw, 1.3rem)',
                   fontWeight: 700,
@@ -81,6 +81,7 @@ export const Header: React.FC = () => {
                 Pescheria Pessano
               </div>
               <div
+                className="brand-subtitle"
                 style={{
                   fontSize: '0.65rem',
                   color: 'var(--color-sea-blue)',
@@ -131,7 +132,7 @@ export const Header: React.FC = () => {
             {/* Quick Call Button */}
             <a
               href="tel:019692623"
-              className="btn btn-coral"
+              className="btn btn-coral header-phone-btn"
               style={{
                 padding: '0.45rem 0.85rem',
                 fontSize: '0.8rem',

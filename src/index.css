@@ -240,11 +240,16 @@ body {
 }
 
 /* Prevent horizontal scroll and mobile focus auto-zoom */
+/* Prevent horizontal scroll and mobile focus auto-zoom */
 html,
-body {
-  overflow-x: clip !important;
+body,
+#root {
+  overflow-x: hidden !important;
   max-width: 100vw !important;
   width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
   -webkit-text-size-adjust: 100% !important;
   touch-action: manipulation;
 }
@@ -287,16 +292,38 @@ textarea {
 }
 
 @media (max-width: 640px) {
+  .brand-title {
+    font-size: 1.05rem !important;
+  }
+
+  .brand-subtitle {
+    display: none !important;
+  }
+
+  .header-phone-btn {
+    padding: 0.4rem 0.65rem !important;
+    font-size: 0.75rem !important;
+  }
+
   .container {
-    padding: 0 0.75rem !important;
+    padding-left: 0.85rem !important;
+    padding-right: 0.85rem !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .poke-card-panel,
+  .poke-summary-card,
   .glass-panel {
     padding: 1.15rem 0.85rem !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
   }
 
   .poke-format-grid,
