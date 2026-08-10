@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Phone, MapPin, Star, Clock, Anchor, Sparkles } from 'lucide-react';
 import { getStoreStatus } from '../utils/openingHours';
 
@@ -46,6 +47,7 @@ export const Hero: React.FC = () => {
           {/* Main Info Text */}
           <div style={{ maxWidth: '640px' }}>
             
+
             {/* Rating Badge - Guaranteed Single Line */}
             <div
               style={{
@@ -114,14 +116,14 @@ export const Hero: React.FC = () => {
                 marginBottom: '2.5rem',
               }}
             >
-              <a
-                href="#poke"
+              <Link
+                to="/componi-poke"
                 className="btn btn-coral"
-                style={{ fontSize: '1rem', padding: '0.9rem 1.8rem', whiteSpace: 'nowrap' }}
+                style={{ fontSize: '1rem', padding: '0.9rem 1.8rem', whiteSpace: 'nowrap', textDecoration: 'none' }}
               >
                 <Sparkles size={18} />
                 <span>Componi la tua Poke</span>
-              </a>
+              </Link>
 
               <a
                 href="tel:019692623"

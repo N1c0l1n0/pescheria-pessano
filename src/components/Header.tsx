@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Menu, X, Anchor } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Phone, Menu, X } from 'lucide-react';
 import { getStoreStatus } from '../utils/openingHours';
 
 export const Header: React.FC = () => {
@@ -56,24 +57,36 @@ export const Header: React.FC = () => {
           >
             <div
               style={{
-                width: '40px',
-                height: '40px',
+                width: '44px',
+                height: '44px',
                 borderRadius: '50%',
-                backgroundColor: 'var(--color-coral)',
+                backgroundColor: 'white',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
+                flexShrink: 0,
+                overflow: 'hidden',
+                border: '2px solid rgba(255, 255, 255, 0.8)',
               }}
             >
-              <Anchor size={20} color="white" />
+              <img
+                src="/logo_pescheria.png"
+                alt="Pescheria Pessano Finale Ligure Logo"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: '50%',
+                }}
+              />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div
                 className="font-serif brand-title"
                 style={{
-                  fontSize: 'clamp(1.05rem, 4vw, 1.3rem)',
-                  fontWeight: 700,
+                  fontSize: 'clamp(1.05rem, 4vw, 1.25rem)',
+                  fontWeight: 800,
                   lineHeight: 1.1,
                   whiteSpace: 'nowrap',
                 }}
@@ -101,32 +114,29 @@ export const Header: React.FC = () => {
             style={{
               display: 'none',
               alignItems: 'center',
-              gap: '2rem',
+              gap: '1.5rem',
             }}
             className="desktop-nav"
           >
-            <a href="#hero" style={navLinkStyle}>Home</a>
-            <a href="#poke" style={navLinkStyle}>Componi la tua poke</a>
-            <a href="#servizi" style={navLinkStyle}>I Nostri Servizi</a>
-            <a href="#orari" style={navLinkStyle}>Orari di Apertura</a>
-            <a href="#contatti" style={navLinkStyle}>Dove Siamo & Contatti</a>
+            <Link to="/" style={navLinkStyle}>Home</Link>
+            <Link to="/componi-poke" style={navLinkStyle}>Componi Poke</Link>
+            <a href="#servizi" style={navLinkStyle}>Servizi</a>
+            <a href="#orari" style={navLinkStyle}>Orari</a>
+            <a href="#contatti" style={navLinkStyle}>Contatti</a>
           </nav>
 
           {/* Right Header Status & Call */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             
-            {/* Live Store Status Badge */}
+            {/* Live Store Status Badge (Aperto / Chiuso only) */}
             <div
               className={status.isOpen ? 'badge-live-open' : 'badge-live-closed'}
               title={status.nextEventText}
-              style={{ display: 'none', whiteSpace: 'nowrap' }}
+              style={{ display: 'none', whiteSpace: 'nowrap', padding: '0.35rem 0.85rem' }}
               id="header-status-badge"
             >
               <span className="dot"></span>
-              <span>{status.message}</span>
-              <span style={{ opacity: 0.8, fontSize: '0.75rem', fontWeight: 500 }}>
-                • {status.nextEventText}
-              </span>
+              <span>{status.isOpen ? 'Aperto' : 'Chiuso'}</span>
             </div>
 
             {/* Quick Call Button */}
@@ -134,8 +144,8 @@ export const Header: React.FC = () => {
               href="tel:019692623"
               className="btn btn-coral header-phone-btn"
               style={{
-                padding: '0.45rem 0.85rem',
-                fontSize: '0.8rem',
+                padding: '0.5rem 1rem',
+                fontSize: '0.85rem',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
               }}
@@ -186,8 +196,8 @@ export const Header: React.FC = () => {
               </span>
             </div>
 
-            <a href="#hero" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Home</a>
-            <a href="#poke" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Componi la tua poke</a>
+            <Link to="/" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Home</Link>
+            <Link to="/componi-poke" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Componi la tua poke</Link>
             <a href="#servizi" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>I Nostri Servizi</a>
             <a href="#orari" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Orari di Apertura</a>
             <a href="#contatti" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Dove Siamo & Contatti</a>
@@ -210,7 +220,8 @@ const navLinkStyle: React.CSSProperties = {
   color: 'rgba(255, 255, 255, 0.85)',
   textDecoration: 'none',
   fontSize: '0.925rem',
-  fontWeight: 500,
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
   transition: 'color 0.2s ease',
 };
 

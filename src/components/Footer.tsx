@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Anchor, Phone, ShieldCheck, Info, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Phone, ShieldCheck, Info, X } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   const [modalType, setModalType] = useState<'privacy' | 'cookie' | null>(null);
@@ -28,34 +29,47 @@ export const Footer: React.FC = () => {
           }}
         >
           {/* Brand Info */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
             <div
               style={{
-                width: '36px',
-                height: '36px',
+                width: '46px',
+                height: '46px',
                 borderRadius: '50%',
-                backgroundColor: 'var(--color-coral)',
+                backgroundColor: 'white',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
+                overflow: 'hidden',
+                border: '2px solid rgba(255, 255, 255, 0.8)',
+                flexShrink: 0,
               }}
             >
-              <Anchor size={18} color="white" />
+              <img
+                src="/logo_pescheria.png"
+                alt="Pescheria Pessano Finale Ligure Logo"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: '50%',
+                }}
+              />
             </div>
             <div>
-              <div className="font-serif" style={{ fontSize: '1.25rem', fontWeight: 700, lineHeight: 1 }}>
+              <div className="font-serif" style={{ fontSize: '1.2rem', fontWeight: 800 }}>
                 Pescheria Pessano
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-sea-blue)', fontWeight: 600 }}>
-                Finale Ligure (SV)
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-sea-blue)' }}>
+                Via Avvocato Emanuele Rossi, 17 - Finale Ligure (SV)
               </div>
             </div>
           </div>
 
           {/* Quick Links */}
           <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.9rem', flexWrap: 'wrap' }}>
-            <a href="#hero" style={footerLinkStyle}>Home</a>
-            <a href="#poke" style={footerLinkStyle}>Componi la tua poke</a>
+            <Link to="/" style={footerLinkStyle}>Home</Link>
+            <Link to="/componi-poke" style={footerLinkStyle}>Componi la tua poke</Link>
             <a href="#servizi" style={footerLinkStyle}>Servizi</a>
             <a href="#orari" style={footerLinkStyle}>Orari</a>
             <a href="#contatti" style={footerLinkStyle}>Dove Siamo</a>

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, Check, AlertCircle, Sparkles, MessageCircle, Info, Trash2, PlusCircle, Edit3, RotateCcw } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface FormatOption {
   id: string;
@@ -128,17 +130,24 @@ export interface ConfiguredPoke {
 }
 
 export const PokeBuilder: React.FC = () => {
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [pokePersonName, setPokePersonName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [orderType, setOrderType] = useState<'Ritiro' | 'Consegna'>('Ritiro');
+  const [pickupTime, setPickupTime] = useState('Prima possibile (ASAP)');
+  const [customTimeInput, setCustomTimeInput] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [selectedFormat, setSelectedFormat] = useState<FormatOption>(FORMATS[0]);
   const [selectedBasi, setSelectedBasi] = useState<string[]>([]);
   const [selectedProteine, setSelectedProteine] = useState<string[]>([]);
   const [selectedIngredienti, setSelectedIngredienti] = useState<string[]>([]);
   const [semiSesamo, setSemiSesamo] = useState<boolean>(true);
   const [selectedSalse, setSelectedSalse] = useState<string[]>([]);
-  
+
   // List of added Pokes for multi-poke ordering
   const [orderList, setOrderList] = useState<ConfiguredPoke[]>([]);
-  
+
   // State for editing an existing poke
   const [editingPokeId, setEditingPokeId] = useState<string | null>(null);
 
@@ -267,7 +276,7 @@ export const PokeBuilder: React.FC = () => {
       };
 
       setOrderList([...orderList, newPoke]);
-      
+
       // Reset selections for next poke creation
       setPokePersonName('');
       setSelectedBasi([]);
@@ -323,16 +332,25 @@ export const PokeBuilder: React.FC = () => {
     setOrderList(updated);
   };
 
-  // WhatsApp Multi-Poke Order Link Generator
-  const handleWhatsAppOrder = () => {
-    // Determine final list of pokes to send
+  // Direct KDS Order Submission & Live Tracking Redirect
+  const handleDirectOrderSubmit = async () => {
     let finalPokes: ConfiguredPoke[] = [...orderList];
+
+    if (!customerPhone.trim()) {
+      setValidationError('Inserisci il tuo Numero di Telefono prima di inviare l\'ordine!');
+      return;
+    }
+
+    if (orderType === 'Consegna' && !deliveryAddress.trim()) {
+      setValidationError('Inserisci l\'indirizzo di consegna per procedere!');
+      return;
+    }
 
     // If orderList is empty but user configured current form, validate and auto add
     if (finalPokes.length === 0) {
       const trimmedName = pokePersonName.trim();
       if (!trimmedName) {
-        setValidationError('Inserisci il nome di chi ordina la Poke prima di procedere!');
+        setValidationError('Inserisci il nome referente per la Poke prima di procedere!');
         return;
       }
       if (selectedBasi.length === 0) {
@@ -358,31 +376,61 @@ export const PokeBuilder: React.FC = () => {
     }
 
     setValidationError(null);
+    setIsSubmitting(true);
 
     const totalToPay = finalPokes.reduce((acc, p) => acc + p.price, 0);
+    const effectiveTime = pickupTime === 'Altro' ? (customTimeInput || 'Da concordare') : pickupTime;
+    const clientName = pokePersonName.trim() || 'Cliente';
 
-    let text = `*NUOVO ORDINE POKE - PESCHERIA PESSANO*
---------------------------------
-📊 *Totale Poke Ordinate:* ${finalPokes.length}
-`;
+    try {
+      // 1. Insert parent order into Supabase 'orders' table
+      const { data: insertedOrder, error: orderErr } = await supabase
+        .from('orders')
+        .insert({
+          status: 'RICEVUTO',
+          customer_name: clientName,
+          phone: customerPhone.trim(),
+          order_type: orderType,
+          delivery_address: orderType === 'Consegna' ? deliveryAddress.trim() : null,
+          total_price: totalToPay,
+          notes: `Orario: ${effectiveTime}`,
+        })
+        .select()
+        .single();
 
-    finalPokes.forEach((poke) => {
-      text += `
-📦 *POKE DI ${poke.pokePersonName.toUpperCase()}* (${poke.format.name} - €${poke.price.toFixed(2)})
-🍚 *Basi:* ${poke.basi.length > 0 ? poke.basi.join(', ') : 'Nessuna'}
-🐟 *Proteine:* ${poke.proteine.length > 0 ? poke.proteine.join(', ') : 'Nessuna'}
-🥗 *Ingredienti:* ${poke.ingredienti.length > 0 ? poke.ingredienti.join(', ') : 'Nessuno'}
-🍯 *Salse:* ${poke.salse.length > 0 ? poke.salse.join(', ') : 'Nessuna'}
-🌱 *Semi di Sesamo:* ${poke.semiSesamo ? 'SI' : 'NO'}
-`;
-    });
+      if (orderErr) {
+        console.warn('Supabase orders insert notice:', orderErr.message);
+      }
 
-    text += `--------------------------------
-💰 *GRAN TOTALE ORDINE:* €${totalToPay.toFixed(2)}`;
+      // 2. Insert items into 'order_items' table if order ID exists
+      if (insertedOrder && insertedOrder.id) {
+        const itemsPayload = finalPokes.map((poke) => ({
+          order_id: insertedOrder.id,
+          item_name: `Poke ${poke.format.name} (${poke.pokePersonName})`,
+          size: poke.format.name,
+          bases: poke.basi,
+          proteins: poke.proteine,
+          toppings: poke.ingredienti,
+          sauces: poke.salse,
+          has_sesame: poke.semiSesamo,
+          price: poke.price,
+          quantity: 1,
+        }));
 
-    const encoded = encodeURIComponent(text);
-    const whatsappUrl = `https://wa.me/393459485857?text=${encoded}`;
-    window.open(whatsappUrl, '_blank');
+        await supabase.from('order_items').insert(itemsPayload);
+      }
+
+      const orderIdToTrack = insertedOrder ? insertedOrder.id : customerPhone.trim();
+
+      // Redirect immediately to Live Order Tracking page!
+      navigate(`/ordine/${orderIdToTrack}`);
+    } catch (e) {
+      console.error('Error submitting order to KDS:', e);
+      // Fallback redirect to order tracking with phone
+      navigate(`/ordine/${customerPhone.trim()}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -394,7 +442,7 @@ export const PokeBuilder: React.FC = () => {
       }}
     >
       <div className="container">
-        
+
         {/* Section Header */}
         <div style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto 3.5rem auto' }}>
           <div
@@ -442,7 +490,7 @@ export const PokeBuilder: React.FC = () => {
         >
           {/* Main Builder Form Container */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            
+
             {/* Success Toast Banner */}
             {successMsg && (
               <div
@@ -522,53 +570,201 @@ export const PokeBuilder: React.FC = () => {
               </div>
             )}
 
-            {/* 1. Nome Persona per la Poke */}
+            {/* 1. Dati Cliente & Orario Ritiro/Consegna */}
             <div
               className="glass-panel poke-card-panel"
               style={{
                 borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--color-ice-blue)',
-                border: '1px solid rgba(11, 37, 69, 0.08)',
+                backgroundColor: 'white',
+                border: '1px solid rgba(11, 37, 69, 0.12)',
               }}
             >
-              <label
-                htmlFor="customerNameInput"
-                style={{
-                  display: 'block',
-                  fontWeight: 700,
-                  fontSize: '1.05rem',
-                  color: 'var(--color-ocean-dark)',
-                  marginBottom: '0.65rem',
-                  lineHeight: 1.35,
-                  wordBreak: 'break-word',
-                }}
-              >
-                1. Nome persona per questa Poke <span style={{ color: 'var(--color-coral)' }}>*</span>
-              </label>
-              <input
-                id="customerNameInput"
-                type="text"
-                placeholder="Es. Marco, Sara, Luca..."
-                value={pokePersonName}
-                onChange={(e) => {
-                  setPokePersonName(e.target.value);
-                  if (validationError) setValidationError(null);
-                }}
-                style={{
-                  width: '100%',
-                  maxWidth: '100%',
-                  boxSizing: 'border-box',
-                  display: 'block',
-                  padding: '0.85rem 1.15rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid rgba(11, 37, 69, 0.18)',
-                  backgroundColor: 'white',
-                  fontSize: '16px',
-                  outline: 'none',
-                  color: 'var(--color-ocean-dark)',
-                  WebkitAppearance: 'none',
-                }}
-              />
+              <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', margin: '0 0 1.25rem 0' }}>
+                1. Dati Cliente & Orario di Ritiro/Consegna
+              </h3>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                {/* Nome Persona */}
+                <div>
+                  <label htmlFor="customerNameInput" style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.4rem' }}>
+                    Nome referente ordine <span style={{ color: 'var(--color-coral)' }}>*</span>
+                  </label>
+                  <input
+                    id="customerNameInput"
+                    type="text"
+                    placeholder="Es. Marco, Sara, Luca..."
+                    value={pokePersonName}
+                    onChange={(e) => {
+                      setPokePersonName(e.target.value);
+                      if (validationError) setValidationError(null);
+                    }}
+                    style={{
+                      width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
+                      display: 'block',
+                      padding: '0.85rem 1.15rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid rgba(11, 37, 69, 0.18)',
+                      backgroundColor: '#F8FAFC',
+                      fontSize: '16px',
+                      outline: 'none',
+                      color: 'var(--color-ocean-dark)',
+                      WebkitAppearance: 'none',
+                    }}
+                  />
+                </div>
+
+                {/* Numero di Telefono */}
+                <div>
+                  <label htmlFor="customerPhoneInput" style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.4rem' }}>
+                    Numero di Telefono <span style={{ color: 'var(--color-coral)' }}>*</span>
+                  </label>
+                  <input
+                    id="customerPhoneInput"
+                    type="tel"
+                    placeholder="Es. 334 1234567"
+                    value={customerPhone}
+                    onChange={(e) => {
+                      setCustomerPhone(e.target.value);
+                      if (validationError) setValidationError(null);
+                    }}
+                    style={{
+                      width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
+                      display: 'block',
+                      padding: '0.85rem 1.15rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid rgba(11, 37, 69, 0.18)',
+                      backgroundColor: '#F8FAFC',
+                      fontSize: '16px',
+                      outline: 'none',
+                      color: 'var(--color-ocean-dark)',
+                      WebkitAppearance: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Modalità Ordine */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.5rem' }}>
+                  Modalità Ordine
+                </label>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setOrderType('Ritiro')}
+                    style={{
+                      flex: 1,
+                      minWidth: '130px',
+                      padding: '0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: orderType === 'Ritiro' ? '2px solid var(--color-coral)' : '1px solid rgba(11, 37, 69, 0.15)',
+                      backgroundColor: orderType === 'Ritiro' ? 'rgba(255, 107, 107, 0.08)' : 'white',
+                      fontWeight: 700,
+                      color: 'var(--color-ocean-dark)',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Ritiro al Banco
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderType('Consegna')}
+                    style={{
+                      flex: 1,
+                      minWidth: '130px',
+                      padding: '0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: orderType === 'Consegna' ? '2px solid var(--color-coral)' : '1px solid rgba(11, 37, 69, 0.15)',
+                      backgroundColor: orderType === 'Consegna' ? 'rgba(255, 107, 107, 0.08)' : 'white',
+                      fontWeight: 700,
+                      color: 'var(--color-ocean-dark)',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Consegna a Domicilio
+                  </button>
+                </div>
+              </div>
+
+              {/* Indirizzo Consegna se Consegna */}
+              {orderType === 'Consegna' && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label htmlFor="deliveryAddressInput" style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.4rem' }}>
+                    Indirizzo di Consegna <span style={{ color: 'var(--color-coral)' }}>*</span>
+                  </label>
+                  <input
+                    id="deliveryAddressInput"
+                    type="text"
+                    placeholder="Es. Via Garibaldi 14, Finale Ligure (piano, citofono...)"
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid rgba(11, 37, 69, 0.18)',
+                      backgroundColor: '#F8FAFC',
+                      fontSize: '16px',
+                      color: 'var(--color-ocean-dark)',
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Orario Desiderato */}
+              <div>
+                <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.5rem' }}>
+                  Orario di {orderType} desiderato
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                  {['Prima possibile', '12:30', '13:00', '13:30', '19:30', '20:00', '20:30', 'Altro'].map((timeOpt) => {
+                    const isSel = pickupTime === timeOpt;
+                    return (
+                      <button
+                        key={timeOpt}
+                        type="button"
+                        onClick={() => setPickupTime(timeOpt)}
+                        style={{
+                          padding: '0.45rem 0.75rem',
+                          borderRadius: '6px',
+                          border: isSel ? '1.5px solid var(--color-coral)' : '1px solid rgba(11, 37, 69, 0.15)',
+                          backgroundColor: isSel ? 'rgba(255, 107, 107, 0.12)' : 'white',
+                          color: isSel ? 'var(--color-coral)' : 'var(--color-ocean-dark)',
+                          fontWeight: isSel ? 800 : 600,
+                          fontSize: '0.825rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {timeOpt}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {pickupTime === 'Altro' && (
+                  <input
+                    type="text"
+                    placeholder="Specificare orario desiderato (es. 14:15)"
+                    value={customTimeInput}
+                    onChange={(e) => setCustomTimeInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      marginTop: '0.5rem',
+                      padding: '0.65rem 0.9rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid rgba(11, 37, 69, 0.18)',
+                      backgroundColor: '#F8FAFC',
+                      fontSize: '15px',
+                    }}
+                  />
+                )}
+              </div>
             </div>
 
             {/* 2. Selezione Formato */}
@@ -593,11 +789,14 @@ export const PokeBuilder: React.FC = () => {
                 2. Scegli il Formato
               </h3>
 
+              {/* FIX: da grid a flexbox con wrap + justifyContent center per centrare
+                  correttamente l'ultima riga incompleta (es. 3 card su 2 colonne) */}
               <div
                 className="poke-format-grid"
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
                   gap: '1rem',
                 }}
               >
@@ -609,6 +808,10 @@ export const PokeBuilder: React.FC = () => {
                       key={fmt.id}
                       onClick={() => handleFormatChange(fmt)}
                       style={{
+                        // FIX: flex-basis al posto di minmax(220px,1fr) della grid,
+                        // maxWidth evita che la card si allarghi troppo da sola su una riga
+                        flex: '1 1 220px',
+                        maxWidth: '320px',
                         padding: '1.15rem 1rem',
                         borderRadius: 'var(--radius-md)',
                         border: isSelected ? '2px solid var(--color-coral)' : '1px solid rgba(11, 37, 69, 0.12)',
@@ -653,7 +856,9 @@ export const PokeBuilder: React.FC = () => {
                 </h3>
               </div>
 
-              <div className="poke-options-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
+              {/* FIX: flexbox con wrap invece di grid, per centrare le chip anche
+                  quando l'ultima riga non è completa */}
+              <div className="poke-options-grid" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.75rem' }}>
                 {BASI.map((b) => {
                   const isChecked = selectedBasi.includes(b);
                   const isDisabled = !isChecked && selectedBasi.length >= selectedFormat.maxBasi;
@@ -697,7 +902,7 @@ export const PokeBuilder: React.FC = () => {
                 </h3>
               </div>
 
-              <div className="poke-options-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
+              <div className="poke-options-grid" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.75rem' }}>
                 {PROTEINE.map((p) => {
                   const isChecked = selectedProteine.includes(p.name);
                   const isDisabled = !isChecked && selectedProteine.length >= selectedFormat.maxProteine;
@@ -748,7 +953,7 @@ export const PokeBuilder: React.FC = () => {
                 </h3>
               </div>
 
-              <div className="poke-options-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
+              <div className="poke-options-grid" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.75rem' }}>
                 {INGREDIENTI.map((ing) => {
                   const isChecked = selectedIngredienti.includes(ing.name);
                   const isDisabled = !isChecked && selectedIngredienti.length >= selectedFormat.maxSecondari;
@@ -799,7 +1004,7 @@ export const PokeBuilder: React.FC = () => {
                 </h3>
               </div>
 
-              <div className="poke-options-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
+              <div className="poke-options-grid" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.75rem' }}>
                 {SALSE.map((s) => {
                   const isChecked = selectedSalse.includes(s.name);
                   const isDisabled = !isChecked && selectedSalse.length >= selectedFormat.maxSalse;
@@ -1081,8 +1286,20 @@ export const PokeBuilder: React.FC = () => {
                   </div>
 
                   <div style={summaryRowStyle}>
-                    <span style={{ color: 'var(--color-sea-blue)' }}>Poke di:</span>
+                    <span style={{ color: 'var(--color-sea-blue)' }}>Cliente:</span>
                     <strong>{pokePersonName.trim() || 'Non inserito'}</strong>
+                  </div>
+
+                  <div style={summaryRowStyle}>
+                    <span style={{ color: 'var(--color-sea-blue)' }}>Telefono:</span>
+                    <strong>{customerPhone.trim() || 'Non inserito'}</strong>
+                  </div>
+
+                  <div style={summaryRowStyle}>
+                    <span style={{ color: 'var(--color-sea-blue)' }}>Modalità & Orario:</span>
+                    <strong style={{ color: 'var(--color-gold)' }}>
+                      {orderType} - {pickupTime === 'Altro' ? (customTimeInput || 'Orario da concordare') : pickupTime}
+                    </strong>
                   </div>
 
                   <div style={summaryRowStyle}>
@@ -1138,27 +1355,66 @@ export const PokeBuilder: React.FC = () => {
                 </div>
               )}
 
-              {/* WhatsApp Order Button */}
+              {/* Direct KDS Order Submit Button */}
               <button
                 type="button"
-                onClick={handleWhatsAppOrder}
+                onClick={handleDirectOrderSubmit}
+                disabled={isSubmitting}
                 className="btn btn-coral"
                 style={{
                   width: '100%',
-                  padding: '1rem',
-                  fontSize: '1rem',
-                  fontWeight: 700,
+                  padding: '1.1rem 1rem',
+                  fontSize: '1.05rem',
+                  fontWeight: 800,
                   justifyContent: 'center',
                   whiteSpace: 'nowrap',
+                  boxShadow: '0 4px 20px rgba(255, 107, 107, 0.4)',
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  opacity: isSubmitting ? 0.7 : 1,
                 }}
               >
-                <MessageCircle size={20} />
+                <Sparkles size={20} />
                 <span>
-                  {orderList.length > 1
-                    ? `Invia Ordine ${orderList.length} Poke su WhatsApp`
-                    : 'Invia Ordine Poke su WhatsApp'}
+                  {isSubmitting
+                    ? 'Invio Ordine al Banco in corso...'
+                    : orderList.length > 1
+                    ? `🚀 Conferma e Invia ${orderList.length} Poke al Banco`
+                    : '🚀 Conferma e Invia Ordine al Banco'}
                 </span>
               </button>
+
+              {/* Box Assistenza Ordini WhatsApp */}
+              <div
+                style={{
+                  marginTop: '1.25rem',
+                  padding: '0.85rem 1rem',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(37, 211, 102, 0.12)',
+                  border: '1px solid rgba(37, 211, 102, 0.3)',
+                  color: '#DCFCE7',
+                  fontSize: '0.825rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.65rem',
+                  lineHeight: 1.4,
+                }}
+              >
+                <MessageCircle size={22} color="#25D366" style={{ flexShrink: 0 }} />
+                <div>
+                  <strong>Serve aiuto o modifiche?</strong>
+                  <div style={{ opacity: 0.9, marginTop: '0.15rem' }}>
+                    Se ci sono problemi con l'ordine, contatta la Pescheria su WhatsApp al{' '}
+                    <a
+                      href="https://wa.me/393459485857"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#4ADE80', fontWeight: 800, textDecoration: 'underline' }}
+                    >
+                      345 9485857
+                    </a>
+                  </div>
+                </div>
+              </div>
 
               <div
                 style={{
@@ -1168,7 +1424,7 @@ export const PokeBuilder: React.FC = () => {
                   marginTop: '0.85rem',
                 }}
               >
-                Invia l'ordine completo su WhatsApp al numero: <strong>3459485857</strong>
+                L'ordine verrà inviato al banco e potrai seguirne la preparazione in tempo reale.
               </div>
 
             </div>
@@ -1181,10 +1437,15 @@ export const PokeBuilder: React.FC = () => {
   );
 };
 
+// FIX: aggiunto flex-basis + maxWidth così anche le chip (Basi, Proteine,
+// Ingredienti, Salse) si dispongono correttamente nel container flex e le
+// righe incomplete restano centrate su mobile.
 const chipLabelStyle = (isChecked: boolean, isDisabled: boolean): React.CSSProperties => ({
   display: 'flex',
   alignItems: 'center',
   gap: '0.65rem',
+  flex: '1 1 140px',
+  maxWidth: '100%',
   padding: '0.75rem 0.9rem',
   borderRadius: 'var(--radius-sm)',
   border: isChecked
@@ -1193,8 +1454,8 @@ const chipLabelStyle = (isChecked: boolean, isDisabled: boolean): React.CSSPrope
   backgroundColor: isChecked
     ? 'rgba(255, 107, 107, 0.08)'
     : isDisabled
-    ? '#F8FAFC'
-    : 'white',
+      ? '#F8FAFC'
+      : 'white',
   cursor: isDisabled ? 'not-allowed' : 'pointer',
   opacity: isDisabled ? 0.6 : 1,
   transition: 'all 0.2s ease',
@@ -1209,8 +1470,8 @@ const customCheckboxStyle = (isChecked: boolean, isDisabled: boolean): React.CSS
   border: isChecked
     ? 'none'
     : isDisabled
-    ? '1.5px solid #CBD5E1'
-    : '1.5px solid rgba(11, 37, 69, 0.3)',
+      ? '1.5px solid #CBD5E1'
+      : '1.5px solid rgba(11, 37, 69, 0.3)',
   backgroundColor: isChecked ? 'var(--color-coral)' : 'transparent',
   display: 'flex',
   alignItems: 'center',
