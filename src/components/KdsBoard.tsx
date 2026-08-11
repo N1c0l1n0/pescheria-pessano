@@ -8,7 +8,6 @@ import {
   Maximize2,
   Minimize2,
   Volume2,
-  PlusCircle,
   ShoppingBag,
   Truck,
   User,
@@ -118,85 +117,7 @@ export const KdsBoard: React.FC = () => {
     }
   };
 
-  // Initial Mock Orders fallback in case database is empty
-  const getMockOrders = (): KdsOrder[] => [
-    {
-      id: '101',
-      display_id: '#101',
-      status: 'RICEVUTO',
-      customer_name: 'Marco Rossi',
-      phone: '334 1234567',
-      order_type: 'Ritiro',
-      total_price: 15.00,
-      created_at: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
-      notes: 'Salsa Teriyaki a parte per favore',
-      order_items: [
-        {
-          item_name: 'Poke XL',
-          size: 'XL',
-          bases: ['Riso Sushi', 'Riso Venere'],
-          proteins: ['Salmone', 'Tonno', 'Gamberi'],
-          toppings: ['Avocado', 'Edamame', 'Mango', 'Alga Nori', 'Cetrioli'],
-          sauces: ['Teriyaki', 'Maionese Spaziata'],
-          has_sesame: true
-        }
-      ]
-    },
-    {
-      id: '102',
-      display_id: '#102',
-      status: 'IN_PREPARAZIONE',
-      customer_name: 'Sara Bianchi',
-      phone: '347 9876543',
-      order_type: 'Consegna',
-      delivery_address: 'Via Garibaldi 14, Finale Ligure',
-      total_price: 24.00,
-      created_at: new Date(Date.now() - 7 * 60 * 1000).toISOString(),
-      notes: 'Citofonare Bianchi - 2° piano',
-      order_items: [
-        {
-          item_name: 'Poke Regular + 1 Proteina',
-          size: 'Regular',
-          bases: ['Riso Sushi'],
-          proteins: ['Salmone', 'Polpo'],
-          toppings: ['Avocado', 'Wakame', 'Ananas'],
-          sauces: ['Soy Sauce'],
-          has_sesame: true
-        },
-        {
-          item_name: 'Poke Regular',
-          size: 'Regular',
-          bases: ['Insalata Misticanza'],
-          proteins: ['Tofu Bio'],
-          toppings: ['Pomodorini', 'Mais', 'Carote'],
-          sauces: ['Ponzu'],
-          has_sesame: false
-        }
-      ]
-    },
-    {
-      id: '103',
-      display_id: '#103',
-      status: 'PRONTO',
-      customer_name: 'Luca Moretti',
-      phone: '320 5554433',
-      order_type: 'Ritiro',
-      total_price: 12.00,
-      created_at: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
-      notes: '',
-      order_items: [
-        {
-          item_name: 'Poke Regular + 1 Proteina',
-          size: 'Regular',
-          bases: ['Riso Venere'],
-          proteins: ['Salmone', 'Gamberi'],
-          toppings: ['Edamame', 'Cipolla Croccante', 'Philadelphia'],
-          sauces: ['Maionese Spicy'],
-          has_sesame: true
-        }
-      ]
-    }
-  ];
+
 
   // Fetch active orders from Supabase DB & Local Storage Store
   const fetchOrders = useCallback(async () => {
@@ -270,23 +191,13 @@ export const KdsBoard: React.FC = () => {
       remoteOrders.forEach((o) => orderMap.set(o.id, o));
       localList.forEach((o) => orderMap.set(o.id, o));
 
-      let finalCombined = Array.from(orderMap.values());
-
-      if (finalCombined.length === 0) {
-        finalCombined = getMockOrders();
-      } else {
-        finalCombined.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      }
-
+      const finalCombined = Array.from(orderMap.values());
+      finalCombined.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       setOrders(finalCombined);
     } catch (e) {
-      console.warn('Order fetch exception, fallback to local & mock:', e);
+      console.warn('Order fetch exception, fallback to local store:', e);
       const local = getLocalOrders().filter((o) => o.status !== 'COMPLETATO');
-      if (local.length > 0) {
-        setOrders(local as KdsOrder[]);
-      } else {
-        setOrders(getMockOrders());
-      }
+      setOrders(local as KdsOrder[]);
     } finally {
       setLoading(false);
     }
@@ -351,40 +262,7 @@ export const KdsBoard: React.FC = () => {
     }
   };
 
-  // Add Demo Order (For testing / demonstration)
-  const handleAddDemoOrder = () => {
-    const newId = String(Math.floor(100 + Math.random() * 900));
-    const demoCustomerNames = ['Andrea Neri', 'Elena Conti', 'Giuseppe Verdi', 'Laura Riva', 'Matteo Costa'];
-    const randomName = demoCustomerNames[Math.floor(Math.random() * demoCustomerNames.length)];
-    const isDelivery = Math.random() > 0.5;
 
-    const newOrder: KdsOrder = {
-      id: newId,
-      display_id: `#${newId}`,
-      status: 'RICEVUTO',
-      customer_name: randomName,
-      phone: '333 ' + Math.floor(1000000 + Math.random() * 9000000),
-      order_type: isDelivery ? 'Consegna' : 'Ritiro',
-      delivery_address: isDelivery ? 'Corso Italia 45, Finale Ligure' : undefined,
-      total_price: 15.00,
-      created_at: new Date().toISOString(),
-      notes: 'Torta di pesce o poke super fresca!',
-      order_items: [
-        {
-          item_name: 'Poke XL',
-          size: 'XL',
-          bases: ['Riso Sushi'],
-          proteins: ['Salmone', 'Tonno'],
-          toppings: ['Avocado', 'Edamame', 'Wakame'],
-          sauces: ['Teriyaki', 'Maionese Spaziata'],
-          has_sesame: true
-        }
-      ]
-    };
-
-    setOrders((prev) => [newOrder, ...prev]);
-    playAudioBeep();
-  };
   // Helper to extract customer's requested time from order notes
   const extractRequestedTimeInfo = (notes?: string): { timeText: string; isAsap: boolean } => {
     if (!notes) return { timeText: 'ASAP', isAsap: true };
@@ -720,26 +598,7 @@ export const KdsBoard: React.FC = () => {
             <Volume2 size={18} />
           </button>
 
-          {/* Add Demo Order Button */}
-          <button
-            type="button"
-            onClick={handleAddDemoOrder}
-            style={{
-              padding: '0.45rem 0.75rem',
-              borderRadius: '8px',
-              backgroundColor: '#10B981',
-              border: 'none',
-              color: 'white',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-            }}
-          >
-            <PlusCircle size={16} /> + Ordine Demo
-          </button>
+
 
           {/* Fullscreen Toggle Button */}
           <button
@@ -788,28 +647,9 @@ export const KdsBoard: React.FC = () => {
             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>
               Nessun Ordine Attivo al Momento!
             </h2>
-            <p style={{ color: '#94A3B8', maxWidth: '500px', margin: '0 0 1.5rem 0', fontSize: '0.95rem' }}>
-              Tutti gli ordini in coda sono stati preparati e completati. Clicca "+ Ordine Demo" per simulare un nuovo ordine in entrata!
+            <p style={{ color: '#94A3B8', maxWidth: '500px', margin: '0', fontSize: '0.95rem' }}>
+              Tutti gli ordini in coda sono stati preparati e completati. In attesa di nuovi ordini in arrivo dai clienti.
             </p>
-            <button
-              type="button"
-              onClick={handleAddDemoOrder}
-              style={{
-                padding: '0.75rem 1.5rem',
-                borderRadius: '12px',
-                backgroundColor: '#FF6B6B',
-                color: 'white',
-                border: 'none',
-                fontWeight: 800,
-                fontSize: '1rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}
-            >
-              <PlusCircle size={20} /> Crea Ordine di Prova
-            </button>
           </div>
         ) : (
           <div
