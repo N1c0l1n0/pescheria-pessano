@@ -470,7 +470,9 @@ export const PokeBuilder: React.FC = () => {
       created_at: new Date().toISOString(),
       notes: combinedNotes,
       order_items: finalPokes.map((poke) => ({
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         item_name: `Poke ${poke.format.name} (${poke.pokePersonName})`,
+        name: `Poke ${poke.format.name} (${poke.pokePersonName})`,
         size: poke.format.name,
         bases: poke.basi,
         proteins: poke.proteine,
@@ -479,7 +481,17 @@ export const PokeBuilder: React.FC = () => {
         has_sesame: poke.semiSesamo,
         notes: poke.notes || '',
         price: poke.price,
+        unit_price: poke.price,
         quantity: 1,
+        details: {
+          size: poke.format.name,
+          bases: poke.basi,
+          proteins: poke.proteine,
+          toppings: poke.ingredienti,
+          sauces: poke.salse,
+          has_sesame: poke.semiSesamo,
+          notes: poke.notes || '',
+        },
       })),
     });
 

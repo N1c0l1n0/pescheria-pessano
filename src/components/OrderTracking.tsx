@@ -124,15 +124,26 @@ export const OrderTracking: React.FC = () => {
         const raw = data as any;
         const items = Array.isArray(raw.order_items)
           ? raw.order_items.map((item: any) => {
-              const dt = item.details || {};
+              let dt: any = {};
+              if (typeof item.details === 'string') {
+                try { dt = JSON.parse(item.details); } catch (e) { dt = {}; }
+              } else if (typeof item.details === 'object' && item.details !== null) {
+                dt = item.details;
+              }
+
+              const bases = Array.isArray(dt.bases) ? dt.bases : (Array.isArray(item.bases) ? item.bases : (Array.isArray(dt.basi) ? dt.basi : (Array.isArray(item.basi) ? item.basi : [])));
+              const proteins = Array.isArray(dt.proteins) ? dt.proteins : (Array.isArray(item.proteins) ? item.proteins : (Array.isArray(dt.proteine) ? dt.proteine : (Array.isArray(item.proteine) ? item.proteine : [])));
+              const toppings = Array.isArray(dt.toppings) ? dt.toppings : (Array.isArray(item.toppings) ? item.toppings : (Array.isArray(dt.ingredienti) ? dt.ingredienti : (Array.isArray(item.ingredienti) ? item.ingredienti : [])));
+              const sauces = Array.isArray(dt.sauces) ? dt.sauces : (Array.isArray(item.sauces) ? item.sauces : (Array.isArray(dt.salse) ? dt.salse : (Array.isArray(item.salse) ? item.salse : [])));
+
               return {
                 id: String(item.id),
                 item_name: item.name || item.item_name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
                 size: dt.size || item.size || '',
-                bases: Array.isArray(dt.bases) ? dt.bases : (item.bases || []),
-                proteins: Array.isArray(dt.proteins) ? dt.proteins : (item.proteins || []),
-                toppings: Array.isArray(dt.toppings) ? dt.toppings : (item.toppings || []),
-                sauces: Array.isArray(dt.sauces) ? dt.sauces : (item.sauces || []),
+                bases,
+                proteins,
+                toppings,
+                sauces,
                 has_sesame: dt.has_sesame ?? item.has_sesame ?? true,
                 notes: dt.notes || item.notes || '',
                 price: Number(item.unit_price || item.price || 0),
@@ -165,11 +176,49 @@ export const OrderTracking: React.FC = () => {
       // Local store fallback
       const local = getLocalOrderById(id);
       if (local) {
+        const normalizedLocalItems = (local.order_items || (local as any).items || []).map((item: any) => {
+          let dt: any = {};
+          if (typeof item.details === 'string') {
+            try { dt = JSON.parse(item.details); } catch (e) { dt = {}; }
+          } else if (typeof item.details === 'object' && item.details !== null) {
+            dt = item.details;
+          }
+
+          const bases = Array.isArray(item.bases) ? item.bases : (Array.isArray(dt.bases) ? dt.bases : (Array.isArray(item.basi) ? item.basi : (Array.isArray(dt.basi) ? dt.basi : [])));
+          const proteins = Array.isArray(item.proteins) ? item.proteins : (Array.isArray(dt.proteins) ? dt.proteins : (Array.isArray(item.proteine) ? item.proteine : (Array.isArray(dt.proteine) ? dt.proteine : [])));
+          const toppings = Array.isArray(item.toppings) ? item.toppings : (Array.isArray(dt.toppings) ? dt.toppings : (Array.isArray(item.ingredienti) ? item.ingredienti : (Array.isArray(dt.ingredienti) ? dt.ingredienti : [])));
+          const sauces = Array.isArray(item.sauces) ? item.sauces : (Array.isArray(dt.sauces) ? dt.sauces : (Array.isArray(item.salse) ? item.salse : (Array.isArray(dt.salse) ? dt.salse : [])));
+
+          return {
+            id: String(item.id || Math.random()),
+            item_name: item.item_name || item.name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
+            size: item.size || dt.size || '',
+            bases,
+            proteins,
+            toppings,
+            sauces,
+            has_sesame: item.has_sesame ?? dt.has_sesame ?? true,
+            notes: item.notes || dt.notes || '',
+            price: Number(item.price || item.unit_price || 0),
+            quantity: Number(item.quantity || 1),
+          };
+        });
+
+        const normalizedLocal: Order = {
+          ...local,
+          id: String(local.id),
+          display_id: local.display_id || `#${String(local.id).slice(-4).toUpperCase()}`,
+          customer_name: local.customer_name || 'Cliente',
+          phone: (local as any).customer_phone || local.phone || '',
+          total_price: Number((local as any).total_amount || local.total_price || 0),
+          order_items: normalizedLocalItems,
+        };
+
         setOrder((prev) => {
-          if (prev?.status !== 'PRONTO' && local.status === 'PRONTO') {
+          if (prev?.status !== 'PRONTO' && normalizedLocal.status === 'PRONTO') {
             triggerProntoAlert();
           }
-          return local as Order;
+          return normalizedLocal;
         });
         return;
       }
