@@ -57,13 +57,64 @@ export const KdsBoard: React.FC = () => {
   // Track checked ingredients per order and item (key: `${orderId}_${itemIdx}_${ingCategory}_${ingName}`)
   const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
 
+  const [audioUnlocked, setAudioUnlocked] = useState<boolean>(false);
+  const audioContextRef = React.useRef<AudioContext | null>(null);
+
+  // Lazy AudioContext initializer
+  const getAudioContext = useCallback(() => {
+    if (!audioContextRef.current) {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        audioContextRef.current = new AudioCtx();
+      }
+    }
+    return audioContextRef.current;
+  }, []);
+
+  // Unlock AudioContext if suspended
+  const unlockAudio = useCallback(() => {
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().then(() => {
+        setAudioUnlocked(true);
+      }).catch((e) => {
+        console.warn('Failed to resume AudioContext:', e);
+      });
+    } else if (ctx && ctx.state === 'running') {
+      setAudioUnlocked(true);
+    }
+  }, [getAudioContext]);
+
+  // Global user interaction listener to unlock audio policy
+  useEffect(() => {
+    const handleGesture = () => {
+      unlockAudio();
+      window.removeEventListener('click', handleGesture);
+      window.removeEventListener('keydown', handleGesture);
+      window.removeEventListener('touchstart', handleGesture);
+    };
+
+    window.addEventListener('click', handleGesture);
+    window.addEventListener('keydown', handleGesture);
+    window.addEventListener('touchstart', handleGesture);
+
+    return () => {
+      window.removeEventListener('click', handleGesture);
+      window.removeEventListener('keydown', handleGesture);
+      window.removeEventListener('touchstart', handleGesture);
+    };
+  }, [unlockAudio]);
+
   // Audio Context for Beep sound notification
   const playAudioBeep = useCallback(() => {
     try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
       const now = ctx.currentTime;
       
       const osc1 = ctx.createOscillator();
@@ -91,7 +142,7 @@ export const KdsBoard: React.FC = () => {
     } catch (e) {
       console.warn('Audio play failed:', e);
     }
-  }, []);
+  }, [getAudioContext]);
 
   // Update digital clock every second
   useEffect(() => {
@@ -597,24 +648,32 @@ export const KdsBoard: React.FC = () => {
             </button>
           </div>
 
-          {/* Test Beep Sound Button */}
+          {/* Test Beep Sound Button / Audio Unlock Button */}
           <button
             type="button"
-            onClick={playAudioBeep}
-            title="Test Segnale Audio"
+            onClick={() => {
+              unlockAudio();
+              playAudioBeep();
+            }}
+            title={audioUnlocked ? "Suono Abilitato (Clicca per Test Audio)" : "Audio in attesa di sblocco dal browser. Clicca per sbloccare!"}
             style={{
-              padding: '0.5rem',
+              padding: '0.45rem 0.85rem',
               borderRadius: '8px',
-              backgroundColor: '#1E293B',
-              border: '1px solid rgba(148, 163, 184, 0.2)',
-              color: '#FACC15',
+              backgroundColor: audioUnlocked ? '#1E293B' : '#7F1D1D',
+              border: audioUnlocked ? '1px solid rgba(148, 163, 184, 0.2)' : '1px solid #EF4444',
+              color: audioUnlocked ? '#FACC15' : '#FCA5A5',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: '0.45rem',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              boxShadow: audioUnlocked ? 'none' : '0 0 10px rgba(239, 68, 68, 0.35)',
+              transition: 'all 0.2s',
             }}
           >
             <Volume2 size={18} />
+            <span>{audioUnlocked ? "Audio Attivo" : "Attiva Audio"}</span>
           </button>
 
 

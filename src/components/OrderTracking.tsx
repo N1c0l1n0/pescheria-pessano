@@ -282,14 +282,6 @@ export const OrderTracking: React.FC = () => {
 
   const currentStep = getStepIndex(order?.status);
 
-  // Manual status toggler for testing live transitions directly in UI
-  const handleSimulateStatusChange = (newStatus: 'RICEVUTO' | 'IN_PREPARAZIONE' | 'PRONTO') => {
-    if (!order) return;
-    if (newStatus === 'PRONTO' && order.status !== 'PRONTO') {
-      triggerProntoAlert();
-    }
-    setOrder({ ...order, status: newStatus });
-  };
 
   const displayId = order?.display_id || (order?.id ? `#${String(order.id).slice(-4).toUpperCase()}` : (id ? `#${String(id).slice(-4).toUpperCase()}` : '#0000'));
 
@@ -727,71 +719,6 @@ export const OrderTracking: React.FC = () => {
                       Pronto al banco!
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* DEMO / TESTING CONTROLS (Simulate state transition) */}
-              <div
-                style={{
-                  marginTop: '2.5rem',
-                  paddingTop: '1.25rem',
-                  borderTop: '1px dashed rgba(255, 255, 255, 0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '0.75rem',
-                }}
-              >
-                <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                  Simulatore cambio stato DB (Realtime Test):
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    onClick={() => handleSimulateStatusChange('RICEVUTO')}
-                    style={{
-                      padding: '0.35rem 0.75rem',
-                      borderRadius: '0.375rem',
-                      border: 'none',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      backgroundColor: currentStep === 0 ? '#134074' : 'rgba(255,255,255,0.1)',
-                      color: currentStep === 0 ? '#38BDF8' : '#94A3B8',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    1. Ricevuto
-                  </button>
-                  <button
-                    onClick={() => handleSimulateStatusChange('IN_PREPARAZIONE')}
-                    style={{
-                      padding: '0.35rem 0.75rem',
-                      borderRadius: '0.375rem',
-                      border: 'none',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      backgroundColor: currentStep === 1 ? '#D97706' : 'rgba(255,255,255,0.1)',
-                      color: currentStep === 1 ? '#FBBF24' : '#94A3B8',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    2. In Prep.
-                  </button>
-                  <button
-                    onClick={() => handleSimulateStatusChange('PRONTO')}
-                    style={{
-                      padding: '0.35rem 0.75rem',
-                      borderRadius: '0.375rem',
-                      border: 'none',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      backgroundColor: currentStep === 2 ? '#059669' : 'rgba(255,255,255,0.1)',
-                      color: currentStep === 2 ? '#34D399' : '#94A3B8',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    3. Pronto!
-                  </button>
                 </div>
               </div>
             </div>

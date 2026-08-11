@@ -1617,6 +1617,80 @@ export const PokeBuilder: React.FC = () => {
         </div>
 
       </div>
+
+      {/* Floating Checkout Bar for Mobile/Desktop */}
+      {orderList.length > 0 && (
+        <div
+          className="floating-checkout-bar"
+          style={{
+            position: 'fixed',
+            bottom: '1.25rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 'calc(100% - 2.5rem)',
+            maxWidth: '520px',
+            backgroundColor: '#0B2545',
+            borderRadius: '16px',
+            padding: '0.85rem 1.25rem',
+            boxShadow: '0 12px 30px rgba(11, 37, 69, 0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1.25rem',
+            zIndex: 9999,
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div style={{ color: 'white', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+            <span style={{ fontSize: '0.75rem', color: '#8DA9C4', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Totale Ordine
+            </span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FBBF24' }}>
+              €{grandTotal.toFixed(2)}{' '}
+              <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#CBD5E1' }}>
+                ({orderList.length} {orderList.length === 1 ? 'Poke' : 'Poke'})
+              </span>
+            </span>
+          </div>
+
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => {
+              if (!customerPhone.trim()) {
+                const el = document.getElementById('customerPhoneInput');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  el.focus();
+                }
+                setValidationError('Inserisci il tuo Numero di Telefono prima di inviare l\'ordine!');
+              } else {
+                handleDirectOrderSubmit();
+              }
+            }}
+            style={{
+              backgroundColor: '#FF6B6B',
+              color: 'white',
+              border: 'none',
+              padding: '0.75rem 1.35rem',
+              borderRadius: '10px',
+              fontWeight: 800,
+              fontSize: '0.95rem',
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              boxShadow: '0 4px 14px rgba(255, 107, 107, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              transition: 'all 0.2s',
+              opacity: isSubmitting ? 0.7 : 1,
+            }}
+          >
+            <Sparkles size={16} />
+            <span>{isSubmitting ? 'Invio...' : 'Invia Ordine'}</span>
+          </button>
+        </div>
+      )}
     </section>
   );
 };
