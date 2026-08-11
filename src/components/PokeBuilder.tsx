@@ -398,14 +398,15 @@ export const PokeBuilder: React.FC = () => {
     ].filter(Boolean).join(' — ');
 
     let insertedOrderId: string | null = null;
-    let friendlyIdStr: string | null = null;
+    const generatedFriendlyId = `#${Math.floor(1000 + Math.random() * 9000)}`;
 
     try {
-      // 1. Insert parent order into Supabase 'orders' table
+      // 1. Insert parent order into Supabase 'orders' table (including friendly_id for NOT NULL constraint)
       const { data: insertedOrder, error: orderErr } = await supabase
         .from('orders')
         .insert([
           {
+            friendly_id: generatedFriendlyId,
             status: 'RICEVUTO',
             customer_name: clientName,
             customer_phone: customerPhone.trim(),
@@ -422,19 +423,13 @@ export const PokeBuilder: React.FC = () => {
         console.warn('Supabase orders insert notice:', orderErr.message || orderErr);
       } else if (insertedOrder && insertedOrder.id !== undefined && insertedOrder.id !== null) {
         insertedOrderId = String(insertedOrder.id);
-        friendlyIdStr = `#${insertedOrderId.slice(-4).toUpperCase()}`;
-
-        // Set friendly_id on order if not set
-        await supabase
-          .from('orders')
-          .update({ friendly_id: friendlyIdStr })
-          .eq('id', insertedOrder.id);
       }
 
-      // 2. Insert items into 'order_items' table if order ID exists
+      // 2. Insert items into 'order_items' table if order ID exists (including uuid id for NOT NULL constraint)
       if (insertedOrderId) {
         const numericOrderId = !isNaN(Number(insertedOrderId)) ? Number(insertedOrderId) : insertedOrderId;
         const itemsPayload = finalPokes.map((poke) => ({
+          id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
           order_id: numericOrderId,
           item_type: 'poke',
           name: `Poke ${poke.format.name} (${poke.pokePersonName})`,
