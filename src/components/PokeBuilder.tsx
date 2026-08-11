@@ -403,28 +403,31 @@ export const PokeBuilder: React.FC = () => {
       // 1. Insert parent order into Supabase 'orders' table
       const { data: insertedOrder, error: orderErr } = await supabase
         .from('orders')
-        .insert({
-          status: 'RICEVUTO',
-          customer_name: clientName,
-          phone: customerPhone.trim(),
-          order_type: orderType,
-          delivery_address: orderType === 'Consegna' ? deliveryAddress.trim() : null,
-          total_price: totalToPay,
-          notes: combinedNotes,
-        })
+        .insert([
+          {
+            status: 'RICEVUTO',
+            customer_name: clientName,
+            phone: customerPhone.trim(),
+            order_type: orderType,
+            delivery_address: orderType === 'Consegna' ? deliveryAddress.trim() : null,
+            total_price: totalToPay,
+            notes: combinedNotes,
+          },
+        ])
         .select()
         .single();
 
       if (orderErr) {
-        console.warn('Supabase orders insert notice:', orderErr.message);
-      } else if (insertedOrder && insertedOrder.id) {
+        console.warn('Supabase orders insert notice:', orderErr.message || orderErr);
+      } else if (insertedOrder && insertedOrder.id !== undefined && insertedOrder.id !== null) {
         insertedOrderId = String(insertedOrder.id);
       }
 
       // 2. Insert items into 'order_items' table if order ID exists
       if (insertedOrderId) {
+        const numericOrderId = !isNaN(Number(insertedOrderId)) ? Number(insertedOrderId) : insertedOrderId;
         const itemsPayload = finalPokes.map((poke) => ({
-          order_id: insertedOrderId,
+          order_id: numericOrderId,
           item_name: `Poke ${poke.format.name} (${poke.pokePersonName})`,
           size: poke.format.name,
           bases: poke.basi,
@@ -437,7 +440,10 @@ export const PokeBuilder: React.FC = () => {
           quantity: 1,
         }));
 
-        await supabase.from('order_items').insert(itemsPayload);
+        const { error: itemsErr } = await supabase.from('order_items').insert(itemsPayload);
+        if (itemsErr) {
+          console.warn('Supabase order_items insert notice:', itemsErr.message || itemsErr);
+        }
       }
     } catch (e) {
       console.error('Error submitting order to Supabase:', e);
