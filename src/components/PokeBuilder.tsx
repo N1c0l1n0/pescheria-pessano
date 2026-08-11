@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Check, AlertCircle, Sparkles, MessageCircle, Info, Trash2, PlusCircle, Edit3, RotateCcw } from 'lucide-react';
+import { ShoppingBag, Check, AlertCircle, Sparkles, MessageCircle, Info, Trash2, PlusCircle, Edit3, RotateCcw, FileText } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { saveLocalOrder } from '../utils/orderStore';
 
 interface FormatOption {
   id: string;
@@ -126,6 +127,7 @@ export interface ConfiguredPoke {
   ingredienti: string[];
   semiSesamo: boolean;
   salse: string[];
+  notes?: string; // Special notes for this poke
   price: number;
 }
 
@@ -144,6 +146,8 @@ export const PokeBuilder: React.FC = () => {
   const [selectedIngredienti, setSelectedIngredienti] = useState<string[]>([]);
   const [semiSesamo, setSemiSesamo] = useState<boolean>(true);
   const [selectedSalse, setSelectedSalse] = useState<string[]>([]);
+  const [pokeNotes, setPokeNotes] = useState<string>('');
+  const [generalOrderNotes, setGeneralOrderNotes] = useState<string>('');
 
   // List of added Pokes for multi-poke ordering
   const [orderList, setOrderList] = useState<ConfiguredPoke[]>([]);
@@ -242,6 +246,7 @@ export const PokeBuilder: React.FC = () => {
             ingredienti: [...selectedIngredienti],
             semiSesamo,
             salse: [...selectedSalse],
+            notes: pokeNotes.trim() || undefined,
             price: currentPokePrice,
           };
         }
@@ -258,6 +263,7 @@ export const PokeBuilder: React.FC = () => {
       setSelectedIngredienti([]);
       setSelectedSalse([]);
       setSemiSesamo(true);
+      setPokeNotes('');
 
       setSuccessMsg(`Modifica per la Poke di "${trimmedName}" salvata con successo!`);
       setTimeout(() => setSuccessMsg(null), 5000);
@@ -272,6 +278,7 @@ export const PokeBuilder: React.FC = () => {
         ingredienti: [...selectedIngredienti],
         semiSesamo,
         salse: [...selectedSalse],
+        notes: pokeNotes.trim() || undefined,
         price: currentPokePrice,
       };
 
@@ -284,6 +291,7 @@ export const PokeBuilder: React.FC = () => {
       setSelectedIngredienti([]);
       setSelectedSalse([]);
       setSemiSesamo(true);
+      setPokeNotes('');
 
       setSuccessMsg(
         `Poke di "${trimmedName}" aggiunta all'ordine! I campi sono stati azzerati: puoi ora comporre la Poke per un'altra persona oppure inviare l'ordine completo.`
@@ -306,6 +314,7 @@ export const PokeBuilder: React.FC = () => {
     setSelectedIngredienti([...poke.ingredienti]);
     setSelectedSalse([...poke.salse]);
     setSemiSesamo(poke.semiSesamo);
+    setPokeNotes(poke.notes || '');
 
     // Smooth scroll to top of configurator
     document.getElementById('customerNameInput')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -320,6 +329,7 @@ export const PokeBuilder: React.FC = () => {
     setSelectedIngredienti([]);
     setSelectedSalse([]);
     setSemiSesamo(true);
+    setPokeNotes('');
     setValidationError(null);
   };
 
@@ -371,6 +381,7 @@ export const PokeBuilder: React.FC = () => {
         ingredienti: [...selectedIngredienti],
         semiSesamo,
         salse: [...selectedSalse],
+        notes: pokeNotes.trim() || undefined,
         price: currentPokePrice,
       });
     }
@@ -380,7 +391,13 @@ export const PokeBuilder: React.FC = () => {
 
     const totalToPay = finalPokes.reduce((acc, p) => acc + p.price, 0);
     const effectiveTime = pickupTime === 'Altro' ? (customTimeInput || 'Da concordare') : pickupTime;
-    const clientName = pokePersonName.trim() || 'Cliente';
+    const clientName = finalPokes[0]?.pokePersonName || 'Cliente';
+    const combinedNotes = [
+      `Orario: ${effectiveTime}`,
+      generalOrderNotes.trim() ? `Note generali: ${generalOrderNotes.trim()}` : null,
+    ].filter(Boolean).join(' — ');
+
+    let insertedOrderId: string | null = null;
 
     try {
       // 1. Insert parent order into Supabase 'orders' table
@@ -393,19 +410,21 @@ export const PokeBuilder: React.FC = () => {
           order_type: orderType,
           delivery_address: orderType === 'Consegna' ? deliveryAddress.trim() : null,
           total_price: totalToPay,
-          notes: `Orario: ${effectiveTime}`,
+          notes: combinedNotes,
         })
         .select()
         .single();
 
       if (orderErr) {
         console.warn('Supabase orders insert notice:', orderErr.message);
+      } else if (insertedOrder && insertedOrder.id) {
+        insertedOrderId = String(insertedOrder.id);
       }
 
       // 2. Insert items into 'order_items' table if order ID exists
-      if (insertedOrder && insertedOrder.id) {
+      if (insertedOrderId) {
         const itemsPayload = finalPokes.map((poke) => ({
-          order_id: insertedOrder.id,
+          order_id: insertedOrderId,
           item_name: `Poke ${poke.format.name} (${poke.pokePersonName})`,
           size: poke.format.name,
           bases: poke.basi,
@@ -413,24 +432,49 @@ export const PokeBuilder: React.FC = () => {
           toppings: poke.ingredienti,
           sauces: poke.salse,
           has_sesame: poke.semiSesamo,
+          notes: poke.notes || null,
           price: poke.price,
           quantity: 1,
         }));
 
         await supabase.from('order_items').insert(itemsPayload);
       }
-
-      const orderIdToTrack = insertedOrder ? insertedOrder.id : customerPhone.trim();
-
-      // Redirect immediately to Live Order Tracking page!
-      navigate(`/ordine/${orderIdToTrack}`);
     } catch (e) {
-      console.error('Error submitting order to KDS:', e);
-      // Fallback redirect to order tracking with phone
-      navigate(`/ordine/${customerPhone.trim()}`);
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error submitting order to Supabase:', e);
     }
+
+    // 3. Fallback / Synchronize to local orderStore so KDS & OrderTracking ALWAYS work 100%
+    const finalOrderId = insertedOrderId || `PESS-${Date.now().toString().slice(-6)}`;
+
+    saveLocalOrder({
+      id: finalOrderId,
+      display_id: `#${finalOrderId.slice(-4).toUpperCase()}`,
+      status: 'RICEVUTO',
+      customer_name: clientName,
+      phone: customerPhone.trim(),
+      order_type: orderType,
+      delivery_address: orderType === 'Consegna' ? deliveryAddress.trim() : undefined,
+      total_price: totalToPay,
+      created_at: new Date().toISOString(),
+      notes: combinedNotes,
+      order_items: finalPokes.map((poke) => ({
+        item_name: `Poke ${poke.format.name} (${poke.pokePersonName})`,
+        size: poke.format.name,
+        bases: poke.basi,
+        proteins: poke.proteine,
+        toppings: poke.ingredienti,
+        sauces: poke.salse,
+        has_sesame: poke.semiSesamo,
+        notes: poke.notes || '',
+        price: poke.price,
+        quantity: 1,
+      })),
+    });
+
+    setIsSubmitting(false);
+
+    // Redirect immediately to Live Order Tracking page!
+    navigate(`/ordine/${finalOrderId}`);
   };
 
   return (
@@ -579,15 +623,45 @@ export const PokeBuilder: React.FC = () => {
                 border: '1px solid rgba(11, 37, 69, 0.12)',
               }}
             >
-              <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', margin: '0 0 1.25rem 0' }}>
+              <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', margin: '0 0 0.85rem 0' }}>
                 1. Dati Cliente & Orario di Ritiro/Consegna
               </h3>
+
+              {/* Informative Banner for Unique Order Number vs Poke Names */}
+              <div
+                style={{
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  color: '#0369A1',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  marginBottom: '1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <Info size={20} style={{ flexShrink: 0, color: '#0284C7' }} />
+                <span>
+                  <strong>Gestione Nomi & Ordine:</strong> Il <strong>Numero di telefono è univoco</strong> per tutti i Poke nel carrello. Il <strong>nome della prima Poke</strong> definisce il referente dell'intero ordine.
+                </span>
+              </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
                 {/* Nome Persona */}
                 <div>
                   <label htmlFor="customerNameInput" style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.4rem' }}>
-                    Nome referente ordine <span style={{ color: 'var(--color-coral)' }}>*</span>
+                    {orderList.length === 0 ? (
+                      <>
+                        Nome referente prima Poke (Referente Ordine) <span style={{ color: 'var(--color-coral)' }}>*</span>
+                      </>
+                    ) : (
+                      <>
+                        Nome destinatario per questa Poke <span style={{ color: 'var(--color-coral)' }}>*</span>
+                      </>
+                    )}
                   </label>
                   <input
                     id="customerNameInput"
@@ -613,6 +687,13 @@ export const PokeBuilder: React.FC = () => {
                       WebkitAppearance: 'none',
                     }}
                   />
+                  <div style={{ fontSize: '0.775rem', color: 'var(--color-text-muted)', marginTop: '0.35rem', fontWeight: 500 }}>
+                    {orderList.length === 0 ? (
+                      <span>📌 Nome di questa Poke e referente principale dell'intero ordine.</span>
+                    ) : (
+                      <span>🏷️ Nome della persona a cui è destinata questa singola Poke.</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Numero di Telefono */}
@@ -1102,6 +1183,40 @@ export const PokeBuilder: React.FC = () => {
               </div>
             </div>
 
+            {/* 8. Note per questa Poke */}
+            <div
+              className="glass-panel poke-card-panel"
+              style={{
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'white',
+                border: '1px solid rgba(11, 37, 69, 0.08)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <FileText size={18} color="var(--color-ocean-dark)" />
+                <h4 style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--color-ocean-dark)', margin: 0 }}>
+                  8. Note o richieste particolari per questa Poke <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>(opzionale)</span>
+                </h4>
+              </div>
+              <textarea
+                value={pokeNotes}
+                onChange={(e) => setPokeNotes(e.target.value)}
+                placeholder="Es. salsa a parte, riso poco condito, allergia alle noci, posate monouso..."
+                rows={2}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid rgba(11, 37, 69, 0.15)',
+                  fontSize: '0.9rem',
+                  fontFamily: 'inherit',
+                  resize: 'vertical',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
             {/* Add or Update Poke Action Button */}
             <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <button
@@ -1174,7 +1289,7 @@ export const PokeBuilder: React.FC = () => {
                 overflow: 'hidden',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.12)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.12)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                   <ShoppingBag size={22} color="var(--color-coral)" />
                   <h3 className="font-serif" style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>
@@ -1197,6 +1312,25 @@ export const PokeBuilder: React.FC = () => {
                 >
                   €{(orderList.length > 0 ? grandTotal : currentPokePrice).toFixed(2)}
                 </div>
+              </div>
+
+              {/* Order Reference Info Badge */}
+              <div
+                style={{
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  color: '#38BDF8',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  marginBottom: '1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.2rem',
+                }}
+              >
+                <div>👤 <strong>Referente Principale:</strong> {orderList[0]?.pokePersonName || pokePersonName.trim() || 'Prima Poke'}</div>
               </div>
 
               {/* Order List Display (If Pokes added) */}
@@ -1274,6 +1408,11 @@ export const PokeBuilder: React.FC = () => {
                         {poke.ingredienti.length > 0 && <div><strong>Topping:</strong> {poke.ingredienti.join(', ')}</div>}
                         {poke.salse.length > 0 && <div><strong>Salse:</strong> {poke.salse.join(', ')}</div>}
                         <div><strong>Sesamo:</strong> {poke.semiSesamo ? 'SI' : 'NO'}</div>
+                        {poke.notes && (
+                          <div style={{ color: '#FDE047', fontWeight: 600, marginTop: '0.25rem' }}>
+                            📝 Note: {poke.notes}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1331,8 +1470,41 @@ export const PokeBuilder: React.FC = () => {
                     <span style={{ color: 'var(--color-sea-blue)' }}>Semi di Sesamo:</span>
                     <strong>{semiSesamo ? 'SI' : 'NO'}</strong>
                   </div>
+
+                  {pokeNotes.trim() && (
+                    <div style={summaryRowStyle}>
+                      <span style={{ color: 'var(--color-sea-blue)' }}>Note Poke:</span>
+                      <span style={{ color: '#FDE047', fontWeight: 600 }}>{pokeNotes.trim()}</span>
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* General Order Notes Input */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.825rem', color: 'var(--color-sea-blue)', fontWeight: 700, marginBottom: '0.35rem' }}>
+                  Note generali per l'ordine (opzionale):
+                </label>
+                <textarea
+                  value={generalOrderNotes}
+                  onChange={(e) => setGeneralOrderNotes(e.target.value)}
+                  placeholder="Es. citofonare Rossi al 2° piano, o richieste per la consegna..."
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                />
+              </div>
 
               {/* Validation Warning Alert */}
               {validationError && (
@@ -1378,8 +1550,8 @@ export const PokeBuilder: React.FC = () => {
                   {isSubmitting
                     ? 'Invio Ordine al Banco in corso...'
                     : orderList.length > 1
-                    ? `🚀 Conferma e Invia ${orderList.length} Poke al Banco`
-                    : '🚀 Conferma e Invia Ordine al Banco'}
+                      ? `Conferma e Invia ${orderList.length} Poke al Banco`
+                      : 'Conferma e Invia Ordine al Banco'}
                 </span>
               </button>
 

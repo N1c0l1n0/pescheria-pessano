@@ -18,6 +18,7 @@ import {
   ChefHat
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { getLocalOrders, updateLocalOrderStatus, subscribeToLocalOrders } from '../utils/orderStore';
 
 export interface KdsOrderItem {
   id?: string;
@@ -64,14 +65,12 @@ export const KdsBoard: React.FC = () => {
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
       
-      // Play a double chime (High frequency beep for kitchen alert)
       const now = ctx.currentTime;
       
-      // First beep
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
       osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(880, now); // A5 note
+      osc1.frequency.setValueAtTime(880, now);
       gain1.gain.setValueAtTime(0.3, now);
       gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
       osc1.connect(gain1);
@@ -79,11 +78,10 @@ export const KdsBoard: React.FC = () => {
       osc1.start(now);
       osc1.stop(now + 0.2);
 
-      // Second beep
       const osc2 = ctx.createOscillator();
       const gain2 = ctx.createGain();
       osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(1174.66, now + 0.25); // D6 note
+      osc2.frequency.setValueAtTime(1174.66, now + 0.25);
       gain2.gain.setValueAtTime(0.4, now + 0.25);
       gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
       osc2.connect(gain2);
@@ -200,10 +198,12 @@ export const KdsBoard: React.FC = () => {
     }
   ];
 
-  // Fetch active orders from Supabase DB
+  // Fetch active orders from Supabase DB & Local Storage Store
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
+      let remoteOrders: KdsOrder[] = [];
+
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -233,11 +233,8 @@ export const KdsBoard: React.FC = () => {
         .neq('status', 'COMPLETATO')
         .order('created_at', { ascending: true });
 
-      if (error) {
-        console.warn('Supabase fetch error, fallback to mock state:', error.message);
-        setOrders(getMockOrders());
-      } else if (data && data.length > 0) {
-        const formatted: KdsOrder[] = data.map((o: any) => ({
+      if (!error && data && data.length > 0) {
+        remoteOrders = data.map((o: any) => ({
           id: String(o.id),
           display_id: `#${String(o.id).slice(-4).toUpperCase()}`,
           status: o.status || 'RICEVUTO',
@@ -250,22 +247,58 @@ export const KdsBoard: React.FC = () => {
           notes: o.notes,
           order_items: Array.isArray(o.order_items) ? o.order_items : []
         }));
-        setOrders(formatted);
+      }
+
+      // Combine with local orders (for instant offline / dev persistence)
+      const localList = getLocalOrders()
+        .filter((o) => o.status !== 'COMPLETATO')
+        .map((o) => ({
+          id: String(o.id),
+          display_id: o.display_id || `#${String(o.id).slice(-4).toUpperCase()}`,
+          status: o.status || 'RICEVUTO',
+          customer_name: o.customer_name || 'Cliente',
+          phone: o.phone,
+          order_type: o.order_type || 'Ritiro',
+          delivery_address: o.delivery_address,
+          total_price: Number(o.total_price || 0),
+          created_at: o.created_at || new Date().toISOString(),
+          notes: o.notes,
+          order_items: (o.order_items || []) as KdsOrderItem[],
+        }));
+
+      const orderMap = new Map<string, KdsOrder>();
+      remoteOrders.forEach((o) => orderMap.set(o.id, o));
+      localList.forEach((o) => orderMap.set(o.id, o));
+
+      let finalCombined = Array.from(orderMap.values());
+
+      if (finalCombined.length === 0) {
+        finalCombined = getMockOrders();
       } else {
-        // If DB is empty, provide demo orders so staff can test
+        finalCombined.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      }
+
+      setOrders(finalCombined);
+    } catch (e) {
+      console.warn('Order fetch exception, fallback to local & mock:', e);
+      const local = getLocalOrders().filter((o) => o.status !== 'COMPLETATO');
+      if (local.length > 0) {
+        setOrders(local as KdsOrder[]);
+      } else {
         setOrders(getMockOrders());
       }
-    } catch (e) {
-      console.warn('DB connect exception, using demo orders:', e);
-      setOrders(getMockOrders());
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Supabase Realtime Subscription
+  // Supabase Realtime & Local Store Subscription
   useEffect(() => {
     fetchOrders();
+
+    const unsubLocal = subscribeToLocalOrders(() => {
+      fetchOrders();
+    });
 
     const channel = supabase
       .channel('kds_realtime_orders')
@@ -287,6 +320,7 @@ export const KdsBoard: React.FC = () => {
       .subscribe();
 
     return () => {
+      unsubLocal();
       supabase.removeChannel(channel);
     };
   }, [fetchOrders, playAudioBeep]);
@@ -299,6 +333,9 @@ export const KdsBoard: React.FC = () => {
         .map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
         .filter((o) => o.status !== 'COMPLETATO')
     );
+
+    // Update local store
+    updateLocalOrderStatus(orderId, newStatus);
 
     try {
       const { error } = await supabase
@@ -348,6 +385,112 @@ export const KdsBoard: React.FC = () => {
     setOrders((prev) => [newOrder, ...prev]);
     playAudioBeep();
   };
+  // Helper to extract customer's requested time from order notes
+  const extractRequestedTimeInfo = (notes?: string): { timeText: string; isAsap: boolean } => {
+    if (!notes) return { timeText: 'ASAP', isAsap: true };
+
+    const match = notes.match(/Orario:\s*([^—\n]+)/i);
+    if (match && match[1]) {
+      const raw = match[1].trim();
+      if (raw.toLowerCase().includes('asap') || raw.toLowerCase().includes('prima possibile')) {
+        return { timeText: 'ASAP', isAsap: true };
+      }
+      return { timeText: raw, isAsap: false };
+    }
+
+    return { timeText: 'ASAP', isAsap: true };
+  };
+
+  // Helper to compute timer status relative to requested time or order creation
+  const calculateOrderTimer = (createdAtStr: string, requestedTimeText: string, isAsap: boolean) => {
+    const createdMs = new Date(createdAtStr).getTime();
+    const nowMs = Date.now();
+    const elapsedMin = Math.max(0, Math.floor((nowMs - createdMs) / 60000));
+
+    if (isAsap) {
+      let timerBg = 'rgba(34, 197, 94, 0.2)';
+      let timerText = '#4ADE80';
+      let timerBorder = 'rgba(34, 197, 94, 0.5)';
+      let isUrgent = false;
+
+      if (elapsedMin >= 5 && elapsedMin <= 10) {
+        timerBg = 'rgba(234, 179, 8, 0.2)';
+        timerText = '#FACC15';
+        timerBorder = 'rgba(234, 179, 8, 0.5)';
+      } else if (elapsedMin > 10) {
+        timerBg = 'rgba(239, 68, 68, 0.25)';
+        timerText = '#FCA5A5';
+        timerBorder = 'rgba(239, 68, 68, 0.6)';
+        isUrgent = true;
+      }
+
+      return {
+        timerLabel: `${elapsedMin} min`,
+        subLabel: 'in attesa',
+        timerBg,
+        timerText,
+        timerBorder,
+        isUrgent,
+      };
+    }
+
+    // Fixed Time requested (e.g. "12:30", "19:30")
+    const timeMatch = requestedTimeText.match(/(\d{1,2})[:.](\d{2})/);
+    if (timeMatch) {
+      const targetHour = parseInt(timeMatch[1], 10);
+      const targetMin = parseInt(timeMatch[2], 10);
+
+      const targetDate = new Date(createdMs);
+      targetDate.setHours(targetHour, targetMin, 0, 0);
+      let targetMs = targetDate.getTime();
+
+      if (targetMs < createdMs - 3600000) {
+        targetMs += 86400000;
+      }
+
+      const diffMs = targetMs - nowMs;
+      const diffMin = Math.floor(diffMs / 60000);
+
+      if (diffMin < 0) {
+        const overdueMin = Math.abs(diffMin);
+        return {
+          timerLabel: `+${overdueMin} min`,
+          subLabel: 'RITARDO!',
+          timerBg: 'rgba(239, 68, 68, 0.35)',
+          timerText: '#EF4444',
+          timerBorder: 'rgba(239, 68, 68, 0.8)',
+          isUrgent: true,
+        };
+      } else if (diffMin <= 15) {
+        return {
+          timerLabel: `-${diffMin} min`,
+          subLabel: `scade a ${requestedTimeText}`,
+          timerBg: 'rgba(234, 179, 8, 0.25)',
+          timerText: '#FACC15',
+          timerBorder: 'rgba(234, 179, 8, 0.6)',
+          isUrgent: diffMin <= 5,
+        };
+      } else {
+        return {
+          timerLabel: `-${diffMin} min`,
+          subLabel: `per le ${requestedTimeText}`,
+          timerBg: 'rgba(34, 197, 94, 0.2)',
+          timerText: '#4ADE80',
+          timerBorder: 'rgba(34, 197, 94, 0.5)',
+          isUrgent: false,
+        };
+      }
+    }
+
+    return {
+      timerLabel: `${elapsedMin} min`,
+      subLabel: `richiesto ${requestedTimeText}`,
+      timerBg: 'rgba(56, 189, 248, 0.2)',
+      timerText: '#38BDF8',
+      timerBorder: 'rgba(56, 189, 248, 0.5)',
+      isUrgent: false,
+    };
+  };
 
   // Toggle ingredient checklist item
   const toggleIngredient = (key: string) => {
@@ -355,14 +498,6 @@ export const KdsBoard: React.FC = () => {
       ...prev,
       [key]: !prev[key]
     }));
-  };
-
-  // Calculate dynamic elapsed time in minutes
-  const getElapsedMinutes = (createdAtStr: string): number => {
-    const created = new Date(createdAtStr).getTime();
-    const now = Date.now();
-    const diffMs = now - created;
-    return Math.max(0, Math.floor(diffMs / (1000 * 60)));
   };
 
   // Filter active orders
@@ -686,26 +821,8 @@ export const KdsBoard: React.FC = () => {
             }}
           >
             {filteredOrders.map((ord) => {
-              const elapsedMin = getElapsedMinutes(ord.created_at);
-
-              // Timer Color Coding
-              // Verde < 5 min, Giallo 5-10 min, Rosso > 10 min
-              let timerBg = 'rgba(34, 197, 94, 0.2)';
-              let timerText = '#4ADE80';
-              let timerBorder = 'rgba(34, 197, 94, 0.5)';
-              let isUrgent = false;
-
-              if (elapsedMin >= 5 && elapsedMin <= 10) {
-                timerBg = 'rgba(234, 179, 8, 0.2)';
-                timerText = '#FACC15';
-                timerBorder = 'rgba(234, 179, 8, 0.5)';
-              } else if (elapsedMin > 10) {
-                timerBg = 'rgba(239, 68, 68, 0.25)';
-                timerText = '#FCA5A5';
-                timerBorder = 'rgba(239, 68, 68, 0.6)';
-                isUrgent = true;
-              }
-
+              const { timeText, isAsap } = extractRequestedTimeInfo(ord.notes);
+              const timerInfo = calculateOrderTimer(ord.created_at, timeText, isAsap);
               const isDelivery = ord.order_type.toLowerCase().includes('consegna');
 
               return (
@@ -714,15 +831,15 @@ export const KdsBoard: React.FC = () => {
                   style={{
                     backgroundColor: '#1E293B',
                     borderRadius: '16px',
-                    border: isUrgent
+                    border: timerInfo.isUrgent
                       ? '2px solid #EF4444'
                       : ord.status === 'IN_PREPARAZIONE'
                       ? '2px solid #3B82F6'
                       : ord.status === 'PRONTO'
                       ? '2px solid #10B981'
                       : '1px solid rgba(148, 163, 184, 0.2)',
-                    boxShadow: isUrgent
-                      ? '0 0 20px rgba(239, 68, 68, 0.3)'
+                    boxShadow: timerInfo.isUrgent
+                      ? '0 0 20px rgba(239, 68, 68, 0.35)'
                       : '0 8px 24px rgba(0, 0, 0, 0.3)',
                     display: 'flex',
                     flexDirection: 'column',
@@ -743,7 +860,7 @@ export const KdsBoard: React.FC = () => {
                     }}
                   >
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white', letterSpacing: '0.02em' }}>
                           {ord.display_id || `#${ord.id}`}
                         </span>
@@ -767,10 +884,29 @@ export const KdsBoard: React.FC = () => {
                           {isDelivery ? <Truck size={12} /> : <ShoppingBag size={12} />}
                           {ord.order_type}
                         </span>
+
+                        {/* Customer Requested Time Badge */}
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            padding: '0.2rem 0.55rem',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 800,
+                            backgroundColor: isAsap ? 'rgba(239, 68, 68, 0.18)' : 'rgba(168, 85, 247, 0.2)',
+                            color: isAsap ? '#FCA5A5' : '#E9D5FF',
+                            border: isAsap ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(168, 85, 247, 0.4)',
+                          }}
+                        >
+                          <Clock size={12} />
+                          <span>ORARIO: {timeText}</span>
+                        </span>
                       </div>
 
                       {/* Customer Name & Phone */}
-                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F1F5F9', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F1F5F9', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                           <User size={15} color="#94A3B8" />
                           <span>{ord.customer_name}</span>
@@ -784,27 +920,29 @@ export const KdsBoard: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Dynamic Timer Badge */}
+                    {/* Dynamic Timer / Countdown Badge */}
                     <div
                       style={{
-                        backgroundColor: timerBg,
-                        border: `1px solid ${timerBorder}`,
-                        color: timerText,
-                        padding: '0.4rem 0.75rem',
+                        backgroundColor: timerInfo.timerBg,
+                        border: `1px solid ${timerInfo.timerBorder}`,
+                        color: timerInfo.timerText,
+                        padding: '0.45rem 0.75rem',
                         borderRadius: '10px',
                         textAlign: 'center',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        flexShrink: 0,
+                        minWidth: '85px',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.95rem', fontWeight: 800 }}>
-                        <Clock size={14} />
-                        <span>{elapsedMin} min</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '1rem', fontWeight: 900 }}>
+                        <Clock size={15} />
+                        <span>{timerInfo.timerLabel}</span>
                       </div>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase' }}>
-                        in attesa
+                      <span style={{ fontSize: '0.625rem', fontWeight: 800, opacity: 0.9, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                        {timerInfo.subLabel}
                       </span>
                     </div>
                   </div>
@@ -1066,6 +1204,13 @@ export const KdsBoard: React.FC = () => {
                                     </button>
                                   );
                                 })()}
+                              </div>
+                            )}
+
+                            {/* NOTE ITEM */}
+                            {item.notes && (
+                              <div style={{ marginTop: '0.45rem', padding: '0.4rem 0.65rem', borderRadius: '6px', backgroundColor: 'rgba(234, 179, 8, 0.2)', border: '1px solid rgba(234, 179, 8, 0.5)', color: '#FDE047', fontSize: '0.825rem', fontWeight: 700 }}>
+                                📝 Nota Poke: {item.notes}
                               </div>
                             )}
                           </div>

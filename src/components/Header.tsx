@@ -2,11 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Menu, X } from 'lucide-react';
 import { getStoreStatus } from '../utils/openingHours';
+import { useSectionNavigate } from '../utils/navigation';
 
 export const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [status, setStatus] = useState(() => getStoreStatus());
+  const { navigateToSection } = useSectionNavigate();
+
+  const handleSectionNav = (sectionId: string, e: React.MouseEvent) => {
+    setMobileMenuOpen(false);
+    navigateToSection(sectionId, e);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -46,13 +53,15 @@ export const Header: React.FC = () => {
           
           {/* Logo */}
           <a
-            href="#hero"
+            href="/#hero"
+            onClick={(e) => handleSectionNav('hero', e)}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.75rem',
               textDecoration: 'none',
               color: 'white',
+              cursor: 'pointer',
             }}
           >
             <div
@@ -118,26 +127,34 @@ export const Header: React.FC = () => {
             }}
             className="desktop-nav"
           >
-            <Link to="/" style={navLinkStyle}>Home</Link>
+            <Link to="/" onClick={(e) => handleSectionNav('hero', e)} style={navLinkStyle}>Home</Link>
             <Link to="/componi-poke" style={navLinkStyle}>Componi Poke</Link>
-            <a href="#servizi" style={navLinkStyle}>Servizi</a>
-            <a href="#orari" style={navLinkStyle}>Orari</a>
-            <a href="#contatti" style={navLinkStyle}>Contatti</a>
+            <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} style={navLinkStyle}>Servizi</a>
+            <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} style={navLinkStyle}>Orari</a>
+            <a href="/#contatti" onClick={(e) => handleSectionNav('contatti', e)} style={navLinkStyle}>Contatti</a>
           </nav>
 
           {/* Right Header Status & Call */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             
-            {/* Live Store Status Badge (Aperto / Chiuso only) */}
-            <div
+            {/* Live Store Status Badge (Aperto / Chiuso only) - Clickable to Opening Hours */}
+            <a
+              href="/#orari"
+              onClick={(e) => handleSectionNav('orari', e)}
               className={status.isOpen ? 'badge-live-open' : 'badge-live-closed'}
-              title={status.nextEventText}
-              style={{ display: 'none', whiteSpace: 'nowrap', padding: '0.35rem 0.85rem' }}
+              title={`${status.nextEventText} — Clicca per consultare gli orari`}
+              style={{
+                display: 'none',
+                whiteSpace: 'nowrap',
+                padding: '0.35rem 0.85rem',
+                cursor: 'pointer',
+                textDecoration: 'none',
+              }}
               id="header-status-badge"
             >
               <span className="dot"></span>
               <span>{status.isOpen ? 'Aperto' : 'Chiuso'}</span>
-            </div>
+            </a>
 
             {/* Quick Call Button */}
             <a
@@ -185,22 +202,29 @@ export const Header: React.FC = () => {
               gap: '1rem',
             }}
           >
-            <div
+            <a
+              href="/#orari"
+              onClick={(e) => handleSectionNav('orari', e)}
               className={status.isOpen ? 'badge-live-open' : 'badge-live-closed'}
-              style={{ alignSelf: 'flex-start' }}
+              style={{
+                alignSelf: 'flex-start',
+                cursor: 'pointer',
+                textDecoration: 'none',
+              }}
+              title="Clicca per consultare gli orari"
             >
               <span className="dot"></span>
               <span>{status.message}</span>
               <span style={{ opacity: 0.85, fontSize: '0.75rem' }}>
                 ({status.nextEventText})
               </span>
-            </div>
+            </a>
 
-            <Link to="/" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Home</Link>
+            <Link to="/" onClick={(e) => handleSectionNav('hero', e)} style={mobileNavLinkStyle}>Home</Link>
             <Link to="/componi-poke" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Componi la tua poke</Link>
-            <a href="#servizi" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>I Nostri Servizi</a>
-            <a href="#orari" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Orari di Apertura</a>
-            <a href="#contatti" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Dove Siamo & Contatti</a>
+            <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} style={mobileNavLinkStyle}>I Nostri Servizi</a>
+            <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} style={mobileNavLinkStyle}>Orari di Apertura</a>
+            <a href="/#contatti" onClick={(e) => handleSectionNav('contatti', e)} style={mobileNavLinkStyle}>Dove Siamo & Contatti</a>
           </div>
         )}
       </div>

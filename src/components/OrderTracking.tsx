@@ -11,9 +11,11 @@ import {
   RefreshCw,
   Phone,
   Receipt,
-  User
+  User,
+  MessageCircle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { getLocalOrderById, subscribeToLocalOrders } from '../utils/orderStore';
 
 export interface OrderItem {
   id?: string;
@@ -35,6 +37,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string | number;
+  display_id?: string;
   status: 'RICEVUTO' | 'IN_PREPARAZIONE' | 'PRONTO' | string;
   customer_name: string;
   phone?: string;
@@ -116,58 +119,86 @@ export const OrderTracking: React.FC = () => {
         .eq('id', id)
         .maybeSingle();
 
-      if (fetchErr) throw fetchErr;
-
-      if (!data) {
-        // Fallback demo mock order for testing if ID doesn't exist in live DB
-        const mockOrder: Order = {
-          id: id,
-          status: 'IN_PREPARAZIONE',
-          customer_name: 'Cliente Pessano',
-          phone: '+39 333 1234567',
-          order_type: 'Ritiro',
-          delivery_address: 'Via Avvocato Emanuele Rossi 17, Finale Ligure',
-          total_price: 14.50,
-          created_at: new Date().toISOString(),
-          estimated_time: '15-20 min',
-          order_items: [
-            {
-              id: 'item-1',
-              item_name: 'Poke Regular Pescheria',
-              size: 'Regular (14,50€)',
-              bases: ['Riso Venere', 'Quinoa'],
-              proteins: ['Salmone Fresco', 'Tonno Rosso'],
-              toppings: ['Avocado', 'Edamame', 'Alghe Wakame', 'Mango'],
-              sauces: ['Salsa Ponzu Speciale', 'Maionese al Wasabi'],
-              has_sesame: true,
-              price: 14.50,
-              quantity: 1
-            }
-          ]
-        };
-        setOrder(mockOrder);
-      } else {
+      if (!fetchErr && data) {
         const orderData = data as Order;
         setOrder(orderData);
         if (orderData.status === 'PRONTO') {
           setIsProntoAlertOpen(true);
         }
+        return;
       }
+
+      // Local store fallback
+      const local = getLocalOrderById(id);
+      if (local) {
+        setOrder((prev) => {
+          if (prev?.status !== 'PRONTO' && local.status === 'PRONTO') {
+            triggerProntoAlert();
+          }
+          return local as Order;
+        });
+        return;
+      }
+
+      // Fallback demo mock order for testing if ID doesn't exist
+      const mockOrder: Order = {
+        id: id,
+        status: 'IN_PREPARAZIONE',
+        customer_name: 'Cliente Pessano',
+        phone: '+39 333 1234567',
+        order_type: 'Ritiro',
+        delivery_address: 'Via Avvocato Emanuele Rossi 17, Finale Ligure',
+        total_price: 14.50,
+        created_at: new Date().toISOString(),
+        estimated_time: '15-20 min',
+        order_items: [
+          {
+            id: 'item-1',
+            item_name: 'Poke Regular Pescheria',
+            size: 'Regular',
+            bases: ['Riso Venere'],
+            proteins: ['Salmone Fresco'],
+            toppings: ['Avocado', 'Edamame', 'Alghe Wakame'],
+            sauces: ['Salsa Ponzu Speciale'],
+            has_sesame: true,
+            price: 14.50,
+            quantity: 1
+          }
+        ]
+      };
+      setOrder(mockOrder);
     } catch (err: any) {
       console.error('Error fetching order:', err);
-      setError(err.message || 'Impossibile recuperare i dettagli dell\'ordine.');
+      const local = getLocalOrderById(id);
+      if (local) {
+        setOrder(local as Order);
+      } else {
+        setError(err.message || 'Impossibile recuperare i dettagli dell\'ordine.');
+      }
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, triggerProntoAlert]);
 
   useEffect(() => {
     fetchOrder();
   }, [fetchOrder]);
 
-  // Realtime Supabase listener
+  // Realtime Supabase & Local Store listener
   useEffect(() => {
     if (!id) return;
+
+    const unsubLocal = subscribeToLocalOrders(() => {
+      const local = getLocalOrderById(id);
+      if (local) {
+        setOrder((prev) => {
+          if (prev?.status !== 'PRONTO' && local.status === 'PRONTO') {
+            triggerProntoAlert();
+          }
+          return local as Order;
+        });
+      }
+    });
 
     const channel = supabase
       .channel(`order_tracking_${id}`)
@@ -201,6 +232,7 @@ export const OrderTracking: React.FC = () => {
       .subscribe();
 
     return () => {
+      unsubLocal();
       supabase.removeChannel(channel);
     };
   }, [id, triggerProntoAlert]);
@@ -225,40 +257,40 @@ export const OrderTracking: React.FC = () => {
     setOrder({ ...order, status: newStatus });
   };
 
+  const displayId = order?.display_id || (order?.id ? `#${String(order.id).slice(-4).toUpperCase()}` : (id ? `#${String(id).slice(-4).toUpperCase()}` : '#0000'));
+
   return (
     <div
       style={{
         minHeight: '100vh',
         backgroundColor: '#071527',
-        color: '#FFFFFF',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        color: 'white',
         display: 'flex',
         flexDirection: 'column',
+        fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
-      {/* HEADER */}
+      {/* TOP BAR BRAND HEADER */}
       <header
         style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-          backgroundColor: 'rgba(11, 37, 69, 0.95)',
+          backgroundColor: 'rgba(11, 37, 69, 0.9)',
           backdropFilter: 'blur(12px)',
           borderBottom: '1px solid rgba(141, 169, 196, 0.2)',
           padding: '0.85rem 1.5rem',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
         }}
       >
         <div
-          className="container"
           style={{
-            maxWidth: '900px',
+            maxWidth: '1100px',
             margin: '0 auto',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
-          {/* Logo + Navigation */}
           <Link
             to="/"
             style={{
@@ -271,28 +303,20 @@ export const OrderTracking: React.FC = () => {
           >
             <div
               style={{
-                width: '42px',
-                height: '42px',
+                width: '38px',
+                height: '38px',
                 borderRadius: '50%',
-                backgroundColor: '#FFFFFF',
+                backgroundColor: 'white',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)',
                 overflow: 'hidden',
-                border: '2px solid rgba(255, 255, 255, 0.9)',
-                flexShrink: 0,
               }}
             >
               <img
                 src="/logo_pescheria.png"
                 alt="Pescheria Pessano Logo"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  borderRadius: '50%',
-                }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </div>
             <div>
@@ -305,21 +329,21 @@ export const OrderTracking: React.FC = () => {
             </div>
           </Link>
 
-          {/* Highlighted Order Badge */}
+          {/* Highlighted Order Badge Matching KDS */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              backgroundColor: 'rgba(56, 189, 248, 0.15)',
               padding: '0.45rem 0.9rem',
               borderRadius: '999px',
-              border: '1px solid rgba(255, 255, 255, 0.18)',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
             }}
           >
             <Receipt size={16} color="#38BDF8" />
-            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#F0F9FF' }}>
-              ORDINE #{id}
+            <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#38BDF8' }}>
+              ORDINE {displayId}
             </span>
           </div>
         </div>
@@ -478,12 +502,12 @@ export const OrderTracking: React.FC = () => {
                     color: '#065F46',
                     padding: '0.6rem 1.5rem',
                     borderRadius: '999px',
-                    fontWeight: 800,
-                    fontSize: '1.1rem',
+                    fontWeight: 900,
+                    fontSize: '1.2rem',
                     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
                   }}
                 >
-                  RITIRO # {order.id}
+                  ORDINE {displayId}
                 </div>
               </div>
             )}
@@ -791,6 +815,28 @@ export const OrderTracking: React.FC = () => {
                 </div>
               </div>
 
+              {/* Order Notes Banner if present */}
+              {order.notes && (
+                <div
+                  style={{
+                    padding: '0.75rem 1rem',
+                    backgroundColor: 'rgba(234, 179, 8, 0.12)',
+                    border: '1px solid rgba(234, 179, 8, 0.35)',
+                    borderRadius: '0.65rem',
+                    color: '#FDE047',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    marginBottom: '1.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <Receipt size={18} style={{ flexShrink: 0 }} />
+                  <span>Dettaglio / Note Ordine: {order.notes}</span>
+                </div>
+              )}
+
               {/* INGREDIENTS LIST */}
               <div style={{ marginBottom: '2rem' }}>
                 <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#8DA9C4', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '1rem' }}>
@@ -861,6 +907,23 @@ export const OrderTracking: React.FC = () => {
                         </div>
                       )}
                     </div>
+
+                    {item.notes && (
+                      <div
+                        style={{
+                          marginTop: '0.75rem',
+                          padding: '0.45rem 0.75rem',
+                          borderRadius: '0.375rem',
+                          backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                          border: '1px solid rgba(234, 179, 8, 0.35)',
+                          color: '#FDE047',
+                          fontSize: '0.825rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        📝 Nota Poke: {item.notes}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -892,7 +955,7 @@ export const OrderTracking: React.FC = () => {
               </div>
             </div>
 
-            {/* NEED HELP / STORE CONTACT CARD */}
+            {/* NEED HELP / STORE CONTACT CARD (WHATSAPP PRIMARY) */}
             <div
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.03)',
@@ -907,31 +970,56 @@ export const OrderTracking: React.FC = () => {
               }}
             >
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#F0F9FF' }}>
-                  Hai domande sul tuo ordine?
+                <div style={{ fontWeight: 700, fontSize: '1rem', color: '#F0F9FF' }}>
+                  Serve assistenza o modifiche al tuo ordine?
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#8DA9C4' }}>
-                  Chiama direttamente il banco Pescheria Pessano a Finale Ligure
+                <div style={{ fontSize: '0.825rem', color: '#8DA9C4', marginTop: '0.2rem' }}>
+                  Scrivi direttamente alla Pescheria Pessano su WhatsApp specificando il tuo numero ordine <strong style={{ color: '#38BDF8' }}>{displayId}</strong>
                 </div>
               </div>
 
-              <a
-                href="tel:019692623"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  backgroundColor: '#134074',
-                  color: 'white',
-                  padding: '0.6rem 1.25rem',
-                  borderRadius: '0.5rem',
-                  textDecoration: 'none',
-                  fontWeight: 700,
-                  fontSize: '0.875rem',
-                }}
-              >
-                <Phone size={16} /> 019 692623
-              </a>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <a
+                  href="https://wa.me/393459485857"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    backgroundColor: '#25D366',
+                    color: '#040E1B',
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '0.5rem',
+                    textDecoration: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.9rem',
+                    boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
+                    transition: 'transform 0.2s ease',
+                  }}
+                >
+                  <MessageCircle size={18} color="#040E1B" /> Contatta su WhatsApp (345 9485857)
+                </a>
+
+                <a
+                  href="tel:019692623"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    color: '#8DA9C4',
+                    padding: '0.65rem 1rem',
+                    borderRadius: '0.5rem',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                  }}
+                >
+                  <Phone size={15} /> 019 692623
+                </a>
+              </div>
             </div>
 
           </div>

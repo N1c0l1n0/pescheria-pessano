@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, ShieldCheck, Info, X } from 'lucide-react';
+import { useSectionNavigate } from '../utils/navigation';
 
 export const Footer: React.FC = () => {
   const [modalType, setModalType] = useState<'privacy' | 'cookie' | null>(null);
+  const { navigateToSection } = useSectionNavigate();
 
   return (
     <footer
@@ -32,27 +34,24 @@ export const Footer: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
             <div
               style={{
-                width: '46px',
-                height: '46px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '50%',
                 backgroundColor: 'white',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
                 overflow: 'hidden',
-                border: '2px solid rgba(255, 255, 255, 0.8)',
-                flexShrink: 0,
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
               }}
             >
               <img
                 src="/logo_pescheria.png"
-                alt="Pescheria Pessano Finale Ligure Logo"
+                alt="Pescheria Pessano Logo"
                 style={{
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
-                  borderRadius: '50%',
                 }}
               />
             </div>
@@ -68,11 +67,11 @@ export const Footer: React.FC = () => {
 
           {/* Quick Links */}
           <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.9rem', flexWrap: 'wrap' }}>
-            <Link to="/" style={footerLinkStyle}>Home</Link>
+            <Link to="/" onClick={(e) => navigateToSection('hero', e)} style={footerLinkStyle}>Home</Link>
             <Link to="/componi-poke" style={footerLinkStyle}>Componi la tua poke</Link>
-            <a href="#servizi" style={footerLinkStyle}>Servizi</a>
-            <a href="#orari" style={footerLinkStyle}>Orari</a>
-            <a href="#contatti" style={footerLinkStyle}>Dove Siamo</a>
+            <a href="/#servizi" onClick={(e) => navigateToSection('servizi', e)} style={footerLinkStyle}>Servizi</a>
+            <a href="/#orari" onClick={(e) => navigateToSection('orari', e)} style={footerLinkStyle}>Orari</a>
+            <a href="/#contatti" onClick={(e) => navigateToSection('contatti', e)} style={footerLinkStyle}>Dove Siamo</a>
           </div>
 
           {/* Direct Phone */}
