@@ -398,6 +398,7 @@ export const PokeBuilder: React.FC = () => {
     ].filter(Boolean).join(' — ');
 
     let insertedOrderId: string | null = null;
+    let friendlyIdStr: string | null = null;
 
     try {
       // 1. Insert parent order into Supabase 'orders' table
@@ -407,10 +408,10 @@ export const PokeBuilder: React.FC = () => {
           {
             status: 'RICEVUTO',
             customer_name: clientName,
-            phone: customerPhone.trim(),
+            customer_phone: customerPhone.trim(),
             order_type: orderType,
             delivery_address: orderType === 'Consegna' ? deliveryAddress.trim() : null,
-            total_price: totalToPay,
+            total_amount: totalToPay,
             notes: combinedNotes,
           },
         ])
@@ -421,6 +422,13 @@ export const PokeBuilder: React.FC = () => {
         console.warn('Supabase orders insert notice:', orderErr.message || orderErr);
       } else if (insertedOrder && insertedOrder.id !== undefined && insertedOrder.id !== null) {
         insertedOrderId = String(insertedOrder.id);
+        friendlyIdStr = `#${insertedOrderId.slice(-4).toUpperCase()}`;
+
+        // Set friendly_id on order if not set
+        await supabase
+          .from('orders')
+          .update({ friendly_id: friendlyIdStr })
+          .eq('id', insertedOrder.id);
       }
 
       // 2. Insert items into 'order_items' table if order ID exists
@@ -428,16 +436,19 @@ export const PokeBuilder: React.FC = () => {
         const numericOrderId = !isNaN(Number(insertedOrderId)) ? Number(insertedOrderId) : insertedOrderId;
         const itemsPayload = finalPokes.map((poke) => ({
           order_id: numericOrderId,
-          item_name: `Poke ${poke.format.name} (${poke.pokePersonName})`,
-          size: poke.format.name,
-          bases: poke.basi,
-          proteins: poke.proteine,
-          toppings: poke.ingredienti,
-          sauces: poke.salse,
-          has_sesame: poke.semiSesamo,
-          notes: poke.notes || null,
-          price: poke.price,
+          item_type: 'poke',
+          name: `Poke ${poke.format.name} (${poke.pokePersonName})`,
           quantity: 1,
+          unit_price: poke.price,
+          details: {
+            size: poke.format.name,
+            bases: poke.basi,
+            proteins: poke.proteine,
+            toppings: poke.ingredienti,
+            sauces: poke.salse,
+            has_sesame: poke.semiSesamo,
+            notes: poke.notes || '',
+          },
         }));
 
         const { error: itemsErr } = await supabase.from('order_items').insert(itemsPayload);

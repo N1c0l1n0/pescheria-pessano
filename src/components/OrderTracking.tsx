@@ -113,16 +113,50 @@ export const OrderTracking: React.FC = () => {
 
     try {
       // Primary fetch joining orders + order_items
+      const numericId = !isNaN(Number(id)) ? Number(id) : id;
       const { data, error: fetchErr } = await supabase
         .from('orders')
         .select('*, order_items(*)')
-        .eq('id', id)
+        .or(`id.eq.${numericId},friendly_id.eq.${id}`)
         .maybeSingle();
 
       if (!fetchErr && data) {
-        const orderData = data as Order;
-        setOrder(orderData);
-        if (orderData.status === 'PRONTO') {
+        const raw = data as any;
+        const items = Array.isArray(raw.order_items)
+          ? raw.order_items.map((item: any) => {
+              const dt = item.details || {};
+              return {
+                id: String(item.id),
+                item_name: item.name || item.item_name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
+                size: dt.size || item.size || '',
+                bases: Array.isArray(dt.bases) ? dt.bases : (item.bases || []),
+                proteins: Array.isArray(dt.proteins) ? dt.proteins : (item.proteins || []),
+                toppings: Array.isArray(dt.toppings) ? dt.toppings : (item.toppings || []),
+                sauces: Array.isArray(dt.sauces) ? dt.sauces : (item.sauces || []),
+                has_sesame: dt.has_sesame ?? item.has_sesame ?? true,
+                notes: dt.notes || item.notes || '',
+                price: Number(item.unit_price || item.price || 0),
+                quantity: Number(item.quantity || 1),
+              };
+            })
+          : [];
+
+        const normalizedOrder: Order = {
+          id: String(raw.id),
+          display_id: raw.friendly_id || `#${String(raw.id).slice(-4).toUpperCase()}`,
+          status: raw.status || 'RICEVUTO',
+          customer_name: raw.customer_name || 'Cliente',
+          phone: raw.customer_phone || raw.phone || '',
+          order_type: raw.order_type || 'Ritiro',
+          delivery_address: raw.delivery_address || undefined,
+          total_price: Number(raw.total_amount || raw.total_price || 0),
+          created_at: raw.created_at || new Date().toISOString(),
+          notes: raw.notes || '',
+          order_items: items,
+        };
+
+        setOrder(normalizedOrder);
+        if (normalizedOrder.status === 'PRONTO') {
           setIsProntoAlertOpen(true);
         }
         return;

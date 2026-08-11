@@ -129,45 +129,64 @@ export const KdsBoard: React.FC = () => {
         .from('orders')
         .select(`
           id,
+          friendly_id,
           status,
           customer_name,
-          phone,
+          customer_phone,
           order_type,
           delivery_address,
-          total_price,
+          total_amount,
           created_at,
           notes,
           order_items (
             id,
-            item_name,
-            size,
-            bases,
-            proteins,
-            toppings,
-            sauces,
-            has_sesame,
-            notes,
-            price,
-            quantity
+            order_id,
+            item_type,
+            name,
+            quantity,
+            unit_price,
+            details,
+            created_at
           )
         `)
         .neq('status', 'COMPLETATO')
         .order('created_at', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        remoteOrders = data.map((o: any) => ({
-          id: String(o.id),
-          display_id: `#${String(o.id).slice(-4).toUpperCase()}`,
-          status: o.status || 'RICEVUTO',
-          customer_name: o.customer_name || 'Cliente',
-          phone: o.phone,
-          order_type: o.order_type || 'Ritiro',
-          delivery_address: o.delivery_address,
-          total_price: Number(o.total_price || 0),
-          created_at: o.created_at || new Date().toISOString(),
-          notes: o.notes,
-          order_items: Array.isArray(o.order_items) ? o.order_items : []
-        }));
+        remoteOrders = data.map((o: any) => {
+          const items: KdsOrderItem[] = Array.isArray(o.order_items)
+            ? o.order_items.map((item: any) => {
+                const dt = item.details || {};
+                return {
+                  id: String(item.id),
+                  item_name: item.name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
+                  size: dt.size || '',
+                  bases: Array.isArray(dt.bases) ? dt.bases : (item.bases || []),
+                  proteins: Array.isArray(dt.proteins) ? dt.proteins : (item.proteins || []),
+                  toppings: Array.isArray(dt.toppings) ? dt.toppings : (item.toppings || []),
+                  sauces: Array.isArray(dt.sauces) ? dt.sauces : (item.sauces || []),
+                  has_sesame: dt.has_sesame ?? item.has_sesame ?? true,
+                  notes: dt.notes || item.notes || '',
+                  price: Number(item.unit_price || item.price || 0),
+                  quantity: Number(item.quantity || 1),
+                };
+              })
+            : [];
+
+          return {
+            id: String(o.id),
+            display_id: o.friendly_id || `#${String(o.id).slice(-4).toUpperCase()}`,
+            status: o.status || 'RICEVUTO',
+            customer_name: o.customer_name || 'Cliente',
+            phone: o.customer_phone || o.phone || '',
+            order_type: o.order_type || 'Ritiro',
+            delivery_address: o.delivery_address || undefined,
+            total_price: Number(o.total_amount || o.total_price || 0),
+            created_at: o.created_at || new Date().toISOString(),
+            notes: o.notes || '',
+            order_items: items,
+          };
+        });
       }
 
       // Combine with local orders (for instant offline / dev persistence)
