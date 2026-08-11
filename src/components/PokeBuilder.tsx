@@ -1673,21 +1673,29 @@ export const PokeBuilder: React.FC = () => {
               backgroundColor: '#FF6B6B',
               color: 'white',
               border: 'none',
-              padding: '0.75rem 1.35rem',
+              padding: '0.75rem 1.25rem',
               borderRadius: '10px',
               fontWeight: 800,
               fontSize: '0.95rem',
               cursor: isSubmitting ? 'not-allowed' : 'pointer',
               boxShadow: '0 4px 14px rgba(255, 107, 107, 0.4)',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '0.45rem',
-              transition: 'all 0.2s',
+              minWidth: '140px',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
+              WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation',
+              transition: 'background-color 0.2s, opacity 0.2s',
               opacity: isSubmitting ? 0.7 : 1,
             }}
           >
-            <Sparkles size={16} />
-            <span>{isSubmitting ? 'Invio...' : 'Invia Ordine'}</span>
+            <Sparkles size={16} style={{ flexShrink: 0 }} />
+            <span style={{ display: 'inline-block', minWidth: '85px', textAlign: 'center' }}>
+              {isSubmitting ? 'Invio...' : 'Invia Ordine'}
+            </span>
           </button>
         </div>
       )}

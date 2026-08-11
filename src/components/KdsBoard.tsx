@@ -207,15 +207,26 @@ export const KdsBoard: React.FC = () => {
         remoteOrders = data.map((o: any) => {
           const items: KdsOrderItem[] = Array.isArray(o.order_items)
             ? o.order_items.map((item: any) => {
-                const dt = item.details || {};
+                let dt: any = {};
+                if (typeof item.details === 'string') {
+                  try { dt = JSON.parse(item.details); } catch (e) { dt = {}; }
+                } else if (typeof item.details === 'object' && item.details !== null) {
+                  dt = item.details;
+                }
+
+                const bases = Array.isArray(dt.bases) ? dt.bases : (Array.isArray(item.bases) ? item.bases : (Array.isArray(dt.basi) ? dt.basi : (Array.isArray(item.basi) ? item.basi : [])));
+                const proteins = Array.isArray(dt.proteins) ? dt.proteins : (Array.isArray(item.proteins) ? item.proteins : (Array.isArray(dt.proteine) ? dt.proteine : (Array.isArray(item.proteine) ? item.proteine : [])));
+                const toppings = Array.isArray(dt.toppings) ? dt.toppings : (Array.isArray(item.toppings) ? item.toppings : (Array.isArray(dt.ingredienti) ? dt.ingredienti : (Array.isArray(item.ingredienti) ? item.ingredienti : [])));
+                const sauces = Array.isArray(dt.sauces) ? dt.sauces : (Array.isArray(item.sauces) ? item.sauces : (Array.isArray(dt.salse) ? dt.salse : (Array.isArray(item.salse) ? item.salse : [])));
+
                 return {
                   id: String(item.id),
-                  item_name: item.name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
-                  size: dt.size || '',
-                  bases: Array.isArray(dt.bases) ? dt.bases : (item.bases || []),
-                  proteins: Array.isArray(dt.proteins) ? dt.proteins : (item.proteins || []),
-                  toppings: Array.isArray(dt.toppings) ? dt.toppings : (item.toppings || []),
-                  sauces: Array.isArray(dt.sauces) ? dt.sauces : (item.sauces || []),
+                  item_name: item.name || item.item_name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
+                  size: dt.size || item.size || '',
+                  bases,
+                  proteins,
+                  toppings,
+                  sauces,
                   has_sesame: dt.has_sesame ?? item.has_sesame ?? true,
                   notes: dt.notes || item.notes || '',
                   price: Number(item.unit_price || item.price || 0),
@@ -248,13 +259,39 @@ export const KdsBoard: React.FC = () => {
           display_id: o.display_id || `#${String(o.id).slice(-4).toUpperCase()}`,
           status: o.status || 'RICEVUTO',
           customer_name: o.customer_name || 'Cliente',
-          phone: o.phone,
+          phone: (o as any).customer_phone || o.phone || '',
           order_type: o.order_type || 'Ritiro',
           delivery_address: o.delivery_address,
-          total_price: Number(o.total_price || 0),
+          total_price: Number((o as any).total_amount || o.total_price || 0),
           created_at: o.created_at || new Date().toISOString(),
           notes: o.notes,
-          order_items: (o.order_items || []) as KdsOrderItem[],
+          order_items: (o.order_items || []).map((item: any) => {
+            let dt: any = {};
+            if (typeof item.details === 'string') {
+              try { dt = JSON.parse(item.details); } catch (e) { dt = {}; }
+            } else if (typeof item.details === 'object' && item.details !== null) {
+              dt = item.details;
+            }
+
+            const bases = Array.isArray(item.bases) ? item.bases : (Array.isArray(dt.bases) ? dt.bases : (Array.isArray(item.basi) ? item.basi : (Array.isArray(dt.basi) ? dt.basi : [])));
+            const proteins = Array.isArray(item.proteins) ? item.proteins : (Array.isArray(dt.proteins) ? dt.proteins : (Array.isArray(item.proteine) ? item.proteine : (Array.isArray(dt.proteine) ? dt.proteine : [])));
+            const toppings = Array.isArray(item.toppings) ? item.toppings : (Array.isArray(dt.toppings) ? dt.toppings : (Array.isArray(item.ingredienti) ? item.ingredienti : (Array.isArray(dt.ingredienti) ? dt.ingredienti : [])));
+            const sauces = Array.isArray(item.sauces) ? item.sauces : (Array.isArray(dt.sauces) ? dt.sauces : (Array.isArray(item.salse) ? item.salse : (Array.isArray(dt.salse) ? dt.salse : [])));
+
+            return {
+              id: String(item.id || Math.random()),
+              item_name: item.item_name || item.name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
+              size: item.size || dt.size || '',
+              bases,
+              proteins,
+              toppings,
+              sauces,
+              has_sesame: item.has_sesame ?? dt.has_sesame ?? true,
+              notes: item.notes || dt.notes || '',
+              price: Number(item.price || item.unit_price || 0),
+              quantity: Number(item.quantity || 1),
+            };
+          }),
         }));
 
       const orderMap = new Map<string, KdsOrder>();
