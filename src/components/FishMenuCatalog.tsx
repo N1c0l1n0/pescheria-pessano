@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Waves, Anchor, Sparkles, ChefHat, Wine, Search, Info, X, ShieldCheck } from 'lucide-react';
+import { Waves, Anchor, Sparkles, Search, Info, X, ShieldCheck } from 'lucide-react';
 
 export interface FishItem {
   id: string;
@@ -394,16 +394,16 @@ export const FishMenuCatalog: React.FC = () => {
               </div>
 
               {/* Card Body */}
-              <div style={{ padding: '1.4rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
+              <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
                 <div>
-                  {/* Visual Hierarchy Step 1: Nome del Pesce in evidenza */}
+                  {/* Nome del Pesce in evidenza */}
                   <h3
                     className="font-serif"
                     style={{
-                      fontSize: '1.35rem',
+                      fontSize: '1.3rem',
                       fontWeight: 800,
                       color: 'var(--color-ocean-dark)',
-                      marginBottom: '0.35rem',
+                      marginBottom: '0.25rem',
                       lineHeight: 1.25,
                     }}
                   >
@@ -411,51 +411,35 @@ export const FishMenuCatalog: React.FC = () => {
                   </h3>
 
                   {/* Location subtitle */}
-                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.85rem', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem', fontWeight: 600 }}>
                     📍 {item.locationDetail}
                   </div>
-
-                  {/* Short Description */}
-                  <p
-                    style={{
-                      color: 'var(--color-text-muted)',
-                      fontSize: '0.875rem',
-                      lineHeight: 1.5,
-                      marginBottom: '1.25rem',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {item.description}
-                  </p>
                 </div>
 
-                {/* Card Footer: Visual Hierarchy Step 2 & 3: Prezzo al Kg & Badge pulizia */}
+                {/* Card Footer: Prezzo al Kg */}
                 <div
                   style={{
                     borderTop: '1px solid rgba(11, 37, 69, 0.08)',
-                    paddingTop: '1rem',
+                    paddingTop: '0.85rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                   }}
                 >
                   <div>
-                    <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-muted)', display: 'block', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-muted)', display: 'block', fontWeight: 700 }}>
                       Prezzo al Kg
                     </span>
                     <span
                       style={{
-                        fontSize: '1.35rem',
+                        fontSize: '1.3rem',
                         fontWeight: 900,
                         color: 'var(--color-ocean-dark)',
                         letterSpacing: '-0.02em',
                       }}
                     >
                       € {item.pricePerKg.toFixed(2).replace('.', ',')}
-                      <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--color-text-muted)', marginLeft: '3px' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-muted)', marginLeft: '3px' }}>
                         / Kg
                       </span>
                     </span>
@@ -466,19 +450,19 @@ export const FishMenuCatalog: React.FC = () => {
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '0.4rem',
-                      padding: '0.5rem 0.85rem',
+                      gap: '0.35rem',
+                      padding: '0.45rem 0.8rem',
                       borderRadius: 'var(--radius-full)',
                       backgroundColor: 'rgba(19, 64, 116, 0.08)',
                       color: 'var(--color-ocean-dark)',
                       border: 'none',
                       fontWeight: 700,
-                      fontSize: '0.8rem',
+                      fontSize: '0.775rem',
                       cursor: 'pointer',
                     }}
                   >
                     <Info size={14} color="var(--color-ocean-medium)" />
-                    <span>Dettagli</span>
+                    <span>Ingrandisci</span>
                   </button>
                 </div>
               </div>
@@ -490,8 +474,8 @@ export const FishMenuCatalog: React.FC = () => {
         <div
           className="fish-banner-responsive"
           style={{
-            marginTop: '4rem',
-            padding: '1.75rem 2rem',
+            marginTop: '3.5rem',
+            padding: '1.5rem 2rem',
             borderRadius: 'var(--radius-md)',
             backgroundColor: 'var(--color-ocean-dark)',
             color: 'white',
@@ -499,15 +483,15 @@ export const FishMenuCatalog: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '1.5rem',
+            gap: '1.25rem',
             boxShadow: 'var(--shadow-md)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div
               style={{
-                width: '48px',
-                height: '48px',
+                width: '44px',
+                height: '44px',
                 borderRadius: '50%',
                 backgroundColor: 'rgba(255, 255, 255, 0.15)',
                 display: 'flex',
@@ -516,14 +500,14 @@ export const FishMenuCatalog: React.FC = () => {
                 flexShrink: 0,
               }}
             >
-              <ShieldCheck size={26} color="var(--color-sea-blue)" />
+              <ShieldCheck size={24} color="var(--color-sea-blue)" />
             </div>
             <div>
-              <h4 className="font-serif" style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.2rem', color: 'white' }}>
+              <h4 className="font-serif" style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.15rem', color: 'white' }}>
                 Servizio di Pulizia & Sfilettatura Gratuito al Banco
               </h4>
-              <p style={{ fontSize: '0.875rem', color: 'var(--color-sea-blue)', margin: 0 }}>
-                Puliamo, sfilettiamo ed evisceriamo il tuo pesce senza alcun costo aggiuntivo. Praticità totale per la tua cucina.
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-sea-blue)', margin: 0 }}>
+                Puliamo, sfilettiamo ed evisceriamo il tuo pesce senza alcun costo aggiuntivo.
               </p>
             </div>
           </div>
@@ -531,26 +515,26 @@ export const FishMenuCatalog: React.FC = () => {
           <a
             href="/componi-poke"
             style={{
-              padding: '0.75rem 1.4rem',
+              padding: '0.7rem 1.3rem',
               borderRadius: 'var(--radius-full)',
               backgroundColor: 'var(--color-coral)',
               color: 'white',
               fontWeight: 800,
-              fontSize: '0.9rem',
+              fontSize: '0.875rem',
               textDecoration: 'none',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem',
+              gap: '0.4rem',
               boxShadow: 'var(--shadow-glow)',
             }}
           >
             <span>Ordina Poke o Ritiro</span>
-            <Sparkles size={16} />
+            <Sparkles size={15} />
           </a>
         </div>
       </div>
 
-      {/* Item Detail Modal Dialog */}
+      {/* Clean Full-Image Lightbox Modal (Full image + Name ONLY) */}
       {selectedFish && (
         <div
           className="fish-modal-container"
@@ -558,21 +542,21 @@ export const FishMenuCatalog: React.FC = () => {
             position: 'fixed',
             inset: 0,
             zIndex: 2000,
-            backgroundColor: 'rgba(11, 37, 69, 0.75)',
-            backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(11, 37, 69, 0.85)',
+            backdropFilter: 'blur(10px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1.5rem',
+            padding: '1rem',
           }}
           onClick={() => setSelectedFish(null)}
         >
           <div
             className="fish-modal-content"
             style={{
-              backgroundColor: 'white',
+              backgroundColor: 'var(--color-ocean-dark)',
               borderRadius: 'var(--radius-lg)',
-              maxWidth: '560px',
+              maxWidth: '680px',
               width: '100%',
               overflow: 'hidden',
               boxShadow: 'var(--shadow-lg)',
@@ -581,17 +565,41 @@ export const FishMenuCatalog: React.FC = () => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Image (Full Uncropped View) */}
-            <div
+            {/* Modal Close Button */}
+            <button
+              type="button"
+              onClick={() => setSelectedFish(null)}
               style={{
-                position: 'relative',
-                maxHeight: '380px',
-                minHeight: '220px',
-                backgroundColor: '#07162c',
+                position: 'absolute',
+                top: '0.85rem',
+                right: '0.85rem',
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                color: 'white',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                overflow: 'hidden',
+                cursor: 'pointer',
+                zIndex: 20,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            {/* Modal Full Uncropped Image */}
+            <div
+              style={{
+                position: 'relative',
+                maxHeight: '65vh',
+                backgroundColor: '#05101F',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0.5rem',
               }}
             >
               <img
@@ -599,123 +607,37 @@ export const FishMenuCatalog: React.FC = () => {
                 alt={selectedFish.name}
                 style={{
                   maxWidth: '100%',
-                  maxHeight: '380px',
+                  maxHeight: '60vh',
                   width: 'auto',
                   height: 'auto',
                   objectFit: 'contain',
                   display: 'block',
-                  margin: '0 auto',
+                  borderRadius: 'var(--radius-sm)',
                 }}
               />
-              <button
-                type="button"
-                onClick={() => setSelectedFish(null)}
-                style={{
-                  position: 'absolute',
-                  top: '1rem',
-                  right: '1rem',
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(11, 37, 69, 0.85)',
-                  color: 'white',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  zIndex: 10,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                }}
-              >
-                <X size={20} />
-              </button>
-
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '1rem',
-                  left: '1rem',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.4rem 0.85rem',
-                  borderRadius: 'var(--radius-full)',
-                  backgroundColor: 'rgba(11, 37, 69, 0.9)',
-                  color: '#38BDF8',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                }}
-              >
-                <Waves size={14} />
-                <span>{selectedFish.origin} — {selectedFish.locationDetail}</span>
-              </div>
             </div>
 
-            {/* Modal Body */}
-            <div style={{ padding: '1.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                <h3 className="font-serif" style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-ocean-dark)' }}>
-                  {selectedFish.name}
-                </h3>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-ocean-dark)' }}>
-                    € {selectedFish.pricePerKg.toFixed(2).replace('.', ',')}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                    Prezzo al Kg
-                  </div>
-                </div>
-              </div>
-
-              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>
-                {selectedFish.description}
-              </p>
-
-              {/* Cooking Tip */}
-              <div
+            {/* Modal Footer (Fish Name ONLY) */}
+            <div
+              style={{
+                padding: '1.25rem 1.5rem',
+                backgroundColor: 'var(--color-ocean-dark)',
+                textAlign: 'center',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <h3
+                className="font-serif"
                 style={{
-                  padding: '1rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: '#FEF9C3',
-                  border: '1px solid #FDE047',
-                  marginBottom: '1rem',
-                  display: 'flex',
-                  gap: '0.75rem',
+                  fontSize: '1.6rem',
+                  fontWeight: 800,
+                  color: 'white',
+                  margin: 0,
+                  letterSpacing: '0.02em',
                 }}
               >
-                <ChefHat size={22} color="#854D0E" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#854D0E', marginBottom: '0.2rem' }}>
-                    Consiglio dello Chef Pessano:
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: '#713F12', lineHeight: 1.45 }}>
-                    {selectedFish.cookingTip}
-                  </div>
-                </div>
-              </div>
-
-              {/* Wine Pairing */}
-              <div
-                style={{
-                  padding: '1rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'rgba(19, 64, 116, 0.06)',
-                  border: '1px solid rgba(19, 64, 116, 0.12)',
-                  display: 'flex',
-                  gap: '0.75rem',
-                }}
-              >
-                <Wine size={22} color="var(--color-ocean-medium)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-ocean-dark)', marginBottom: '0.2rem' }}>
-                    Abbinamento Vino Consigliato:
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--color-ocean-medium)', fontWeight: 700 }}>
-                    {selectedFish.winePairing}
-                  </div>
-                </div>
-              </div>
+                {selectedFish.name}
+              </h3>
             </div>
           </div>
         </div>
