@@ -155,3 +155,95 @@ export function getStoreStatus(now: Date = new Date()): StoreStatus {
     };
   }
 }
+
+/**
+ * Get schedule object for a specific Date
+ */
+export function getDaySchedule(date: Date = new Date()): DaySchedule {
+  const dayIndex = date.getDay();
+  return WEEKLY_SCHEDULE.find((s) => s.dayIndex === dayIndex) || WEEKLY_SCHEDULE[0];
+}
+
+/**
+ * Check if a time string "HH:MM" falls within the store's opening hours for a given Date
+ */
+export function isTimeInOpeningHours(timeStr: string, date: Date = new Date()): boolean {
+  const schedule = getDaySchedule(date);
+  if (schedule.isClosedAllDay || !schedule.slots.length) return false;
+
+  const parts = timeStr.split(':').map((p) => parseInt(p, 10));
+  if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return false;
+  const targetMin = parts[0] * 60 + parts[1];
+
+  return schedule.slots.some((slot) => {
+    const openMin = timeToMinutes(slot.open);
+    const closeMin = timeToMinutes(slot.close);
+    return targetMin >= openMin && targetMin <= closeMin;
+  });
+}
+
+/**
+ * Get valid hour numbers (0-23) during which the store is open on a given Date
+ */
+export function getValidHoursForDate(date: Date = new Date()): number[] {
+  const schedule = getDaySchedule(date);
+  if (schedule.isClosedAllDay || !schedule.slots.length) return [];
+
+  const hoursSet = new Set<number>();
+  schedule.slots.forEach((slot) => {
+    const openH = parseInt(slot.open.split(':')[0], 10);
+    const closeH = parseInt(slot.close.split(':')[0], 10);
+    for (let h = openH; h <= closeH; h++) {
+      hoursSet.add(h);
+    }
+  });
+
+  return Array.from(hoursSet).sort((a, b) => a - b);
+}
+
+/**
+ * Get valid minute options (step intervals, e.g. 5 or 15 mins) for a specific hour on a given Date
+ */
+export function getValidMinutesForHour(hour: number, date: Date = new Date(), step: number = 5): number[] {
+  const schedule = getDaySchedule(date);
+  if (schedule.isClosedAllDay || !schedule.slots.length) return [];
+
+  const valid: number[] = [];
+  for (let m = 0; m < 60; m += step) {
+    const totalMin = hour * 60 + m;
+    const isWithinSlot = schedule.slots.some((slot) => {
+      const openMin = timeToMinutes(slot.open);
+      const closeMin = timeToMinutes(slot.close);
+      return totalMin >= openMin && totalMin <= closeMin;
+    });
+    if (isWithinSlot) {
+      valid.push(m);
+    }
+  }
+  return valid;
+}
+
+/**
+ * Get quick selectable time slot strings (e.g., ["12:30", "13:00", ...]) for a date
+ */
+export function getQuickTimeOptionsForDate(date: Date = new Date()): string[] {
+  const schedule = getDaySchedule(date);
+  if (schedule.isClosedAllDay || !schedule.slots.length) return [];
+
+  const slotsOptions: string[] = [];
+  schedule.slots.forEach((slot) => {
+    const openMin = timeToMinutes(slot.open);
+    const closeMin = timeToMinutes(slot.close);
+
+    // Round openMin up to nearest 15/30 min
+    const startMin = Math.ceil(openMin / 30) * 30;
+    for (let m = startMin; m <= closeMin; m += 30) {
+      const hh = Math.floor(m / 60).toString().padStart(2, '0');
+      const mm = (m % 60).toString().padStart(2, '0');
+      slotsOptions.push(`${hh}:${mm}`);
+    }
+  });
+
+  return slotsOptions;
+}
+

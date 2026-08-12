@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, Check, AlertCircle, Sparkles, MessageCircle, Info, Trash2, PlusCircle, Edit3, RotateCcw, FileText } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { saveLocalOrder } from '../utils/orderStore';
+import { AlarmTimePicker } from './AlarmTimePicker';
 
 interface FormatOption {
   id: string;
@@ -137,8 +138,8 @@ export const PokeBuilder: React.FC = () => {
   const [pokePersonName, setPokePersonName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [orderType, setOrderType] = useState<'Ritiro' | 'Consegna'>('Ritiro');
-  const [pickupTime, setPickupTime] = useState('Prima possibile (ASAP)');
-  const [customTimeInput, setCustomTimeInput] = useState('');
+  const [pickupTime, setPickupTime] = useState('Prima possibile');
+  const [selectedDay, setSelectedDay] = useState<'oggi' | 'domani'>('oggi');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [selectedFormat, setSelectedFormat] = useState<FormatOption>(FORMATS[0]);
   const [selectedBasi, setSelectedBasi] = useState<string[]>([]);
@@ -390,7 +391,7 @@ export const PokeBuilder: React.FC = () => {
     setIsSubmitting(true);
 
     const totalToPay = finalPokes.reduce((acc, p) => acc + p.price, 0);
-    const effectiveTime = pickupTime === 'Altro' ? (customTimeInput || 'Da concordare') : pickupTime;
+    const effectiveTime = pickupTime || 'Prima possibile';
     const clientName = finalPokes[0]?.pokePersonName || 'Cliente';
     const combinedNotes = [
       `Orario: ${effectiveTime}`,
@@ -822,53 +823,24 @@ export const PokeBuilder: React.FC = () => {
                 </div>
               )}
 
-              {/* Orario Desiderato */}
+              {/* Orario Desiderato con AlarmTimePicker */}
               <div>
                 <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.5rem' }}>
                   Orario di {orderType} desiderato
                 </label>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-                  {['Prima possibile', '12:30', '13:00', '13:30', '19:30', '20:00', '20:30', 'Altro'].map((timeOpt) => {
-                    const isSel = pickupTime === timeOpt;
-                    return (
-                      <button
-                        key={timeOpt}
-                        type="button"
-                        onClick={() => setPickupTime(timeOpt)}
-                        style={{
-                          padding: '0.45rem 0.75rem',
-                          borderRadius: '6px',
-                          border: isSel ? '1.5px solid var(--color-coral)' : '1px solid rgba(11, 37, 69, 0.15)',
-                          backgroundColor: isSel ? 'rgba(255, 107, 107, 0.12)' : 'white',
-                          color: isSel ? 'var(--color-coral)' : 'var(--color-ocean-dark)',
-                          fontWeight: isSel ? 800 : 600,
-                          fontSize: '0.825rem',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {timeOpt}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {pickupTime === 'Altro' && (
-                  <input
-                    type="text"
-                    placeholder="Specificare orario desiderato (es. 14:15)"
-                    value={customTimeInput}
-                    onChange={(e) => setCustomTimeInput(e.target.value)}
-                    style={{
-                      width: '100%',
-                      marginTop: '0.5rem',
-                      padding: '0.65rem 0.9rem',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid rgba(11, 37, 69, 0.18)',
-                      backgroundColor: '#F8FAFC',
-                      fontSize: '15px',
-                    }}
-                  />
-                )}
+                <AlarmTimePicker
+                  orderType={orderType}
+                  selectedTime={pickupTime}
+                  selectedDay={selectedDay}
+                  onTimeChange={(timeStr, day) => {
+                    setSelectedDay(day);
+                    if (timeStr === 'Prima possibile' || timeStr.includes('ASAP')) {
+                      setPickupTime(`Prima possibile (${day === 'oggi' ? 'Oggi' : 'Domani'})`);
+                    } else {
+                      setPickupTime(`${timeStr} (${day === 'oggi' ? 'Oggi' : 'Domani'})`);
+                    }
+                  }}
+                />
               </div>
             </div>
 
@@ -1461,7 +1433,7 @@ export const PokeBuilder: React.FC = () => {
                   <div style={summaryRowStyle}>
                     <span style={{ color: 'var(--color-sea-blue)' }}>Modalità & Orario:</span>
                     <strong style={{ color: 'var(--color-gold)' }}>
-                      {orderType} - {pickupTime === 'Altro' ? (customTimeInput || 'Orario da concordare') : pickupTime}
+                      {orderType} - {pickupTime}
                     </strong>
                   </div>
 
