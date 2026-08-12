@@ -173,7 +173,7 @@ export const FishMenuCatalog: React.FC = () => {
       }}
     >
       <div className="container">
-        
+
         {/* Section Header */}
         <div style={{ textAlign: 'center', maxWidth: '780px', margin: '0 auto 3.5rem auto' }}>
           <div
@@ -233,21 +233,21 @@ export const FishMenuCatalog: React.FC = () => {
               onClick={() => setActiveOrigin('all')}
               style={filterBtnStyle(activeOrigin === 'all')}
             >
-              Tutto il Pescato ({FISH_CATALOG.length})
+              Tutto ({FISH_CATALOG.length})
             </button>
             <button
               type="button"
               onClick={() => setActiveOrigin('Mar Ligure')}
               style={filterBtnStyle(activeOrigin === 'Mar Ligure')}
             >
-              🌊 Mar Ligure (Pescato Locale)
+              Mar Ligure
             </button>
             <button
               type="button"
               onClick={() => setActiveOrigin('Medit. Occ.')}
               style={filterBtnStyle(activeOrigin === 'Medit. Occ.')}
             >
-              ⛵ Mediterraneo Occidentale
+              Medit. Occidentale
             </button>
           </div>
 
@@ -724,14 +724,17 @@ export const FishMenuCatalog: React.FC = () => {
 
 function filterBtnStyle(isActive: boolean): React.CSSProperties {
   return {
-    padding: '0.5rem 1.1rem',
+    padding: '0.45rem 0.85rem',
     borderRadius: 'var(--radius-full)',
     border: 'none',
     backgroundColor: isActive ? 'var(--color-ocean-dark)' : 'transparent',
     color: isActive ? 'white' : 'var(--color-text-muted)',
     fontWeight: isActive ? 800 : 600,
-    fontSize: '0.85rem',
+    fontSize: '0.8rem',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+    wordBreak: 'keep-all',
   };
 }

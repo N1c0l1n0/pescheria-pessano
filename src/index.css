@@ -393,9 +393,10 @@ textarea {
 /* Mobile Responsive Adjustments for Fish Catalog */
 .fish-filter-scroll {
   display: flex;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.35rem;
   background-color: white;
-  padding: 0.4rem;
+  padding: 0.35rem;
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-sm);
   border: 1px solid rgba(11, 37, 69, 0.1);
@@ -406,6 +407,11 @@ textarea {
 }
 .fish-filter-scroll::-webkit-scrollbar {
   display: none;
+}
+.fish-filter-scroll button {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  word-break: keep-all !important;
 }
 
 .fish-grid {
