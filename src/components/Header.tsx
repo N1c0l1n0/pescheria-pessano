@@ -128,6 +128,7 @@ export const Header: React.FC = () => {
             className="desktop-nav"
           >
             <Link to="/" onClick={(e) => handleSectionNav('hero', e)} style={navLinkStyle}>Home</Link>
+            <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} style={navLinkStyle}>Banco Pesce</a>
             <Link to="/componi-poke" style={navLinkStyle}>Componi Poke</Link>
             <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} style={navLinkStyle}>Servizi</a>
             <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} style={navLinkStyle}>Orari</a>
@@ -221,6 +222,7 @@ export const Header: React.FC = () => {
             </a>
 
             <Link to="/" onClick={(e) => handleSectionNav('hero', e)} style={mobileNavLinkStyle}>Home</Link>
+            <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} style={mobileNavLinkStyle}>🐟 Banco del Pesce Fresco</a>
             <Link to="/componi-poke" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Componi la tua poke</Link>
             <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} style={mobileNavLinkStyle}>I Nostri Servizi</a>
             <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} style={mobileNavLinkStyle}>Orari di Apertura</a>
