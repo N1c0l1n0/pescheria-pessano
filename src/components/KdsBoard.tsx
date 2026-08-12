@@ -178,28 +178,7 @@ export const KdsBoard: React.FC = () => {
 
       const { data, error } = await supabase
         .from('orders')
-        .select(`
-          id,
-          friendly_id,
-          status,
-          customer_name,
-          customer_phone,
-          order_type,
-          delivery_address,
-          total_amount,
-          created_at,
-          notes,
-          order_items (
-            id,
-            order_id,
-            item_type,
-            name,
-            quantity,
-            unit_price,
-            details,
-            created_at
-          )
-        `)
+        .select('*, order_items(*)')
         .neq('status', 'COMPLETATO')
         .order('created_at', { ascending: true });
 

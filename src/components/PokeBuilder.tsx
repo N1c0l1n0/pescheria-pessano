@@ -435,6 +435,12 @@ export const PokeBuilder: React.FC = () => {
           name: `Poke ${poke.format.name} (${poke.pokePersonName})`,
           quantity: 1,
           unit_price: poke.price,
+          bases: poke.basi,
+          proteins: poke.proteine,
+          toppings: poke.ingredienti,
+          sauces: poke.salse,
+          has_sesame: poke.semiSesamo,
+          notes: poke.notes || '',
           details: {
             size: poke.format.name,
             bases: poke.basi,
