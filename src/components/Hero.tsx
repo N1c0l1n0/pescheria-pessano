@@ -16,7 +16,7 @@ export const Hero: React.FC = () => {
         alignItems: 'center',
         background: 'linear-gradient(135deg, #0B2545 0%, #134074 65%, #081B33 100%)',
         color: 'white',
-        paddingTop: '6.5rem',
+        paddingTop: '8.5rem',
         paddingBottom: '4rem',
         overflow: 'hidden',
       }}

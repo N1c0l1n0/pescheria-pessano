@@ -208,7 +208,6 @@ export const PokeBuilder: React.FC = () => {
 
   const currentPokePrice = calculateCurrentPokePrice();
 
-  // Grand Total calculation for all pokes in orderList
   const calculateGrandTotal = (): number => {
     const listTotal = orderList.reduce((acc, poke) => acc + poke.price, 0);
     return listTotal;
@@ -216,19 +215,33 @@ export const PokeBuilder: React.FC = () => {
 
   const grandTotal = calculateGrandTotal();
 
+  // Helper to show validation error, focus, and smooth scroll directly to missing field
+  const triggerValidationError = (message: string, elementId?: string) => {
+    setValidationError(message);
+    if (elementId) {
+      setTimeout(() => {
+        const el = document.getElementById(elementId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.focus?.();
+        }
+      }, 50);
+    }
+  };
+
   // Add or Update configured Poke in order list
   const handleSavePokeToOrder = () => {
     const trimmedName = pokePersonName.trim();
     if (!trimmedName) {
-      setValidationError('Inserisci il nome della persona per questa Poke!');
+      triggerValidationError('Inserisci il nome della persona per questa Poke!', 'customerNameInput');
       return;
     }
     if (selectedBasi.length === 0) {
-      setValidationError(`Seleziona almeno 1 Base per la Poke di ${trimmedName}!`);
+      triggerValidationError(`Seleziona almeno 1 Base per la Poke di "${trimmedName}"!`, 'stepBasi');
       return;
     }
     if (selectedProteine.length === 0) {
-      setValidationError(`Seleziona almeno 1 Proteina per la Poke di ${trimmedName}!`);
+      triggerValidationError(`Seleziona almeno 1 Proteina per la Poke di "${trimmedName}"!`, 'stepProteine');
       return;
     }
 
@@ -348,12 +361,12 @@ export const PokeBuilder: React.FC = () => {
     let finalPokes: ConfiguredPoke[] = [...orderList];
 
     if (!customerPhone.trim()) {
-      setValidationError('Inserisci il tuo Numero di Telefono prima di inviare l\'ordine!');
+      triggerValidationError('Inserisci il tuo Numero di Telefono prima di inviare l\'ordine!', 'customerPhoneInput');
       return;
     }
 
     if (orderType === 'Consegna' && !deliveryAddress.trim()) {
-      setValidationError('Inserisci l\'indirizzo di consegna per procedere!');
+      triggerValidationError('Inserisci l\'indirizzo di consegna per procedere!', 'deliveryAddressInput');
       return;
     }
 
@@ -361,15 +374,15 @@ export const PokeBuilder: React.FC = () => {
     if (finalPokes.length === 0) {
       const trimmedName = pokePersonName.trim();
       if (!trimmedName) {
-        setValidationError('Inserisci il nome referente per la Poke prima di procedere!');
+        triggerValidationError('Inserisci il nome referente per la Poke prima di procedere!', 'customerNameInput');
         return;
       }
       if (selectedBasi.length === 0) {
-        setValidationError(`Seleziona almeno 1 Base per la Poke di ${trimmedName}!`);
+        triggerValidationError(`Seleziona almeno 1 Base per la Poke di "${trimmedName}"!`, 'stepBasi');
         return;
       }
       if (selectedProteine.length === 0) {
-        setValidationError(`Seleziona almeno 1 Proteina per la Poke di ${trimmedName}!`);
+        triggerValidationError(`Seleziona almeno 1 Proteina per la Poke di "${trimmedName}"!`, 'stepProteine');
         return;
       }
 
@@ -510,6 +523,74 @@ export const PokeBuilder: React.FC = () => {
         backgroundColor: 'white',
       }}
     >
+      {/* Floating Sticky Top Validation Error Banner (Visible Immediately!) */}
+      {validationError && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '85px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 10000,
+            width: '92%',
+            maxWidth: '650px',
+            backgroundColor: '#FEF2F2',
+            border: '2px solid #EF4444',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.9rem 1.25rem',
+            boxShadow: '0 12px 36px rgba(239, 68, 68, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.85rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: '#EF4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <AlertCircle size={20} color="white" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.925rem', color: '#991B1B', marginBottom: '0.1rem' }}>
+                Campo Obbligatorio Mancante
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#B91C1C', fontWeight: 600, lineHeight: 1.35 }}>
+                {validationError}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setValidationError(null)}
+            style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.15)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '30px',
+              height: '30px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#991B1B',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="container">
 
         <div
