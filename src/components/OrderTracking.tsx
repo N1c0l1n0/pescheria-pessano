@@ -12,10 +12,12 @@ import {
   Phone,
   Receipt,
   User,
-  MessageCircle
+  MessageCircle,
+  Bell
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getLocalOrderById, subscribeToLocalOrders } from '../utils/orderStore';
+import { subscribeToOrderPush } from '../lib/onesignal';
 
 export interface OrderItem {
   id?: string;
@@ -57,6 +59,15 @@ export const OrderTracking: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isProntoAlertOpen, setIsProntoAlertOpen] = useState<boolean>(false);
+  const [isPushSubscribed, setIsPushSubscribed] = useState<boolean>(false);
+
+  const handleActivatePush = async () => {
+    if (!order?.id) return;
+    const ok = await subscribeToOrderPush(String(order.id));
+    if (ok) {
+      setIsPushSubscribed(true);
+    }
+  };
 
   // Trigger sound & vibration for 'PRONTO' status
   const triggerProntoAlert = useCallback(() => {
@@ -519,6 +530,65 @@ export const OrderTracking: React.FC = () => {
         {!loading && !error && order && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             
+            {/* PUSH NOTIFICATION SUBSCRIPTION BANNER */}
+            <div
+              style={{
+                backgroundColor: isPushSubscribed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(56, 189, 248, 0.12)',
+                border: isPushSubscribed ? '1.5px solid #10B981' : '1.5px solid #38BDF8',
+                borderRadius: '1rem',
+                padding: '1.25rem 1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: '240px' }}>
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '50%',
+                    backgroundColor: isPushSubscribed ? '#10B981' : '#0284C7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Bell size={22} color="white" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '1rem', color: 'white', marginBottom: '0.2rem' }}>
+                    {isPushSubscribed ? '🔔 Notifiche Push Attivate per questo Ordine' : '🔔 Vuoi ricevere una notifica appena la tua Poke è pronta?'}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.8)', lineHeight: 1.35 }}>
+                    {isPushSubscribed
+                      ? 'Ti invieremo un avviso sul tuo dispositivo appena il piatto è pronto per il ritiro!'
+                      : 'Attiva le notifiche Web Push per ricevere un avviso sul telefono o computer quando la tua Poke è pronta.'}
+                  </div>
+                </div>
+              </div>
+
+              {!isPushSubscribed && (
+                <button
+                  type="button"
+                  onClick={handleActivatePush}
+                  className="btn btn-coral"
+                  style={{
+                    padding: '0.65rem 1.25rem',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    borderRadius: '0.5rem',
+                  }}
+                >
+                  Avvisami quando è Pronta
+                </button>
+              )}
+            </div>
+
             {/* GIANT HIGH-CONTRAST PRONTO TRIGGER BANNER */}
             {(order.status === 'PRONTO' || isProntoAlertOpen) && (
               <div

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getLocalOrders, updateLocalOrderStatus, subscribeToLocalOrders } from '../utils/orderStore';
+import { sendOrderStatusNotification } from '../lib/onesignal';
 
 export interface KdsOrderItem {
   id?: string;
@@ -324,6 +325,16 @@ export const KdsBoard: React.FC = () => {
 
   // Update order status handler
   const handleUpdateStatus = async (orderId: string, newStatus: 'IN_PREPARAZIONE' | 'PRONTO' | 'COMPLETATO') => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+    const customerName = targetOrder?.customer_name || 'Cliente';
+
+    // Send Web Push Notification to subscriber of order
+    sendOrderStatusNotification({
+      orderId,
+      customerName,
+      newStatus,
+    });
+
     // Optimistic UI update
     setOrders((prev) =>
       prev
