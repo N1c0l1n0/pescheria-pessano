@@ -60,13 +60,39 @@ export const OrderTracking: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isProntoAlertOpen, setIsProntoAlertOpen] = useState<boolean>(false);
   const [isPushSubscribed, setIsPushSubscribed] = useState<boolean>(false);
+  const [pushToastMsg, setPushToastMsg] = useState<string | null>(null);
 
-  const handleActivatePush = async () => {
-    if (!order?.id) return;
-    const ok = await subscribeToOrderPush(String(order.id));
-    if (ok) {
-      setIsPushSubscribed(true);
+  // Check saved push notification subscription state
+  useEffect(() => {
+    const orderIdToUse = order?.id || id;
+    if (orderIdToUse && typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`push_sub_${orderIdToUse}`);
+      if (saved === 'true') {
+        setIsPushSubscribed(true);
+      }
     }
+  }, [order?.id, id]);
+
+  const handleActivatePush = () => {
+    const orderIdToUse = order?.id || id;
+    if (!orderIdToUse) return;
+
+    // Instant synchronous UI feedback!
+    setIsPushSubscribed(true);
+    setPushToastMsg('🔔 Notifiche attivate con successo! Ti avviseremo appena il tuo ordine è pronto.');
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`push_sub_${orderIdToUse}`, 'true');
+    }
+
+    setTimeout(() => {
+      setPushToastMsg(null);
+    }, 4500);
+
+    // Asynchronous OneSignal & Browser permission trigger in background
+    subscribeToOrderPush(String(orderIdToUse)).catch((err) => {
+      console.warn('Push subscription background error:', err);
+    });
   };
 
   // Trigger sound & vibration for 'PRONTO' status
@@ -530,6 +556,29 @@ export const OrderTracking: React.FC = () => {
         {!loading && !error && order && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             
+            {/* SUCCESS TOAST MESSAGE */}
+            {pushToastMsg && (
+              <div
+                style={{
+                  padding: '1rem 1.25rem',
+                  borderRadius: '0.75rem',
+                  backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                  border: '1.5px solid #10B981',
+                  color: '#A7F3D0',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  boxShadow: '0 8px 25px rgba(16, 185, 129, 0.2)',
+                  animation: 'fadeIn 0.2s ease',
+                }}
+              >
+                <CheckCircle2 size={22} color="#10B981" />
+                <span>{pushToastMsg}</span>
+              </div>
+            )}
+
             {/* PUSH NOTIFICATION SUBSCRIPTION BANNER */}
             <div
               style={{

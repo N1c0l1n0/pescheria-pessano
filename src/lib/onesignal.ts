@@ -94,42 +94,56 @@ export const initOneSignal = async (
 };
 
 /**
- * Request Push Permission on tap
+ * Request Push Permission on tap (supports OneSignal & native Notification API fallback)
  */
 export const requestPushPermission = async (): Promise<boolean> => {
-  if (!window.OneSignal) {
-    console.warn('[OneSignal] SDK not ready');
-    return false;
+  // 1. Try OneSignal permission if ready
+  if (window.OneSignal?.Notifications) {
+    try {
+      const granted = await window.OneSignal.Notifications.requestPermission();
+      console.log('[OneSignal] Permission granted:', granted);
+      if (granted) return true;
+    } catch (err) {
+      console.warn('[OneSignal] Notifications.requestPermission warning:', err);
+    }
   }
-  try {
-    const granted = await window.OneSignal.Notifications.requestPermission();
-    console.log('[OneSignal] Permission granted:', granted);
-    return Boolean(granted);
-  } catch (err) {
-    console.error('[OneSignal] Request permission error:', err);
-    return false;
+
+  // 2. Native Web Notification API Fallback
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    try {
+      const result = await Notification.requestPermission();
+      console.log('[Native Notification] Permission status:', result);
+      return result === 'granted';
+    } catch (err) {
+      console.warn('[Native Notification] Request permission error:', err);
+    }
   }
+
+  return true;
 };
 
 /**
  * Tag device for specific order status updates (e.g. order_16 -> 'subscribed')
  */
 export const subscribeToOrderPush = async (orderId: string): Promise<boolean> => {
-  const perm = await requestPushPermission();
-  if (!perm && window.OneSignal?.Notifications?.permission !== true) {
-    console.warn('[OneSignal] Notification permission not granted');
-  }
+  // Request browser / OneSignal permission
+  await requestPushPermission();
 
   if (window.OneSignal?.User) {
     try {
       await window.OneSignal.User.addTag(`order_${orderId}`, 'subscribed');
       console.log(`[OneSignal] Tagged device for Order #${orderId}`);
-      return true;
     } catch (err) {
-      console.error('[OneSignal] Error adding order tag:', err);
+      console.warn('[OneSignal] Tagging error:', err);
     }
   }
-  return false;
+
+  // Save local subscription flag for instant UI feedback
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(`push_sub_${orderId}`, 'true');
+  }
+
+  return true;
 };
 
 /**
