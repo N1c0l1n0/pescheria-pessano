@@ -192,12 +192,14 @@ export const sendOrderStatusNotification = async (payload: {
     message = `Grazie per aver scelto Pescheria Pessano, ${payload.customerName}!`;
   }
 
+  const authHeader = apiKey.startsWith('os_v2_') ? `Key ${apiKey}` : `Basic ${apiKey}`;
+
   try {
     const response = await fetch('https://onesignal.com/api/v1/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Basic ${apiKey}`,
+        Authorization: authHeader,
       },
       body: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,
@@ -207,6 +209,7 @@ export const sendOrderStatusNotification = async (payload: {
         filters: [
           { field: 'tag', key: `order_${payload.orderId}`, relation: '=', value: 'subscribed' }
         ],
+        target_channel: 'push',
       }),
     });
 

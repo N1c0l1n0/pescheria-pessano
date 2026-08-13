@@ -95,9 +95,22 @@ export const OrderTracking: React.FC = () => {
     });
   };
 
-  // Trigger sound & vibration for 'PRONTO' status
+  // Trigger sound, vibration & native notification for 'PRONTO' status
   const triggerProntoAlert = useCallback(() => {
     setIsProntoAlertOpen(true);
+
+    // Native System Push Notification (Fired on Desktop/Mobile)
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification('🎉 La tua Poke è Pronta!', {
+          body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
+          icon: '/pesce/tonno_pinna_gialla.jpg',
+          tag: 'poke_pronta_notification',
+        });
+      } catch (e) {
+        console.warn('Native Notification trigger error:', e);
+      }
+    }
 
     // Vibration
     if ('vibrate' in navigator) {
