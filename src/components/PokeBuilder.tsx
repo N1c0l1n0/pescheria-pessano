@@ -236,6 +236,10 @@ export const PokeBuilder: React.FC = () => {
       triggerValidationError('Inserisci il nome della persona per questa Poke!', 'customerNameInput');
       return;
     }
+    if (!customerPhone.trim()) {
+      triggerValidationError('Inserisci il tuo Numero di Telefono prima di proseguire!', 'customerPhoneInput');
+      return;
+    }
     if (selectedBasi.length === 0) {
       triggerValidationError(`Seleziona almeno 1 Base per la Poke di "${trimmedName}"!`, 'stepBasi');
       return;
