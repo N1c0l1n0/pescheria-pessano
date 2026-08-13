@@ -512,43 +512,6 @@ export const PokeBuilder: React.FC = () => {
     >
       <div className="container">
 
-        {/* Section Header */}
-        <div style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto 3.5rem auto' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.35rem 1rem',
-              borderRadius: 'var(--radius-full)',
-              backgroundColor: 'rgba(255, 107, 107, 0.12)',
-              color: 'var(--color-coral)',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              marginBottom: '1rem',
-              border: '1px solid rgba(255, 107, 107, 0.3)',
-            }}
-          >
-            <Sparkles size={16} />
-            <span>Configuratore Multidose Interattivo</span>
-          </div>
-
-          <h2
-            className="font-serif heading-dark-gradient"
-            style={{
-              fontSize: 'clamp(2.2rem, 3.5vw, 3.2rem)',
-              fontWeight: 800,
-              marginBottom: '1rem',
-            }}
-          >
-            Componi la tua poke
-          </h2>
-
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>
-            Crea la tua poke o quelle per i tuoi amici e colleghi! Assegna ciascuna Poke alla persona che la desidera, modifica o aggiungi più formule e invia l'ordine completo su WhatsApp!
-          </p>
-        </div>
-
         <div
           style={{
             display: 'grid',
