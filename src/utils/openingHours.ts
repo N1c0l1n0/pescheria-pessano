@@ -164,8 +164,17 @@ export function getDaySchedule(date: Date = new Date()): DaySchedule {
   return WEEKLY_SCHEDULE.find((s) => s.dayIndex === dayIndex) || WEEKLY_SCHEDULE[0];
 }
 
+function isSameDay(d1: Date, d2: Date = new Date()): boolean {
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+}
+
 /**
  * Check if a time string "HH:MM" falls within the store's opening hours for a given Date
+ * AND is equal to or after current time if the date is Today.
  */
 export function isTimeInOpeningHours(timeStr: string, date: Date = new Date()): boolean {
   const schedule = getDaySchedule(date);
@@ -174,6 +183,14 @@ export function isTimeInOpeningHours(timeStr: string, date: Date = new Date()): 
   const parts = timeStr.split(':').map((p) => parseInt(p, 10));
   if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return false;
   const targetMin = parts[0] * 60 + parts[1];
+
+  const now = new Date();
+  if (isSameDay(date, now)) {
+    const currentMin = now.getHours() * 60 + now.getMinutes();
+    if (targetMin < currentMin) {
+      return false;
+    }
+  }
 
   return schedule.slots.some((slot) => {
     const openMin = timeToMinutes(slot.open);
@@ -189,11 +206,16 @@ export function getValidHoursForDate(date: Date = new Date()): number[] {
   const schedule = getDaySchedule(date);
   if (schedule.isClosedAllDay || !schedule.slots.length) return [];
 
+  const now = new Date();
+  const isToday = isSameDay(date, now);
+  const currentHour = now.getHours();
+
   const hoursSet = new Set<number>();
   schedule.slots.forEach((slot) => {
     const openH = parseInt(slot.open.split(':')[0], 10);
     const closeH = parseInt(slot.close.split(':')[0], 10);
     for (let h = openH; h <= closeH; h++) {
+      if (isToday && h < currentHour) continue;
       hoursSet.add(h);
     }
   });
@@ -208,9 +230,15 @@ export function getValidMinutesForHour(hour: number, date: Date = new Date(), st
   const schedule = getDaySchedule(date);
   if (schedule.isClosedAllDay || !schedule.slots.length) return [];
 
+  const now = new Date();
+  const isToday = isSameDay(date, now);
+  const currentTotalMin = now.getHours() * 60 + now.getMinutes();
+
   const valid: number[] = [];
   for (let m = 0; m < 60; m += step) {
     const totalMin = hour * 60 + m;
+    if (isToday && totalMin < currentTotalMin) continue;
+
     const isWithinSlot = schedule.slots.some((slot) => {
       const openMin = timeToMinutes(slot.open);
       const closeMin = timeToMinutes(slot.close);
@@ -224,11 +252,16 @@ export function getValidMinutesForHour(hour: number, date: Date = new Date(), st
 }
 
 /**
- * Get quick selectable time slot strings (e.g., ["12:30", "13:00", ...]) for a date
+ * Get quick selectable time slot strings (e.g., ["12:30", "13:00", ...]) for a date.
+ * Automatically filters out any slots earlier than the current time when date is Today.
  */
 export function getQuickTimeOptionsForDate(date: Date = new Date()): string[] {
   const schedule = getDaySchedule(date);
   if (schedule.isClosedAllDay || !schedule.slots.length) return [];
+
+  const now = new Date();
+  const isToday = isSameDay(date, now);
+  const currentTotalMin = now.getHours() * 60 + now.getMinutes();
 
   const slotsOptions: string[] = [];
   schedule.slots.forEach((slot) => {
@@ -238,6 +271,10 @@ export function getQuickTimeOptionsForDate(date: Date = new Date()): string[] {
     // Round openMin up to nearest 15/30 min
     const startMin = Math.ceil(openMin / 30) * 30;
     for (let m = startMin; m <= closeMin; m += 30) {
+      // Hide past slots if date is Today
+      if (isToday && m < currentTotalMin) {
+        continue;
+      }
       const hh = Math.floor(m / 60).toString().padStart(2, '0');
       const mm = (m % 60).toString().padStart(2, '0');
       slotsOptions.push(`${hh}:${mm}`);

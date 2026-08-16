@@ -48,12 +48,57 @@ export interface KdsOrder {
   order_items: KdsOrderItem[];
 }
 
+// Helper to extract customer's requested time from order notes
+export const extractRequestedTimeInfo = (notes?: string): { timeText: string; isAsap: boolean } => {
+  if (!notes) return { timeText: 'ASAP', isAsap: true };
+
+  const match = notes.match(/Orario:\s*([^—\n]+)/i);
+  if (match && match[1]) {
+    const raw = match[1].trim();
+    if (raw.toLowerCase().includes('asap') || raw.toLowerCase().includes('prima possibile')) {
+      return { timeText: 'ASAP', isAsap: true };
+    }
+    return { timeText: raw, isAsap: false };
+  }
+
+  return { timeText: 'ASAP', isAsap: true };
+};
+
+// Helper to compute target timestamp in ms for sorting urgency (closest requested time first)
+export const getOrderTargetMs = (o: KdsOrder): number => {
+  const createdMs = new Date(o.created_at).getTime();
+  const info = extractRequestedTimeInfo(o.notes);
+
+  if (info.isAsap) {
+    return createdMs;
+  }
+
+  const timeMatch = info.timeText.match(/(\d{1,2})[:.](\d{2})/);
+  if (timeMatch) {
+    const targetHour = parseInt(timeMatch[1], 10);
+    const targetMin = parseInt(timeMatch[2], 10);
+
+    const targetDate = new Date(createdMs);
+    targetDate.setHours(targetHour, targetMin, 0, 0);
+    let targetMs = targetDate.getTime();
+
+    // If requested time is earlier than creation time minus 1 hour, assume next day
+    if (targetMs < createdMs - 3600000) {
+      targetMs += 86400000;
+    }
+    return targetMs;
+  }
+
+  return createdMs;
+};
+
 export const KdsBoard: React.FC = () => {
   const [orders, setOrders] = useState<KdsOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeFilter, setActiveFilter] = useState<'TUTTI' | 'RITIRO' | 'CONSEGNA'>('TUTTI');
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<string>('');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   
   // Track checked ingredients per order and item (key: `${orderId}_${itemIdx}_${ingCategory}_${ingName}`)
   const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
@@ -172,9 +217,9 @@ export const KdsBoard: React.FC = () => {
 
 
   // Fetch active orders from Supabase DB & Local Storage Store
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = useCallback(async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
       let remoteOrders: KdsOrder[] = [];
 
       const { data, error } = await supabase
@@ -279,23 +324,31 @@ export const KdsBoard: React.FC = () => {
       localList.forEach((o) => orderMap.set(o.id, o));
 
       const finalCombined = Array.from(orderMap.values());
-      finalCombined.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      finalCombined.sort((a, b) => {
+        const targetA = getOrderTargetMs(a);
+        const targetB = getOrderTargetMs(b);
+
+        if (targetA !== targetB) {
+          return targetA - targetB; // Temporalmente più vicino (più urgente) prima!
+        }
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
       setOrders(finalCombined);
     } catch (e) {
       console.warn('Order fetch exception, fallback to local store:', e);
       const local = getLocalOrders().filter((o) => o.status !== 'COMPLETATO');
       setOrders(local as KdsOrder[]);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   }, []);
 
   // Supabase Realtime & Local Store Subscription
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(false);
 
     const unsubLocal = subscribeToLocalOrders(() => {
-      fetchOrders();
+      fetchOrders(true);
     });
 
     const channel = supabase
@@ -309,9 +362,9 @@ export const KdsBoard: React.FC = () => {
             if (newOrder.status === 'RICEVUTO') {
               playAudioBeep();
             }
-            fetchOrders();
+            fetchOrders(true);
           } else if (payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
-            fetchOrders();
+            fetchOrders(true);
           }
         }
       )
@@ -340,11 +393,18 @@ export const KdsBoard: React.FC = () => {
     });
 
     // Optimistic UI update
-    setOrders((prev) =>
-      prev
+    setOrders((prev) => {
+      const updated = prev
         .map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
-        .filter((o) => o.status !== 'COMPLETATO')
-    );
+        .filter((o) => o.status !== 'COMPLETATO');
+
+      return updated.sort((a, b) => {
+        const targetA = getOrderTargetMs(a);
+        const targetB = getOrderTargetMs(b);
+        if (targetA !== targetB) return targetA - targetB;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
+    });
 
     // Update local store
     updateLocalOrderStatus(orderId, newStatus);
@@ -361,23 +421,6 @@ export const KdsBoard: React.FC = () => {
     } catch (e) {
       console.warn('Status DB update exception:', e);
     }
-  };
-
-
-  // Helper to extract customer's requested time from order notes
-  const extractRequestedTimeInfo = (notes?: string): { timeText: string; isAsap: boolean } => {
-    if (!notes) return { timeText: 'ASAP', isAsap: true };
-
-    const match = notes.match(/Orario:\s*([^—\n]+)/i);
-    if (match && match[1]) {
-      const raw = match[1].trim();
-      if (raw.toLowerCase().includes('asap') || raw.toLowerCase().includes('prima possibile')) {
-        return { timeText: 'ASAP', isAsap: true };
-      }
-      return { timeText: raw, isAsap: false };
-    }
-
-    return { timeText: 'ASAP', isAsap: true };
   };
 
   // Helper to compute timer status relative to requested time or order creation
@@ -773,35 +816,45 @@ export const KdsBoard: React.FC = () => {
               const { timeText, isAsap } = extractRequestedTimeInfo(ord.notes);
               const timerInfo = calculateOrderTimer(ord.created_at, timeText, isAsap);
               const isDelivery = ord.order_type.toLowerCase().includes('consegna');
+              const isSelected = selectedOrderId === ord.id;
 
               return (
                 <div
                   key={ord.id}
+                  onClick={() => setSelectedOrderId(isSelected ? null : ord.id)}
                   style={{
-                    backgroundColor: '#1E293B',
+                    backgroundColor: isSelected ? '#0F172A' : '#1E293B',
                     borderRadius: '16px',
-                    border: timerInfo.isUrgent
+                    border: isSelected
+                      ? '3px solid #FBBF24'
+                      : timerInfo.isUrgent
                       ? '2px solid #EF4444'
                       : ord.status === 'IN_PREPARAZIONE'
                       ? '2px solid #3B82F6'
                       : ord.status === 'PRONTO'
                       ? '2px solid #10B981'
                       : '1px solid rgba(148, 163, 184, 0.2)',
-                    boxShadow: timerInfo.isUrgent
+                    boxShadow: isSelected
+                      ? '0 0 35px rgba(251, 191, 36, 0.75), 0 12px 35px rgba(0, 0, 0, 0.6)'
+                      : timerInfo.isUrgent
                       ? '0 0 20px rgba(239, 68, 68, 0.35)'
                       : '0 8px 24px rgba(0, 0, 0, 0.3)',
+                    transform: isSelected ? 'scale(1.025)' : 'scale(1)',
+                    opacity: selectedOrderId && !isSelected ? 0.65 : 1,
+                    zIndex: isSelected ? 20 : 1,
                     display: 'flex',
                     flexDirection: 'column',
                     overflow: 'hidden',
-                    transition: 'all 0.2s ease',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                   }}
                 >
                   {/* CARD HEADER */}
                   <div
                     style={{
                       padding: '1rem 1.15rem',
-                      backgroundColor: '#0F172A',
-                      borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
+                      backgroundColor: isSelected ? '#1E293B' : '#0F172A',
+                      borderBottom: isSelected ? '1px solid rgba(251, 191, 36, 0.3)' : '1px solid rgba(148, 163, 184, 0.15)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
@@ -813,6 +866,29 @@ export const KdsBoard: React.FC = () => {
                         <span style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white', letterSpacing: '0.02em' }}>
                           {ord.display_id || `#${ord.id}`}
                         </span>
+
+                        {/* Selected Highlighting Badge */}
+                        {isSelected && (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              padding: '0.2rem 0.6rem',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 900,
+                              backgroundColor: '#FBBF24',
+                              color: '#0F172A',
+                              boxShadow: '0 2px 8px rgba(251, 191, 36, 0.6)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.04em',
+                            }}
+                          >
+                            <Sparkles size={13} color="#0F172A" />
+                            IN LETTURA
+                          </span>
+                        )}
                         
                         {/* Delivery Type Badge */}
                         <span
@@ -972,7 +1048,10 @@ export const KdsBoard: React.FC = () => {
                                       <button
                                         type="button"
                                         key={base}
-                                        onClick={() => toggleIngredient(key)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleIngredient(key);
+                                        }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
                                           borderRadius: '6px',
@@ -1013,7 +1092,10 @@ export const KdsBoard: React.FC = () => {
                                       <button
                                         type="button"
                                         key={prot}
-                                        onClick={() => toggleIngredient(key)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleIngredient(key);
+                                        }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
                                           borderRadius: '6px',
@@ -1054,7 +1136,10 @@ export const KdsBoard: React.FC = () => {
                                       <button
                                         type="button"
                                         key={top}
-                                        onClick={() => toggleIngredient(key)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleIngredient(key);
+                                        }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
                                           borderRadius: '6px',
@@ -1095,7 +1180,10 @@ export const KdsBoard: React.FC = () => {
                                       <button
                                         type="button"
                                         key={sauce}
-                                        onClick={() => toggleIngredient(key)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleIngredient(key);
+                                        }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
                                           borderRadius: '6px',
@@ -1131,7 +1219,10 @@ export const KdsBoard: React.FC = () => {
                                   return (
                                     <button
                                       type="button"
-                                      onClick={() => toggleIngredient(key)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleIngredient(key);
+                                      }}
                                       style={{
                                         padding: '0.25rem 0.5rem',
                                         borderRadius: '6px',
@@ -1173,7 +1264,10 @@ export const KdsBoard: React.FC = () => {
                     {ord.status === 'RICEVUTO' && (
                       <button
                         type="button"
-                        onClick={() => handleUpdateStatus(ord.id, 'IN_PREPARAZIONE')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUpdateStatus(ord.id, 'IN_PREPARAZIONE');
+                        }}
                         style={{
                           width: '100%',
                           minHeight: '54px',
@@ -1200,7 +1294,10 @@ export const KdsBoard: React.FC = () => {
                     {ord.status === 'IN_PREPARAZIONE' && (
                       <button
                         type="button"
-                        onClick={() => handleUpdateStatus(ord.id, 'PRONTO')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUpdateStatus(ord.id, 'PRONTO');
+                        }}
                         style={{
                           width: '100%',
                           minHeight: '54px',
@@ -1227,7 +1324,10 @@ export const KdsBoard: React.FC = () => {
                     {ord.status === 'PRONTO' && (
                       <button
                         type="button"
-                        onClick={() => handleUpdateStatus(ord.id, 'COMPLETATO')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUpdateStatus(ord.id, 'COMPLETATO');
+                        }}
                         style={{
                           width: '100%',
                           minHeight: '54px',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock, Calendar, AlertCircle, Check } from 'lucide-react';
 import {
   getDaySchedule,
@@ -23,6 +23,10 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
   const [isCustom, setIsCustom] = useState<boolean>(false);
   const [customTime, setCustomTime] = useState<string>('12:30');
 
+  useEffect(() => {
+    setDay(selectedDay);
+  }, [selectedDay]);
+
   const todayDate = new Date();
   const tomorrowDate = new Date();
   tomorrowDate.setDate(todayDate.getDate() + 1);
@@ -31,13 +35,17 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
   const activeSchedule = getDaySchedule(activeDate);
   const quickSlots = getQuickTimeOptionsForDate(activeDate);
 
+  // Helper to strip any trailing "(Oggi)" or "(Domani)" tags
+  const cleanTimeStr = (str: string): string => {
+    return (str || '').replace(/\s*\((Oggi|Domani|oggi|domani)\)/gi, '').trim();
+  };
+
+  const rawSelectedTime = cleanTimeStr(selectedTime);
+
   const handleDaySelect = (newDay: 'oggi' | 'domani') => {
     setDay(newDay);
-    if (!isCustom) {
-      onTimeChange(selectedTime || 'Prima possibile', newDay);
-    } else {
-      onTimeChange(customTime, newDay);
-    }
+    const targetTime = isCustom ? customTime : (rawSelectedTime || 'Prima possibile');
+    onTimeChange(targetTime, newDay);
   };
 
   const handlePresetSelect = (presetStr: string) => {
@@ -51,7 +59,7 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
     onTimeChange(val, day);
   };
 
-  const isAsapSelected = !isCustom && (selectedTime === 'Prima possibile' || selectedTime.includes('ASAP'));
+  const isAsapSelected = !isCustom && (rawSelectedTime === 'Prima possibile' || rawSelectedTime.includes('ASAP'));
   const isValidCustomTime = isTimeInOpeningHours(customTime, activeDate);
 
   return (
@@ -282,6 +290,7 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
               type="time"
               inputMode="numeric"
               autoComplete="time"
+              min={day === 'oggi' ? `${todayDate.getHours().toString().padStart(2, '0')}:${todayDate.getMinutes().toString().padStart(2, '0')}` : undefined}
               value={customTime}
               onChange={(e) => handleCustomTimeInput(e.target.value)}
               style={{
@@ -315,12 +324,12 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
               {isValidCustomTime ? (
                 <>
                   <Check size={14} />
-                  <span>Orario valido (Pescheria aperta)</span>
+                  <span>Orario valido</span>
                 </>
               ) : (
                 <>
                   <AlertCircle size={14} />
-                  <span>Pescheria chiusa a quest'ora</span>
+                  <span>{day === 'oggi' ? 'Orario già passato o pescheria chiusa' : 'Pescheria chiusa a quest\'ora'}</span>
                 </>
               )}
             </div>

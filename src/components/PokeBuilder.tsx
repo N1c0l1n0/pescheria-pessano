@@ -894,10 +894,13 @@ export const PokeBuilder: React.FC = () => {
                   selectedDay={selectedDay}
                   onTimeChange={(timeStr, day) => {
                     setSelectedDay(day);
-                    if (timeStr === 'Prima possibile' || timeStr.includes('ASAP')) {
-                      setPickupTime(`Prima possibile (${day === 'oggi' ? 'Oggi' : 'Domani'})`);
+                    const clean = (timeStr || '').replace(/\s*\((Oggi|Domani|oggi|domani)\)/gi, '').trim();
+                    const formattedDay = day === 'oggi' ? 'Oggi' : 'Domani';
+
+                    if (clean === 'Prima possibile' || clean.includes('ASAP')) {
+                      setPickupTime(`Prima possibile (${formattedDay})`);
                     } else {
-                      setPickupTime(`${timeStr} (${day === 'oggi' ? 'Oggi' : 'Domani'})`);
+                      setPickupTime(`${clean} (${formattedDay})`);
                     }
                   }}
                 />

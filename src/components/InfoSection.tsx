@@ -55,7 +55,7 @@ export const InfoSection: React.FC = () => {
           <div
             className="glass-panel"
             style={{
-              padding: '2rem',
+              padding: '1.75rem 1.5rem',
               borderRadius: 'var(--radius-md)',
               backgroundColor: 'white',
               border: '1px solid rgba(11, 37, 69, 0.08)',
@@ -74,8 +74,8 @@ export const InfoSection: React.FC = () => {
           >
             <div
               style={{
-                width: '52px',
-                height: '52px',
+                width: '50px',
+                height: '50px',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'rgba(11, 37, 69, 0.08)',
                 display: 'flex',
@@ -90,28 +90,40 @@ export const InfoSection: React.FC = () => {
             <h3
               className="font-serif"
               style={{
-                fontSize: '1.35rem',
+                fontSize: '1.3rem',
                 fontWeight: 700,
                 color: 'var(--color-ocean-dark)',
                 marginBottom: '0.75rem',
+                minHeight: '3.2rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                lineHeight: 1.25,
               }}
             >
               Pesce Fresco del Giorno
             </h3>
 
-            <p style={{ color: 'var(--color-text-muted)', lineHeight: 1.6, fontSize: '0.925rem', marginBottom: '1.25rem' }}>
+            <p
+              style={{
+                color: 'var(--color-text-muted)',
+                lineHeight: 1.55,
+                fontSize: '0.9rem',
+                marginBottom: '1.5rem',
+                minHeight: '4.5rem',
+              }}
+            >
               Pescato locale selezionato ogni mattina: Acciughe del Golfo, Orate, Branzini selvaggi, Gamberi Rossi e Calamari nostrani.
             </p>
 
-            <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
+            <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.84rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" /> Svisceratura e pulizia gratuita
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Svisceratura e pulizia gratuita
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" /> Sfilettatura su richiesta
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Sfilettatura su richiesta
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" /> Filiera corta e pescato locale
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Filiera corta e pescato locale
               </li>
             </ul>
           </div>
@@ -120,7 +132,7 @@ export const InfoSection: React.FC = () => {
           <div
             className="glass-panel"
             style={{
-              padding: '2rem',
+              padding: '1.75rem 1.5rem',
               borderRadius: 'var(--radius-md)',
               backgroundColor: 'white',
               border: '1px solid rgba(11, 37, 69, 0.08)',
@@ -139,8 +151,8 @@ export const InfoSection: React.FC = () => {
           >
             <div
               style={{
-                width: '52px',
-                height: '52px',
+                width: '50px',
+                height: '50px',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'rgba(255, 107, 107, 0.12)',
                 display: 'flex',
@@ -155,27 +167,41 @@ export const InfoSection: React.FC = () => {
             <h3
               className="font-serif"
               style={{
-                fontSize: '1.35rem',
+                fontSize: '1.3rem',
                 fontWeight: 700,
                 color: 'var(--color-ocean-dark)',
                 marginBottom: '0.75rem',
+                minHeight: '3.2rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                lineHeight: 1.25,
               }}
             >
               Poke Bowl Artigianali
             </h3>
 
-            <p style={{ color: 'var(--color-text-muted)', lineHeight: 1.6, fontSize: '0.925rem', marginBottom: '1.25rem' }}>
+            <p
+              style={{
+                color: 'var(--color-text-muted)',
+                lineHeight: 1.55,
+                fontSize: '0.9rem',
+                marginBottom: '1.5rem',
+                minHeight: '4.5rem',
+              }}
+            >
               Componi online la tua Poke Bowl personalizzata con pesce fresco a cubetti, riso, topping selezionati e salse artigianali.
             </p>
 
-            <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
+            <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.84rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" /> Composizione online su misura
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Composizione online su misura
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" /> Pesce fresco tagliato al momento
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Pesce fresco tagliato al momento
               </li>
-
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Basi, topping e salse a scelta
+              </li>
             </ul>
           </div>
 
@@ -183,7 +209,7 @@ export const InfoSection: React.FC = () => {
           <div
             className="glass-panel"
             style={{
-              padding: '2rem',
+              padding: '1.75rem 1.5rem',
               borderRadius: 'var(--radius-md)',
               backgroundColor: 'white',
               border: '1px solid rgba(11, 37, 69, 0.08)',
@@ -202,8 +228,8 @@ export const InfoSection: React.FC = () => {
           >
             <div
               style={{
-                width: '52px',
-                height: '52px',
+                width: '50px',
+                height: '50px',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'rgba(19, 64, 116, 0.12)',
                 display: 'flex',
@@ -218,28 +244,40 @@ export const InfoSection: React.FC = () => {
             <h3
               className="font-serif"
               style={{
-                fontSize: '1.35rem',
+                fontSize: '1.3rem',
                 fontWeight: 700,
                 color: 'var(--color-ocean-dark)',
                 marginBottom: '0.75rem',
+                minHeight: '3.2rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                lineHeight: 1.25,
               }}
             >
               Gastronomia Pronta
             </h3>
 
-            <p style={{ color: 'var(--color-text-muted)', lineHeight: 1.6, fontSize: '0.925rem', marginBottom: '1.25rem' }}>
+            <p
+              style={{
+                color: 'var(--color-text-muted)',
+                lineHeight: 1.55,
+                fontSize: '0.9rem',
+                marginBottom: '1.5rem',
+                minHeight: '4.5rem',
+              }}
+            >
               Piatti pronti della tradizione marinara ligure preparati quotidianamente nel nostro laboratorio artigianale con ingredienti freschissimi.
             </p>
 
-            <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
+            <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.84rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" /> Cappon Magro Tradizionale Ligure
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Fritto Misto croccante di Mare
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" /> Fritto Misto croccante di Mare
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Insalata di mare e primi piatti
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" /> Insalata di mare e primi piatti
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Specialità liguri preparate oggi
               </li>
             </ul>
           </div>
@@ -248,7 +286,7 @@ export const InfoSection: React.FC = () => {
           <div
             className="glass-panel"
             style={{
-              padding: '2rem',
+              padding: '1.75rem 1.5rem',
               borderRadius: 'var(--radius-md)',
               backgroundColor: 'white',
               border: '1px solid rgba(11, 37, 69, 0.08)',
@@ -267,8 +305,8 @@ export const InfoSection: React.FC = () => {
           >
             <div
               style={{
-                width: '52px',
-                height: '52px',
+                width: '50px',
+                height: '50px',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'rgba(141, 169, 196, 0.18)',
                 display: 'flex',
@@ -283,28 +321,40 @@ export const InfoSection: React.FC = () => {
             <h3
               className="font-serif"
               style={{
-                fontSize: '1.35rem',
+                fontSize: '1.3rem',
                 fontWeight: 700,
                 color: 'var(--color-ocean-dark)',
                 marginBottom: '0.75rem',
+                minHeight: '3.2rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                lineHeight: 1.25,
               }}
             >
               Ordini Online & Asporto
             </h3>
 
-            <p style={{ color: 'var(--color-text-muted)', lineHeight: 1.6, fontSize: '0.925rem', marginBottom: '1.25rem' }}>
+            <p
+              style={{
+                color: 'var(--color-text-muted)',
+                lineHeight: 1.55,
+                fontSize: '0.9rem',
+                marginBottom: '1.5rem',
+                minHeight: '4.5rem',
+              }}
+            >
               Ordina facilmente dal sito per un ritiro rapido senza attese. Segui lo stato di preparazione in tempo reale con notifiche dedicate.
             </p>
 
-            <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
+            <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.84rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" /> Ritiro rapido zero attese
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Ritiro rapido zero attese
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" /> Tracciamento ordine live sul sito
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Tracciamento ordine dal vivo
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" /> Confezionamento salvafreschezza
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Confezionamento salvafreschezza
               </li>
             </ul>
           </div>

@@ -205,27 +205,33 @@ export const Footer: React.FC = () => {
             </div>
 
             {modalType === 'privacy' ? (
-              <div style={{ fontSize: '0.9rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
-                <p style={{ marginBottom: '0.85rem' }}>
-                  La <strong>Pescheria Pessano</strong> (Via Avvocato Emanuele Rossi, 17, Finale Ligure) rispetta la tua privacy in conformità al Regolamento UE 2016/679 (GDPR).
+              <div style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
+                <p style={{ marginBottom: '0.75rem' }}>
+                  La <strong>Pescheria Pessano</strong> (Via Avvocato Emanuele Rossi, 17, Finale Ligure — SV) rispetta la tua privacy in conformità al Regolamento UE 2016/679 (GDPR).
                 </p>
-                <p style={{ marginBottom: '0.85rem' }}>
-                  I dati inseriti (es. il nome nel configuratore Poke) vengono utilizzati <strong>esclusivamente in tempo reale</strong> per generare il messaggio dell'ordine da inviare su WhatsApp. Nessun dato personale viene salvato su database, server o ceduto a terzi.
+                <p style={{ marginBottom: '0.75rem' }}>
+                  <strong>Dati Raccolti:</strong> Durante la composizione dell'ordine vengono richiesti il <strong>Nome referente</strong> ed il <strong>Numero di telefono</strong>.
                 </p>
-                <p>
-                  Per qualsiasi chiarimento o contatto diretto puoi chiamare la pescheria al numero <strong>019 692623</strong>.
+                <p style={{ marginBottom: '0.75rem' }}>
+                  <strong>Finalità del Trattamento:</strong> I dati personali sono utilizzati <strong>esclusivamente per la gestione ed esecuzione dell'ordine</strong> (identificazione dell'ordine al banco, aggiornamento dello stato di preparazione tramite Live Tracker ed invio di notifiche di avviso per il ritiro).
+                </p>
+                <p style={{ marginBottom: '0.75rem' }}>
+                  <strong>Nessuna Profilazione:</strong> I dati non vengono ceduti a terzi né usati per inviare pubblicità o comunicazioni di marketing. Sono conservati in sicurezza per il tempo strettamente necessario all'evasione dell'ordine.
+                </p>
+                <p style={{ margin: 0 }}>
+                  Per qualsiasi chiarimento o richiesta di cancellazione dati puoi contattare la pescheria al numero <strong>019 692623</strong>.
                 </p>
               </div>
             ) : (
-              <div style={{ fontSize: '0.9rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
-                <p style={{ marginBottom: '0.85rem' }}>
-                  Questo sito web <strong>NON utilizza alcun cookie di profilazione</strong>, tracciamento pubblicitario o strumenti di monitoraggio comportamentale (Google Analytics, Facebook Pixel, ecc.).
+              <div style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
+                <p style={{ marginBottom: '0.75rem' }}>
+                  Questo sito web <strong>NON utilizza alcun cookie di profilazione</strong>, tracciamento pubblicitario o strumenti di monitoraggio comportamentale (Google Analytics, Meta Pixel, ecc.).
                 </p>
-                <p style={{ marginBottom: '0.85rem' }}>
-                  Le interazioni dell'utente (come la scelta degli ingredienti del Poke o il calcolo degli orari) avvengono interamente all'interno della memoria del browser per la sola durata della sessione.
+                <p style={{ marginBottom: '0.75rem' }}>
+                  Viene impiegata unicamente l'archiviazione tecnica locale (<strong>localStorage</strong>) per salvare lo stato di avanzamento dell'ordine ed abilitare il servizio di notifiche Push in tempo reale.
                 </p>
-                <p>
-                  Pertanto, ai sensi delle direttive del Garante Privacy e del GDPR, <strong>non è richiesto alcun banner di consenso per i cookie</strong>.
+                <p style={{ margin: 0 }}>
+                  Ai sensi delle direttive del Garante Privacy e del GDPR, l'uso di soli strumenti tecnici indispensabili all'erogazione del servizio <strong>non richiede alcun banner di consenso o blocco dei cookie</strong>.
                 </p>
               </div>
             )}
