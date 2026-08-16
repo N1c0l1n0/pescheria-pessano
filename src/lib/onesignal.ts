@@ -59,6 +59,8 @@ export const ensureOneSignalReady = async (): Promise<any> => {
             appId: ONESIGNAL_APP_ID,
             allowLocalhostAsSecureOrigin: true,
             serviceWorkerPath: '/OneSignalSDKWorker.js',
+            autoRegister: false,
+            autoPrompt: false,
           });
           isInitialized = true;
           oneSignalInitError = null;
