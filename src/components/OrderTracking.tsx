@@ -67,10 +67,11 @@ export const OrderTracking: React.FC = () => {
     const orderIdToUse = order?.id || id;
     if (!orderIdToUse || typeof window === 'undefined') return;
 
-    const saved = localStorage.getItem(`push_sub_${orderIdToUse}`);
+    const savedOrder = localStorage.getItem(`push_sub_${orderIdToUse}`) === 'true';
+    const savedGlobal = localStorage.getItem('push_global_granted') === 'true';
     const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
 
-    if (saved === 'true' || isGranted) {
+    if (savedOrder || savedGlobal || isGranted) {
       setIsPushSubscribed(true);
       // Auto-subscribe the device to this order tag in background if granted
       subscribeToOrderPush(String(orderIdToUse)).catch((err) => {
@@ -79,29 +80,28 @@ export const OrderTracking: React.FC = () => {
     }
   }, [order?.id, id]);
 
-  const handleActivatePush = async () => {
+  const handleActivatePush = () => {
     const orderIdToUse = order?.id || id;
     if (!orderIdToUse) return;
 
-    // Instant synchronous UI feedback!
+    // Instant UI feedback and hide subscription banner
     setIsPushSubscribed(true);
-    setPushToastMsg('🔔 Attivazione notifiche in corso...');
+    setPushToastMsg('🔔 Notifiche attivate con successo per questo ordine!');
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(`push_sub_${orderIdToUse}`, 'true');
+      localStorage.setItem('push_global_granted', 'true');
     }
 
-    try {
-      await subscribeToOrderPush(String(orderIdToUse));
-      setPushToastMsg('🔔 Notifiche attivate con successo! Ti avviseremo appena il tuo ordine è pronto.');
-    } catch (err) {
-      console.warn('Push subscription error:', err);
-      setPushToastMsg('🔔 Notifiche abilitate per questo ordine.');
-    }
-
+    // Auto dismiss message after 3.5 seconds
     setTimeout(() => {
       setPushToastMsg(null);
-    }, 4500);
+    }, 3500);
+
+    // Run push subscription in background without blocking UI
+    subscribeToOrderPush(String(orderIdToUse)).catch((err) => {
+      console.warn('Push subscription background error:', err);
+    });
   };
 
   // Trigger sound, vibration & native notification for 'PRONTO' status

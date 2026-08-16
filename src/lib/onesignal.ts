@@ -160,47 +160,54 @@ export const requestPushPermission = async (): Promise<boolean> => {
 export const subscribeToOrderPush = async (orderId: string): Promise<boolean> => {
   const cleanId = String(orderId).replace(/^#/, '');
 
-  try {
-    const OneSignal = await ensureOneSignalReady();
-
-    // 1. Richiedi permesso notifiche browser
-    await requestPushPermission();
-
-    // 2. Assicurati che l'utente sia opt-in in OneSignal
-    if (OneSignal?.User?.PushSubscription) {
-      try {
-        await OneSignal.User.PushSubscription.optIn();
-      } catch (optErr) {
-        console.warn('[OneSignal] OptIn avviso:', optErr);
-      }
-    }
-
-    // 3. Su dispositivi mobile, attendi fino a 3s che l'ID di iscrizione (PushSubscription.id) venga generato dal server
-    let attempts = 0;
-    while (!OneSignal?.User?.PushSubscription?.id && attempts < 6) {
-      await new Promise((res) => setTimeout(res, 500));
-      attempts++;
-    }
-
-    // 4. Applica il Tag per l'ordine specifico
-    if (OneSignal?.User) {
-      try {
-        await OneSignal.User.addTag(`order_${cleanId}`, 'subscribed');
-        console.log(`[OneSignal] Dispositivo iscritto al tag order_${cleanId}. Sub ID:`, OneSignal.User.PushSubscription?.id || 'pending');
-      } catch (tagErr) {
-        console.warn('[OneSignal] Errore nell\'aggiunta del tag:', tagErr);
-      }
-    }
-  } catch (err) {
-    console.warn('[OneSignal] Errore durante la sottoscrizione push ordine:', err);
-  }
-
-  // Salvataggio stato locale per feedback immediato nell'interfaccia
+  // Salvataggio immediato stato locale e permessi globali
   if (typeof window !== 'undefined') {
     localStorage.setItem(`push_sub_${cleanId}`, 'true');
+    localStorage.setItem('push_global_granted', 'true');
   }
 
-  return true;
+  const runSubscriptionWork = async () => {
+    try {
+      const OneSignal = await ensureOneSignalReady();
+
+      // 1. Richiedi permesso notifiche browser
+      await requestPushPermission();
+
+      // 2. Assicurati che l'utente sia opt-in in OneSignal
+      if (OneSignal?.User?.PushSubscription) {
+        try {
+          await OneSignal.User.PushSubscription.optIn();
+        } catch (optErr) {
+          console.warn('[OneSignal] OptIn avviso:', optErr);
+        }
+      }
+
+      // 3. Attesa rapida per l'ID di sottoscrizione (massimo 1.5s)
+      let attempts = 0;
+      while (!OneSignal?.User?.PushSubscription?.id && attempts < 3) {
+        await new Promise((res) => setTimeout(res, 500));
+        attempts++;
+      }
+
+      // 4. Applica il Tag per l'ordine specifico
+      if (OneSignal?.User) {
+        try {
+          await OneSignal.User.addTag(`order_${cleanId}`, 'subscribed');
+          console.log(`[OneSignal] Dispositivo iscritto al tag order_${cleanId}. Sub ID:`, OneSignal.User.PushSubscription?.id || 'pending');
+        } catch (tagErr) {
+          console.warn('[OneSignal] Errore nell\'aggiunta del tag:', tagErr);
+        }
+      }
+    } catch (err) {
+      console.warn('[OneSignal] Errore durante la sottoscrizione push ordine:', err);
+    }
+  };
+
+  // Esegui la richiesta con timeout di sicurezza di 2.5 secondi per non bloccare l'interfaccia mobile
+  return Promise.race([
+    runSubscriptionWork().then(() => true),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 2500))
+  ]);
 };
 
 /**
