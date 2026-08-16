@@ -13,6 +13,7 @@ export const ONESIGNAL_REST_API_KEY = ((import.meta as any).env?.VITE_ONESIGNAL_
 
 let isInitialized = false;
 let dialogShown = false;
+export let oneSignalInitError: string | null = null;
 
 // Check if subscription ID is server-assigned (non-empty & not starting with 'local-')
 export const isRegisteredSubscription = (subscriptionId: string | null | undefined): boolean => {
@@ -60,9 +61,15 @@ export const ensureOneSignalReady = async (): Promise<any> => {
             serviceWorkerPath: '/OneSignalSDKWorker.js',
           });
           isInitialized = true;
+          oneSignalInitError = null;
           console.log('[OneSignal] SDK Inizializzato con successo. App ID:', ONESIGNAL_APP_ID);
-        } catch (err) {
-          console.warn('[OneSignal] Avviso durante init (potrebbe essere già inizializzato):', err);
+        } catch (err: any) {
+          console.warn('[OneSignal] Avviso/Errore durante init:', err);
+          if (err?.message?.includes('App not configured for web push') || String(err).includes('App not configured for web push')) {
+            oneSignalInitError = 'La piattaforma Web Push non è attiva sulla Dashboard OneSignal per questo App ID.';
+          } else {
+            oneSignalInitError = err?.message || String(err);
+          }
           isInitialized = true;
         }
       }
@@ -250,10 +257,17 @@ export const sendOrderStatusNotification = async (payload: {
         headings: { it: title, en: title },
         contents: { it: message, en: message },
         url: `${window.location.origin}/ordine/${cleanId}`,
+        web_url: `${window.location.origin}/ordine/${cleanId}`,
         filters: [
           { field: 'tag', key: `order_${cleanId}`, relation: '=', value: 'subscribed' }
         ],
         target_channel: 'push',
+        priority: 10,            // Massima priorità per risvegliare il dispositivo in standby
+        ttl: 86400,              // Validità di 24 ore
+        content_available: true, // Risveglio in background per dispositivi mobile
+        chrome_web_icon: `${window.location.origin}/logo_pescheria.png`,
+        firefox_icon: `${window.location.origin}/logo_pescheria.png`,
+        large_icon: `${window.location.origin}/logo_pescheria.png`,
       }),
     });
 
