@@ -160,12 +160,6 @@ export const requestPushPermission = async (): Promise<boolean> => {
 export const subscribeToOrderPush = async (orderId: string): Promise<boolean> => {
   const cleanId = String(orderId).replace(/^#/, '');
 
-  // Salvataggio immediato stato locale e permessi globali
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(`push_sub_${cleanId}`, 'true');
-    localStorage.setItem('push_global_granted', 'true');
-  }
-
   const runSubscriptionWork = async () => {
     try {
       const OneSignal = await ensureOneSignalReady();
@@ -197,6 +191,11 @@ export const subscribeToOrderPush = async (orderId: string): Promise<boolean> =>
         } catch (tagErr) {
           console.warn('[OneSignal] Errore nell\'aggiunta del tag:', tagErr);
         }
+      }
+
+      // Salva stato solo se il permesso è granted o la sottoscrizione esiste
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`push_sub_${cleanId}`, 'true');
       }
     } catch (err) {
       console.warn('[OneSignal] Errore durante la sottoscrizione push ordine:', err);

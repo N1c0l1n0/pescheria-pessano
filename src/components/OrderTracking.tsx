@@ -67,41 +67,47 @@ export const OrderTracking: React.FC = () => {
     const orderIdToUse = order?.id || id;
     if (!orderIdToUse || typeof window === 'undefined') return;
 
-    const savedOrder = localStorage.getItem(`push_sub_${orderIdToUse}`) === 'true';
-    const savedGlobal = localStorage.getItem('push_global_granted') === 'true';
+    // Clean up any legacy push_global_granted if browser permission is not actually granted
     const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
+    if (!isGranted) {
+      localStorage.removeItem('push_global_granted');
+    }
 
-    if (savedOrder || savedGlobal || isGranted) {
+    const savedOrder = localStorage.getItem(`push_sub_${orderIdToUse}`) === 'true';
+
+    if (isGranted || savedOrder) {
       setIsPushSubscribed(true);
-      // Auto-subscribe the device to this order tag in background if granted
       subscribeToOrderPush(String(orderIdToUse)).catch((err) => {
         console.warn('Auto order push tag error:', err);
       });
+    } else {
+      setIsPushSubscribed(false);
     }
   }, [order?.id, id]);
 
-  const handleActivatePush = () => {
+  const handleActivatePush = async () => {
     const orderIdToUse = order?.id || id;
     if (!orderIdToUse) return;
 
-    // Instant UI feedback and hide subscription banner
-    setIsPushSubscribed(true);
-    setPushToastMsg('🔔 Notifiche attivate con successo per questo ordine!');
+    setPushToastMsg('🔔 Attivazione notifiche in corso...');
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`push_sub_${orderIdToUse}`, 'true');
-      localStorage.setItem('push_global_granted', 'true');
+    try {
+      await subscribeToOrderPush(String(orderIdToUse));
+      const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
+      if (isGranted) {
+        setIsPushSubscribed(true);
+        setPushToastMsg('🔔 Notifiche attivate con successo per questo ordine!');
+      } else {
+        setPushToastMsg('🔔 Per favore accetta il permesso delle notifiche nel browser.');
+      }
+    } catch (err) {
+      console.warn('Push subscription background error:', err);
+      setPushToastMsg('🔔 Notifiche attivate per questo ordine.');
     }
 
-    // Auto dismiss message after 3.5 seconds
     setTimeout(() => {
       setPushToastMsg(null);
-    }, 3500);
-
-    // Run push subscription in background without blocking UI
-    subscribeToOrderPush(String(orderIdToUse)).catch((err) => {
-      console.warn('Push subscription background error:', err);
-    });
+    }, 4000);
   };
 
   // Trigger sound, vibration & native notification for 'PRONTO' status
@@ -654,6 +660,11 @@ export const OrderTracking: React.FC = () => {
                     <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.8)', lineHeight: 1.35 }}>
                       Attiva le notifiche Web Push per ricevere un avviso sul telefono o computer quando la tua Poke è pronta.
                     </div>
+                    {typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent) && !(navigator as any).standalone && (
+                      <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', color: '#FCD34D', fontWeight: 600 }}>
+                        📱 Su iPhone: tocca l'icona Condividi ⎋ in basso e seleziona "Aggiungi alla Schermata Home" per ricevere notifiche a schermo spento.
+                      </div>
+                    )}
                   </div>
                 </div>
 
