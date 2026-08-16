@@ -333,6 +333,10 @@ export const KdsBoard: React.FC = () => {
       orderId,
       customerName,
       newStatus,
+    }).then((sent) => {
+      console.log(`[KDS] Esito notifica push per ordine #${orderId} (${newStatus}):`, sent);
+    }).catch((err) => {
+      console.warn(`[KDS] Errore notifica push per ordine #${orderId}:`, err);
     });
 
     // Optimistic UI update

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getLocalOrderById, subscribeToLocalOrders } from '../utils/orderStore';
-import { subscribeToOrderPush } from '../lib/onesignal';
+import { subscribeToOrderPush, sendTestPushNotification } from '../lib/onesignal';
 
 export interface OrderItem {
   id?: string;
@@ -73,40 +73,83 @@ export const OrderTracking: React.FC = () => {
     }
   }, [order?.id, id]);
 
-  const handleActivatePush = () => {
+  const handleActivatePush = async () => {
     const orderIdToUse = order?.id || id;
     if (!orderIdToUse) return;
 
     // Instant synchronous UI feedback!
     setIsPushSubscribed(true);
-    setPushToastMsg('🔔 Notifiche attivate con successo! Ti avviseremo appena il tuo ordine è pronto.');
+    setPushToastMsg('🔔 Attivazione notifiche in corso...');
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(`push_sub_${orderIdToUse}`, 'true');
     }
 
+    try {
+      await subscribeToOrderPush(String(orderIdToUse));
+      setPushToastMsg('🔔 Notifiche attivate con successo! Ti avviseremo appena il tuo ordine è pronto.');
+    } catch (err) {
+      console.warn('Push subscription error:', err);
+      setPushToastMsg('🔔 Notifiche abilitate per questo ordine.');
+    }
+
     setTimeout(() => {
       setPushToastMsg(null);
     }, 4500);
+  };
 
-    // Asynchronous OneSignal & Browser permission trigger in background
-    subscribeToOrderPush(String(orderIdToUse)).catch((err) => {
-      console.warn('Push subscription background error:', err);
-    });
+  const handleTestPush = async () => {
+    const orderIdToUse = order?.id || id;
+    if (!orderIdToUse) return;
+
+    setPushToastMsg('⏳ Invio notifica di prova in corso...');
+
+    try {
+      const success = await sendTestPushNotification(String(orderIdToUse));
+      if (success) {
+        setPushToastMsg('🎉 Notifica push di prova inviata! Controlla il tuo dispositivo.');
+      } else {
+        setPushToastMsg('🔔 Trigger notifica locale di prova!');
+        triggerProntoAlert();
+      }
+    } catch (e) {
+      console.warn('Test push notification error:', e);
+      triggerProntoAlert();
+    }
+
+    setTimeout(() => {
+      setPushToastMsg(null);
+    }, 5000);
   };
 
   // Trigger sound, vibration & native notification for 'PRONTO' status
   const triggerProntoAlert = useCallback(() => {
     setIsProntoAlertOpen(true);
 
-    // Native System Push Notification (Fired on Desktop/Mobile)
+    // Native System Push Notification (Fired on Desktop/Mobile via Service Worker)
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
       try {
-        new Notification('🎉 La tua Poke è Pronta!', {
-          body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
-          icon: '/pesce/tonno_pinna_gialla.jpg',
-          tag: 'poke_pronta_notification',
-        });
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.showNotification('🎉 La tua Poke è Pronta!', {
+              body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
+              icon: '/pesce/tonno_pinna_gialla.jpg',
+              tag: 'poke_pronta_notification',
+            });
+          }).catch(() => {
+            new Notification('🎉 La tua Poke è Pronta!', {
+              body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
+              icon: '/pesce/tonno_pinna_gialla.jpg',
+              tag: 'poke_pronta_notification',
+            });
+          });
+        } else {
+          new Notification('🎉 La tua Poke è Pronta!', {
+            body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
+            icon: '/pesce/tonno_pinna_gialla.jpg',
+            tag: 'poke_pronta_notification',
+          });
+        }
       } catch (e) {
         console.warn('Native Notification trigger error:', e);
       }
@@ -633,7 +676,28 @@ export const OrderTracking: React.FC = () => {
                 </div>
               </div>
 
-              {!isPushSubscribed && (
+              {isPushSubscribed ? (
+                <button
+                  type="button"
+                  onClick={handleTestPush}
+                  style={{
+                    padding: '0.65rem 1.1rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    borderRadius: '0.5rem',
+                    backgroundColor: 'rgba(16, 185, 129, 0.25)',
+                    border: '1px solid #10B981',
+                    color: '#6EE7B7',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                  }}
+                >
+                  <span>🧪 Test Notifica</span>
+                </button>
+              ) : (
                 <button
                   type="button"
                   onClick={handleActivatePush}

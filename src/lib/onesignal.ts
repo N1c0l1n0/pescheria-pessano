@@ -39,56 +39,76 @@ const loadOneSignalScript = (): Promise<void> => {
 };
 
 /**
+ * Helper to ensure OneSignal SDK is loaded and ready
+ */
+export const ensureOneSignalReady = async (): Promise<any> => {
+  if (!ONESIGNAL_APP_ID) {
+    console.warn('[OneSignal] VITE_ONESIGNAL_APP_ID non configurata nelle variabili di ambiente.');
+    return null;
+  }
+
+  await loadOneSignalScript();
+
+  return new Promise((resolve) => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async (OneSignal: any) => {
+      if (!isInitialized) {
+        try {
+          await OneSignal.init({
+            appId: ONESIGNAL_APP_ID,
+            allowLocalhostAsSecureOrigin: true,
+            serviceWorkerPath: '/OneSignalSDKWorker.js',
+          });
+          isInitialized = true;
+          console.log('[OneSignal] SDK Inizializzato con successo. App ID:', ONESIGNAL_APP_ID);
+        } catch (err) {
+          console.warn('[OneSignal] Avviso durante init (potrebbe essere già inizializzato):', err);
+          isInitialized = true;
+        }
+      }
+      resolve(OneSignal);
+    });
+  });
+};
+
+/**
  * Initialize OneSignal Web SDK
  */
 export const initOneSignal = async (
   onShowVerificationModal?: (show: boolean) => void
 ): Promise<boolean> => {
-  if (isInitialized) return true;
   if (!ONESIGNAL_APP_ID) {
-    console.warn('[OneSignal] VITE_ONESIGNAL_APP_ID missing in environment variables.');
+    console.warn('[OneSignal] VITE_ONESIGNAL_APP_ID assente nelle variabili d\'ambiente.');
     return false;
   }
 
   try {
-    await loadOneSignalScript();
+    const OneSignal = await ensureOneSignalReady();
+    if (!OneSignal) return false;
 
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async (OneSignal: any) => {
-      await OneSignal.init({
-        appId: ONESIGNAL_APP_ID,
-        allowLocalhostAsSecureOrigin: true,
-        serviceWorkerPath: '/OneSignalSDKWorker.js',
+    // Register Push Subscription Observer (Required Step)
+    const maybeShowDialog = (subId: string | null | undefined) => {
+      if (isRegisteredSubscription(subId) && !dialogShown) {
+        dialogShown = true;
+        if (onShowVerificationModal) {
+          onShowVerificationModal(true);
+        }
+      }
+    };
+
+    // Listen for subscription changes
+    if (OneSignal.User?.PushSubscription) {
+      OneSignal.User.PushSubscription.addEventListener('change', (event: any) => {
+        maybeShowDialog(event?.current?.id);
       });
 
-      isInitialized = true;
-      console.log('[OneSignal] Initialized successfully with App ID:', ONESIGNAL_APP_ID);
-
-      // Register Push Subscription Observer (Required Step)
-      const maybeShowDialog = (subId: string | null | undefined) => {
-        if (isRegisteredSubscription(subId) && !dialogShown) {
-          dialogShown = true;
-          if (onShowVerificationModal) {
-            onShowVerificationModal(true);
-          }
-        }
-      };
-
-      // Listen for subscription changes
-      if (OneSignal.User?.PushSubscription) {
-        OneSignal.User.PushSubscription.addEventListener('change', (event: any) => {
-          maybeShowDialog(event?.current?.id);
-        });
-
-        // Evaluate immediately on registration
-        const currentSubId = OneSignal.User.PushSubscription.id;
-        maybeShowDialog(currentSubId);
-      }
-    });
+      const currentSubId = OneSignal.User.PushSubscription.id;
+      maybeShowDialog(currentSubId);
+    }
 
     return true;
   } catch (err) {
-    console.error('[OneSignal] SDK Load/Initialization failed:', err);
+    console.error('[OneSignal] Errore inizializzazione SDK:', err);
     return false;
   }
 };
@@ -97,25 +117,28 @@ export const initOneSignal = async (
  * Request Push Permission on tap (supports OneSignal & native Notification API fallback)
  */
 export const requestPushPermission = async (): Promise<boolean> => {
-  // 1. Try OneSignal permission if ready
-  if (window.OneSignal?.Notifications) {
-    try {
-      const granted = await window.OneSignal.Notifications.requestPermission();
-      console.log('[OneSignal] Permission granted:', granted);
-      if (granted) return true;
-    } catch (err) {
-      console.warn('[OneSignal] Notifications.requestPermission warning:', err);
+  try {
+    const OneSignal = await ensureOneSignalReady();
+    if (OneSignal?.Notifications) {
+      try {
+        await OneSignal.Notifications.requestPermission();
+        console.log('[OneSignal] Richiesta permessi completata.');
+      } catch (err) {
+        console.warn('[OneSignal] Permessi avviso:', err);
+      }
     }
+  } catch (err) {
+    console.warn('[OneSignal] Impostazione permessi OneSignal fallita:', err);
   }
 
-  // 2. Native Web Notification API Fallback
+  // Fallback API di notifica nativa del browser
   if (typeof window !== 'undefined' && 'Notification' in window) {
     try {
       const result = await Notification.requestPermission();
-      console.log('[Native Notification] Permission status:', result);
+      console.log('[Native Notification] Stato permessi:', result);
       return result === 'granted';
     } catch (err) {
-      console.warn('[Native Notification] Request permission error:', err);
+      console.warn('[Native Notification] Errore richiesta permessi:', err);
     }
   }
 
@@ -126,21 +149,39 @@ export const requestPushPermission = async (): Promise<boolean> => {
  * Tag device for specific order status updates (e.g. order_16 -> 'subscribed')
  */
 export const subscribeToOrderPush = async (orderId: string): Promise<boolean> => {
-  // Request browser / OneSignal permission
-  await requestPushPermission();
+  const cleanId = String(orderId).replace(/^#/, '');
 
-  if (window.OneSignal?.User) {
-    try {
-      await window.OneSignal.User.addTag(`order_${orderId}`, 'subscribed');
-      console.log(`[OneSignal] Tagged device for Order #${orderId}`);
-    } catch (err) {
-      console.warn('[OneSignal] Tagging error:', err);
+  try {
+    const OneSignal = await ensureOneSignalReady();
+
+    // 1. Richiedi permesso notifiche browser
+    await requestPushPermission();
+
+    // 2. Assicurati che l'utente sia opt-in in OneSignal
+    if (OneSignal?.User?.PushSubscription) {
+      try {
+        await OneSignal.User.PushSubscription.optIn();
+      } catch (optErr) {
+        console.warn('[OneSignal] OptIn avviso:', optErr);
+      }
     }
+
+    // 3. Applica il Tag per l'ordine specifico
+    if (OneSignal?.User) {
+      try {
+        await OneSignal.User.addTag(`order_${cleanId}`, 'subscribed');
+        console.log(`[OneSignal] Dispositivo iscritto con successo al tag order_${cleanId}`);
+      } catch (tagErr) {
+        console.warn('[OneSignal] Errore nell\'aggiunta del tag:', tagErr);
+      }
+    }
+  } catch (err) {
+    console.warn('[OneSignal] Errore durante la sottoscrizione push ordine:', err);
   }
 
-  // Save local subscription flag for instant UI feedback
+  // Salvataggio stato locale per feedback immediato nell'interfaccia
   if (typeof window !== 'undefined') {
-    localStorage.setItem(`push_sub_${orderId}`, 'true');
+    localStorage.setItem(`push_sub_${cleanId}`, 'true');
   }
 
   return true;
@@ -151,14 +192,15 @@ export const subscribeToOrderPush = async (orderId: string): Promise<boolean> =>
  */
 export const tagAsKdsStaff = async (): Promise<boolean> => {
   await requestPushPermission();
-  if (window.OneSignal?.User) {
-    try {
-      await window.OneSignal.User.addTag('role', 'kds');
-      console.log('[OneSignal] Tagged device as KDS Kitchen Staff');
+  try {
+    const OneSignal = await ensureOneSignalReady();
+    if (OneSignal?.User) {
+      await OneSignal.User.addTag('role', 'kds');
+      console.log('[OneSignal] Dispositivo registrato come KDS Kitchen Staff');
       return true;
-    } catch (err) {
-      console.error('[OneSignal] Error tagging KDS:', err);
     }
+  } catch (err) {
+    console.error('[OneSignal] Errore tagging KDS:', err);
   }
   return false;
 };
@@ -174,12 +216,14 @@ export const sendOrderStatusNotification = async (payload: {
 }): Promise<boolean> => {
   const apiKey = payload.customApiKey || ONESIGNAL_REST_API_KEY;
   if (!ONESIGNAL_APP_ID || !apiKey) {
-    console.warn('[OneSignal] Cannot send push notification: missing App ID or REST API Key.');
+    console.warn('[OneSignal] Impossibile inviare notifica push: App ID o REST API Key mancanti.');
     return false;
   }
 
+  const cleanId = String(payload.orderId).replace(/^#/, '');
+
   let title = '🍱 Aggiornamento Ordine Pescheria Pessano';
-  let message = `Il tuo ordine #${payload.orderId} ha cambiato stato in: ${payload.newStatus}`;
+  let message = `Il tuo ordine #${cleanId} ha cambiato stato in: ${payload.newStatus}`;
 
   if (payload.newStatus === 'IN_PREPARAZIONE') {
     title = '🔥 Poke in Preparazione!';
@@ -205,19 +249,37 @@ export const sendOrderStatusNotification = async (payload: {
         app_id: ONESIGNAL_APP_ID,
         headings: { it: title, en: title },
         contents: { it: message, en: message },
-        url: `${window.location.origin}/ordine/${payload.orderId}`,
+        url: `${window.location.origin}/ordine/${cleanId}`,
         filters: [
-          { field: 'tag', key: `order_${payload.orderId}`, relation: '=', value: 'subscribed' }
+          { field: 'tag', key: `order_${cleanId}`, relation: '=', value: 'subscribed' }
         ],
         target_channel: 'push',
       }),
     });
 
     const data = await response.json();
-    console.log('[OneSignal] Push Notification API Result:', data);
-    return response.ok;
+    console.log('[OneSignal] Risultato Push API:', data);
+
+    if (data.errors && data.errors.length > 0) {
+      console.warn('[OneSignal] Avviso invio push:', data.errors);
+      return false;
+    }
+
+    return Boolean(data.id);
   } catch (err) {
-    console.error('[OneSignal] Push Notification API Error:', err);
+    console.error('[OneSignal] Errore Push Notification API:', err);
     return false;
   }
 };
+
+/**
+ * Helper to send a test push notification immediately to the subscribed device
+ */
+export const sendTestPushNotification = async (orderId: string): Promise<boolean> => {
+  return sendOrderStatusNotification({
+    orderId,
+    customerName: 'Test Cliente',
+    newStatus: 'PRONTO',
+  });
+};
+
