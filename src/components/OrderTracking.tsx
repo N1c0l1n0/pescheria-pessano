@@ -62,14 +62,20 @@ export const OrderTracking: React.FC = () => {
   const [isPushSubscribed, setIsPushSubscribed] = useState<boolean>(false);
   const [pushToastMsg, setPushToastMsg] = useState<string | null>(null);
 
-  // Check saved push notification subscription state
+  // Check saved push notification subscription state or global browser permission
   useEffect(() => {
     const orderIdToUse = order?.id || id;
-    if (orderIdToUse && typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`push_sub_${orderIdToUse}`);
-      if (saved === 'true') {
-        setIsPushSubscribed(true);
-      }
+    if (!orderIdToUse || typeof window === 'undefined') return;
+
+    const saved = localStorage.getItem(`push_sub_${orderIdToUse}`);
+    const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
+
+    if (saved === 'true' || isGranted) {
+      setIsPushSubscribed(true);
+      // Auto-subscribe the device to this order tag in background if granted
+      subscribeToOrderPush(String(orderIdToUse)).catch((err) => {
+        console.warn('Auto order push tag error:', err);
+      });
     }
   }, [order?.id, id]);
 
