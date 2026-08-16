@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, Check, AlertCircle, Sparkles, MessageCircle, Info, Trash2, PlusCircle, Edit3, RotateCcw, FileText } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { saveLocalOrder } from '../utils/orderStore';
+import { subscribeToOrderPush } from '../lib/onesignal';
 import { AlarmTimePicker } from './AlarmTimePicker';
 
 interface FormatOption {
@@ -512,6 +513,15 @@ export const PokeBuilder: React.FC = () => {
         },
       })),
     });
+
+    // Automatically register push notifications for this new order
+    try {
+      subscribeToOrderPush(String(finalOrderId)).catch((err) => {
+        console.warn('Background push subscription on order submit error:', err);
+      });
+    } catch (e) {
+      console.warn('Push subscription trigger error:', e);
+    }
 
     setIsSubmitting(false);
 

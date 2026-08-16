@@ -175,11 +175,18 @@ export const subscribeToOrderPush = async (orderId: string): Promise<boolean> =>
       }
     }
 
-    // 3. Applica il Tag per l'ordine specifico
+    // 3. Su dispositivi mobile, attendi fino a 3s che l'ID di iscrizione (PushSubscription.id) venga generato dal server
+    let attempts = 0;
+    while (!OneSignal?.User?.PushSubscription?.id && attempts < 6) {
+      await new Promise((res) => setTimeout(res, 500));
+      attempts++;
+    }
+
+    // 4. Applica il Tag per l'ordine specifico
     if (OneSignal?.User) {
       try {
         await OneSignal.User.addTag(`order_${cleanId}`, 'subscribed');
-        console.log(`[OneSignal] Dispositivo iscritto con successo al tag order_${cleanId}`);
+        console.log(`[OneSignal] Dispositivo iscritto al tag order_${cleanId}. Sub ID:`, OneSignal.User.PushSubscription?.id || 'pending');
       } catch (tagErr) {
         console.warn('[OneSignal] Errore nell\'aggiunta del tag:', tagErr);
       }
@@ -246,6 +253,10 @@ export const sendOrderStatusNotification = async (payload: {
   }
 
   const authHeader = apiKey.startsWith('os_v2_') ? `Key ${apiKey}` : `Basic ${apiKey}`;
+  const origin = typeof window !== 'undefined' && window.location.origin.startsWith('http')
+    ? window.location.origin
+    : 'https://pescheria-pessano.n-crespi7.workers.dev';
+  const iconUrl = `${origin}/notification_icon.jpg`;
 
   try {
     const response = await fetch('https://onesignal.com/api/v1/notifications', {
@@ -258,8 +269,8 @@ export const sendOrderStatusNotification = async (payload: {
         app_id: ONESIGNAL_APP_ID,
         headings: { it: title, en: title },
         contents: { it: message, en: message },
-        url: `${window.location.origin}/ordine/${cleanId}`,
-        web_url: `${window.location.origin}/ordine/${cleanId}`,
+        url: `${origin}/ordine/${cleanId}`,
+        web_url: `${origin}/ordine/${cleanId}`,
         filters: [
           { field: 'tag', key: `order_${cleanId}`, relation: '=', value: 'subscribed' }
         ],
@@ -267,9 +278,11 @@ export const sendOrderStatusNotification = async (payload: {
         priority: 10,            // Massima priorità per risvegliare il dispositivo in standby
         ttl: 86400,              // Validità di 24 ore
         content_available: true, // Risveglio in background per dispositivi mobile
-        chrome_web_icon: `${window.location.origin}/logo_pescheria.png`,
-        firefox_icon: `${window.location.origin}/logo_pescheria.png`,
-        large_icon: `${window.location.origin}/logo_pescheria.png`,
+        icon: iconUrl,
+        chrome_web_icon: iconUrl,
+        firefox_icon: iconUrl,
+        large_icon: iconUrl,
+        small_icon: iconUrl,
       }),
     });
 

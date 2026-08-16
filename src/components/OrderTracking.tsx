@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getLocalOrderById, subscribeToLocalOrders } from '../utils/orderStore';
-import { subscribeToOrderPush, sendTestPushNotification } from '../lib/onesignal';
+import { subscribeToOrderPush } from '../lib/onesignal';
 
 export interface OrderItem {
   id?: string;
@@ -96,30 +96,6 @@ export const OrderTracking: React.FC = () => {
     setTimeout(() => {
       setPushToastMsg(null);
     }, 4500);
-  };
-
-  const handleTestPush = async () => {
-    const orderIdToUse = order?.id || id;
-    if (!orderIdToUse) return;
-
-    setPushToastMsg('⏳ Invio notifica di prova in corso...');
-
-    try {
-      const success = await sendTestPushNotification(String(orderIdToUse));
-      if (success) {
-        setPushToastMsg('🎉 Notifica push di prova inviata! Controlla il tuo dispositivo.');
-      } else {
-        setPushToastMsg('🔔 Trigger notifica locale di prova!');
-        triggerProntoAlert();
-      }
-    } catch (e) {
-      console.warn('Test push notification error:', e);
-      triggerProntoAlert();
-    }
-
-    setTimeout(() => {
-      setPushToastMsg(null);
-    }, 5000);
   };
 
   // Trigger sound, vibration & native notification for 'PRONTO' status
@@ -635,69 +611,46 @@ export const OrderTracking: React.FC = () => {
               </div>
             )}
 
-            {/* PUSH NOTIFICATION SUBSCRIPTION BANNER */}
-            <div
-              style={{
-                backgroundColor: isPushSubscribed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(56, 189, 248, 0.12)',
-                border: isPushSubscribed ? '1.5px solid #10B981' : '1.5px solid #38BDF8',
-                borderRadius: '1rem',
-                padding: '1.25rem 1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '1rem',
-                flexWrap: 'wrap',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: '240px' }}>
-                <div
-                  style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '50%',
-                    backgroundColor: isPushSubscribed ? '#10B981' : '#0284C7',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Bell size={22} color="white" />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '1rem', color: 'white', marginBottom: '0.2rem' }}>
-                    {isPushSubscribed ? '🔔 Notifiche Push Attivate per questo Ordine' : '🔔 Vuoi ricevere una notifica appena la tua Poke è pronta?'}
+            {/* PUSH NOTIFICATION SUBSCRIPTION BANNER (ONLY SHOWN IF NOT YET SUBSCRIBED) */}
+            {!isPushSubscribed && (
+              <div
+                style={{
+                  backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                  border: '1.5px solid #38BDF8',
+                  borderRadius: '1rem',
+                  padding: '1.25rem 1.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: '240px' }}>
+                  <div
+                    style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '50%',
+                      backgroundColor: '#0284C7',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Bell size={22} color="white" />
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.8)', lineHeight: 1.35 }}>
-                    {isPushSubscribed
-                      ? 'Ti invieremo un avviso sul tuo dispositivo appena il piatto è pronto per il ritiro!'
-                      : 'Attiva le notifiche Web Push per ricevere un avviso sul telefono o computer quando la tua Poke è pronta.'}
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '1rem', color: 'white', marginBottom: '0.2rem' }}>
+                      🔔 Vuoi ricevere una notifica appena la tua Poke è pronta?
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.8)', lineHeight: 1.35 }}>
+                      Attiva le notifiche Web Push per ricevere un avviso sul telefono o computer quando la tua Poke è pronta.
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {isPushSubscribed ? (
-                <button
-                  type="button"
-                  onClick={handleTestPush}
-                  style={{
-                    padding: '0.65rem 1.1rem',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    borderRadius: '0.5rem',
-                    backgroundColor: 'rgba(16, 185, 129, 0.25)',
-                    border: '1px solid #10B981',
-                    color: '#6EE7B7',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                  }}
-                >
-                  <span>🧪 Test Notifica</span>
-                </button>
-              ) : (
                 <button
                   type="button"
                   onClick={handleActivatePush}
@@ -712,8 +665,8 @@ export const OrderTracking: React.FC = () => {
                 >
                   Avvisami quando è Pronta
                 </button>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* GIANT HIGH-CONTRAST PRONTO TRIGGER BANNER */}
             {(order.status === 'PRONTO' || isProntoAlertOpen) && (
