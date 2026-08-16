@@ -732,18 +732,18 @@ export const PokeBuilder: React.FC = () => {
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.25rem', alignItems: 'start' }}>
                 {/* Nome Persona */}
-                <div>
-                  <label htmlFor="customerNameInput" style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.4rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <label htmlFor="customerNameInput" style={{ display: 'flex', alignItems: 'flex-end', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.4rem', minHeight: '2.85rem' }}>
                     {orderList.length === 0 ? (
-                      <>
+                      <span>
                         Nome referente prima Poke (Referente Ordine) <span style={{ color: 'var(--color-coral)' }}>*</span>
-                      </>
+                      </span>
                     ) : (
-                      <>
+                      <span>
                         Nome destinatario per questa Poke <span style={{ color: 'var(--color-coral)' }}>*</span>
-                      </>
+                      </span>
                     )}
                   </label>
                   <input
@@ -780,9 +780,11 @@ export const PokeBuilder: React.FC = () => {
                 </div>
 
                 {/* Numero di Telefono */}
-                <div>
-                  <label htmlFor="customerPhoneInput" style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.4rem' }}>
-                    Numero di Telefono <span style={{ color: 'var(--color-coral)' }}>*</span>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <label htmlFor="customerPhoneInput" style={{ display: 'flex', alignItems: 'flex-end', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.4rem', minHeight: '2.85rem' }}>
+                    <span>
+                      Numero di Telefono <span style={{ color: 'var(--color-coral)' }}>*</span>
+                    </span>
                   </label>
                   <input
                     id="customerPhoneInput"

@@ -187,9 +187,9 @@ export const OrderTracking: React.FC = () => {
   }, []);
 
   // Fetch initial order details
-  const fetchOrder = useCallback(async () => {
+  const fetchOrder = useCallback(async (isSilent = false) => {
     if (!id) return;
-    setLoading(true);
+    if (!isSilent) setLoading(true);
     setError(null);
 
     try {
@@ -247,10 +247,12 @@ export const OrderTracking: React.FC = () => {
           order_items: items,
         };
 
-        setOrder(normalizedOrder);
-        if (normalizedOrder.status === 'PRONTO') {
-          setIsProntoAlertOpen(true);
-        }
+        setOrder((prev) => {
+          if (prev?.status !== 'PRONTO' && normalizedOrder.status === 'PRONTO') {
+            triggerProntoAlert();
+          }
+          return normalizedOrder;
+        });
         return;
       }
 
@@ -340,7 +342,7 @@ export const OrderTracking: React.FC = () => {
         setError(err.message || 'Impossibile recuperare i dettagli dell\'ordine.');
       }
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   }, [id, triggerProntoAlert]);
 
@@ -348,22 +350,31 @@ export const OrderTracking: React.FC = () => {
     fetchOrder();
   }, [fetchOrder]);
 
-  // Realtime Supabase & Local Store listener
+  // Realtime Supabase, Auto Polling (5s) & Tab Focus / Visibility Change Listener
   useEffect(() => {
     if (!id) return;
 
-    const unsubLocal = subscribeToLocalOrders(() => {
-      const local = getLocalOrderById(id);
-      if (local) {
-        setOrder((prev) => {
-          if (prev?.status !== 'PRONTO' && local.status === 'PRONTO') {
-            triggerProntoAlert();
-          }
-          return local as Order;
-        });
+    // 1. Instant silent refetch on tab focus or visibility change (when customer returns to page)
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        fetchOrder(true);
       }
+    };
+
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
+    // 2. Poll every 5 seconds silently in case WebSockets were suspended in background
+    const intervalId = setInterval(() => {
+      fetchOrder(true);
+    }, 5000);
+
+    // 3. Local store listener
+    const unsubLocal = subscribeToLocalOrders(() => {
+      fetchOrder(true);
     });
 
+    // 4. Supabase Realtime channel listener
     const channel = supabase
       .channel(`order_tracking_${id}`)
       .on(
@@ -374,32 +385,20 @@ export const OrderTracking: React.FC = () => {
           table: 'orders',
           filter: `id=eq.${id}`,
         },
-        (payload) => {
-          if (payload.new) {
-            const updated = payload.new as Order;
-            setOrder((prev) => {
-              const prevStatus = prev?.status;
-              const nextStatus = updated.status;
-
-              if (prevStatus !== 'PRONTO' && nextStatus === 'PRONTO') {
-                triggerProntoAlert();
-              }
-              return {
-                ...prev,
-                ...updated,
-                order_items: prev?.order_items || prev?.items || []
-              } as Order;
-            });
-          }
+        () => {
+          fetchOrder(true);
         }
       )
       .subscribe();
 
     return () => {
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      clearInterval(intervalId);
       unsubLocal();
       supabase.removeChannel(channel);
     };
-  }, [id, triggerProntoAlert]);
+  }, [id, fetchOrder]);
 
   // Determine active step index (0: RICEVUTO, 1: IN_PREPARAZIONE, 2: PRONTO)
   const getStepIndex = (status: string | undefined): number => {
@@ -580,7 +579,7 @@ export const OrderTracking: React.FC = () => {
               {error}
             </p>
             <button
-              onClick={fetchOrder}
+              onClick={() => fetchOrder()}
               style={{
                 backgroundColor: '#134074',
                 color: 'white',

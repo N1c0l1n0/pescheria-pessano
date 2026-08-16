@@ -368,29 +368,7 @@ export const FishMenuCatalog: React.FC = () => {
                   )}
                 </div>
 
-                {/* Popularity Badge */}
-                {item.isPopular && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '1rem',
-                      right: '1rem',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      padding: '0.35rem 0.65rem',
-                      borderRadius: 'var(--radius-full)',
-                      backgroundColor: 'rgba(255, 107, 107, 0.9)',
-                      backdropFilter: 'blur(8px)',
-                      color: 'white',
-                      fontSize: '0.725rem',
-                      fontWeight: 800,
-                    }}
-                  >
-                    <Sparkles size={12} />
-                    <span>Top Pescato</span>
-                  </div>
-                )}
+
               </div>
 
               {/* Card Body */}
