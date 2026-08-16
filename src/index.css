@@ -258,22 +258,30 @@ body {
 }
 
 /* Prevent horizontal scroll and mobile focus auto-zoom */
-/* Prevent horizontal scroll and mobile focus auto-zoom */
 html,
 body,
-#root {
+#root,
+main,
+section,
+header,
+footer {
   overflow-x: hidden !important;
   max-width: 100vw !important;
   width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
   box-sizing: border-box !important;
   -webkit-text-size-adjust: 100% !important;
   touch-action: manipulation;
 }
 
+*, ::before, ::after {
+  box-sizing: border-box;
+}
+
 input[type="text"],
 input[type="search"],
+input[type="tel"],
 select,
 textarea {
   font-size: 16px !important;
@@ -296,25 +304,31 @@ textarea {
   display: grid;
   grid-template-columns: 1fr;
   gap: 2rem;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
 }
 
 @media (min-width: 992px) {
   .poke-grid {
     grid-template-columns: 1.15fr 0.85fr !important;
   }
+  .poke-summary-card {
+    position: sticky !important;
+    top: 6rem !important;
+  }
 }
 
 @media (max-width: 991px) {
   .poke-summary-card {
     position: relative !important;
-    top: 0 !important;
+    top: auto !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
-    margin: 0 auto !important;
+    margin: 1.75rem auto 0 auto !important;
   }
 }
 
@@ -323,47 +337,65 @@ textarea {
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: 1.5rem !important;
   margin-left: auto !important;
   margin-right: auto !important;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(11, 37, 69, 0.06) !important;
+  box-shadow: 0 4px 20px rgba(11, 37, 69, 0.08) !important;
+  overflow-x: hidden !important;
 }
 
 @media (max-width: 640px) {
+  .header-phone-text {
+    display: none !important;
+  }
+
+  .header-phone-btn {
+    padding: 0.5rem !important;
+    border-radius: 50% !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
   .brand-title {
-    font-size: 1.05rem !important;
+    font-size: 1rem !important;
   }
 
   .brand-subtitle {
     display: none !important;
   }
 
-  .header-phone-btn {
-    padding: 0.4rem 0.65rem !important;
-    font-size: 0.75rem !important;
-  }
-
   .container {
-    padding-left: 0.35rem !important;
-    padding-right: 0.35rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
     margin-left: auto !important;
     margin-right: auto !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+  }
+
+  .btn {
+    white-space: normal !important;
+    min-width: 0 !important;
+    word-break: break-word !important;
   }
 
   .poke-card-panel,
   .poke-summary-card,
   .glass-panel {
-    padding: 1.15rem 0.35rem !important;
+    padding: 1.15rem 1rem !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
     margin-left: auto !important;
     margin-right: auto !important;
+    border-radius: 16px !important;
+    overflow-x: hidden !important;
   }
 
   .poke-format-grid,
@@ -371,6 +403,8 @@ textarea {
     justify-content: center !important;
     align-items: center !important;
     width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
     margin-left: auto !important;
     margin-right: auto !important;
   }
@@ -405,9 +439,11 @@ textarea {
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
+
 .fish-filter-scroll::-webkit-scrollbar {
   display: none;
 }
+
 .fish-filter-scroll button {
   white-space: nowrap !important;
   flex-shrink: 0 !important;
@@ -441,5 +477,60 @@ textarea {
     max-height: 85vh !important;
     overflow-y: auto !important;
     border-radius: var(--radius-md) !important;
+  }
+}
+
+/* ==========================================================================
+   LIVE ORDER TRACKER RESPONSIVE DASHBOARD (DESKTOP & MOBILE)
+   ========================================================================== */
+.tracker-main-container {
+  max-width: 1040px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3.5rem 1.25rem;
+  box-sizing: border-box;
+}
+
+.tracker-grid-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+@media (min-width: 860px) {
+  .tracker-grid-layout {
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+}
+
+.tracker-card {
+  background-color: rgba(11, 37, 69, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 1rem;
+  border: 1px solid rgba(141, 169, 196, 0.2);
+  padding: 1.35rem 1.35rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+.tracker-stepper-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 480px) {
+  .tracker-stepper-circle {
+    width: 38px;
+    height: 38px;
   }
 }

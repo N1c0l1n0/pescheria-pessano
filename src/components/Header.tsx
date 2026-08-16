@@ -48,7 +48,7 @@ export const Header: React.FC = () => {
         boxShadow: isScrolled ? '0 8px 24px rgba(0,0,0,0.2)' : 'none',
       }}
     >
-      <div className="container" style={{ padding: '0.85rem 1.5rem' }}>
+      <div className="container" style={{ paddingTop: '0.85rem', paddingBottom: '0.85rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           
           {/* Logo */}
@@ -129,7 +129,7 @@ export const Header: React.FC = () => {
           >
             <Link to="/" onClick={(e) => handleSectionNav('hero', e)} style={navLinkStyle}>Home</Link>
             <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} style={navLinkStyle}>Banco Pesce</a>
-            <Link to="/componi-poke" style={navLinkStyle}>Componi Poke</Link>
+            <Link to="/componi-poke" style={navLinkStyle}>Ordina d'Asporto</Link>
             <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} style={navLinkStyle}>Servizi</a>
             <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} style={navLinkStyle}>Orari</a>
             <a href="/#contatti" onClick={(e) => handleSectionNav('contatti', e)} style={navLinkStyle}>Contatti</a>
@@ -162,14 +162,14 @@ export const Header: React.FC = () => {
               href="tel:019692623"
               className="btn btn-coral header-phone-btn"
               style={{
-                padding: '0.5rem 1rem',
+                padding: '0.5rem 0.85rem',
                 fontSize: '0.85rem',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
               }}
             >
-              <Phone size={15} />
-              <span>019 692623</span>
+              <Phone size={16} />
+              <span className="header-phone-text">019 692623</span>
             </a>
 
             {/* Mobile Menu Button */}
@@ -222,8 +222,8 @@ export const Header: React.FC = () => {
             </a>
 
             <Link to="/" onClick={(e) => handleSectionNav('hero', e)} style={mobileNavLinkStyle}>Home</Link>
-            <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} style={mobileNavLinkStyle}>🐟 Banco del Pesce Fresco</a>
-            <Link to="/componi-poke" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Componi la tua poke</Link>
+            <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} style={mobileNavLinkStyle}>Banco del Pesce Fresco</a>
+            <Link to="/componi-poke" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Ordina d'Asporto</Link>
             <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} style={mobileNavLinkStyle}>I Nostri Servizi</a>
             <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} style={mobileNavLinkStyle}>Orari di Apertura</a>
             <a href="/#contatti" onClick={(e) => handleSectionNav('contatti', e)} style={mobileNavLinkStyle}>Dove Siamo & Contatti</a>

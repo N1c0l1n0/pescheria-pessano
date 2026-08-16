@@ -1000,7 +1000,7 @@ export const KdsBoard: React.FC = () => {
                       )}
                       {ord.notes && !ord.notes.includes('Orario:') && (
                         <div style={{ color: '#FACC15', fontStyle: 'italic', fontWeight: 600 }}>
-                          ⚠️ Note: {ord.notes}
+                          Note: {ord.notes}
                         </div>
                       )}
                     </div>
@@ -1009,24 +1009,35 @@ export const KdsBoard: React.FC = () => {
                   {/* CARD BODY - INTERACTIVE CHECKLIST */}
                   <div style={{ padding: '1rem 1.15rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                     {ord.order_items.map((item, itemIdx) => {
+                      const isFriedItem =
+                        (item as any).item_type === 'fritto' ||
+                        (item.item_name || '').toLowerCase().includes('cono') ||
+                        (item.item_name || '').toLowerCase().includes('fritt');
+
+                      const isFishItem =
+                        (item as any).item_type === 'pesce' ||
+                        (item as any).details?.item_type === 'pesce' ||
+                        (item.item_name || '').startsWith('🐟') ||
+                        (item.item_name || '').toLowerCase().includes('kg');
+
                       return (
                         <div
                           key={itemIdx}
                           style={{
-                            backgroundColor: '#0F172A',
+                            backgroundColor: isFishItem ? 'rgba(14, 165, 233, 0.12)' : isFriedItem ? 'rgba(245, 158, 11, 0.12)' : '#0F172A',
                             borderRadius: '10px',
                             padding: '0.85rem',
-                            border: '1px solid rgba(148, 163, 184, 0.12)',
+                            border: isFishItem ? '1px solid rgba(14, 165, 233, 0.4)' : isFriedItem ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(148, 163, 184, 0.12)',
                           }}
                         >
                           {/* Item Title */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                            <span style={{ fontSize: '1rem', fontWeight: 800, color: '#FF6B6B', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ fontSize: '1rem', fontWeight: 800, color: isFishItem ? '#38BDF8' : isFriedItem ? '#FBBF24' : '#FF6B6B', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                               <Sparkles size={16} />
-                              {item.item_name || 'Poke Custom'}
+                              {item.item_name || (isFishItem ? 'Pesce Fresco al Banco' : isFriedItem ? 'Cono Fritto Espresso' : 'Poke Custom')}
                             </span>
-                            {item.quantity && item.quantity > 1 && (
-                              <span style={{ backgroundColor: '#EF4444', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800 }}>
+                            {item.quantity && item.quantity >= 1 && (
+                              <span style={{ backgroundColor: isFishItem ? '#0284C7' : isFriedItem ? '#F59E0B' : '#EF4444', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800 }}>
                                 x{item.quantity}
                               </span>
                             )}
@@ -1034,6 +1045,84 @@ export const KdsBoard: React.FC = () => {
 
                           {/* Ingredient Categories Checklist */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                            {/* PESCE FRESCO DETAILS CHECKLIST */}
+                            {isFishItem && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.2rem' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                  {/* Preparation chip */}
+                                  {(() => {
+                                    const rawName = item.item_name || (item as any).name || '';
+                                    const prepName = (item as any).details?.preparation || (rawName.includes('-') ? rawName.split('-')[1]?.replace(']', '').replace(')', '').trim() : 'Eviscerato e desquamato');
+                                    const key = `${ord.id}_${itemIdx}_prep_${prepName}`;
+                                    const isChecked = !!checkedIngredients[key];
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleIngredient(key);
+                                        }}
+                                        style={{
+                                          padding: '0.35rem 0.65rem',
+                                          borderRadius: '6px',
+                                          fontSize: '0.825rem',
+                                          fontWeight: 700,
+                                          border: isChecked ? '1px solid #059669' : '1px solid rgba(56, 189, 248, 0.4)',
+                                          backgroundColor: isChecked ? 'rgba(5, 150, 105, 0.25)' : 'rgba(56, 189, 248, 0.15)',
+                                          color: isChecked ? '#6EE7B7' : '#38BDF8',
+                                          textDecoration: isChecked ? 'line-through' : 'none',
+                                          opacity: isChecked ? 0.5 : 1,
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '0.35rem',
+                                        }}
+                                      >
+                                        <Check size={12} style={{ opacity: isChecked ? 1 : 0.4 }} />
+                                        Pulizia: {prepName}
+                                      </button>
+                                    );
+                                  })()}
+
+                                  {/* Weight chip */}
+                                  {(() => {
+                                    const weightG = (item as any).details?.weight_grams;
+                                    const weightLabel = weightG ? (weightG >= 1000 ? `${(weightG / 1000).toFixed(1)} kg` : `${weightG}g`) : null;
+                                    if (!weightLabel) return null;
+                                    const key = `${ord.id}_${itemIdx}_weight_${weightLabel}`;
+                                    const isChecked = !!checkedIngredients[key];
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleIngredient(key);
+                                        }}
+                                        style={{
+                                          padding: '0.35rem 0.65rem',
+                                          borderRadius: '6px',
+                                          fontSize: '0.825rem',
+                                          fontWeight: 700,
+                                          border: isChecked ? '1px solid #059669' : '1px solid rgba(251, 191, 36, 0.4)',
+                                          backgroundColor: isChecked ? 'rgba(5, 150, 105, 0.25)' : 'rgba(251, 191, 36, 0.15)',
+                                          color: isChecked ? '#6EE7B7' : '#FCD34D',
+                                          textDecoration: isChecked ? 'line-through' : 'none',
+                                          opacity: isChecked ? 0.5 : 1,
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '0.35rem',
+                                        }}
+                                      >
+                                        <Check size={12} style={{ opacity: isChecked ? 1 : 0.4 }} />
+                                        Peso: {weightLabel}
+                                      </button>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+                            )}
+
                             {/* BASI */}
                             {item.bases && item.bases.length > 0 && (
                               <div>
@@ -1250,7 +1339,7 @@ export const KdsBoard: React.FC = () => {
                             {/* NOTE ITEM */}
                             {item.notes && (
                               <div style={{ marginTop: '0.45rem', padding: '0.4rem 0.65rem', borderRadius: '6px', backgroundColor: 'rgba(234, 179, 8, 0.2)', border: '1px solid rgba(234, 179, 8, 0.5)', color: '#FDE047', fontSize: '0.825rem', fontWeight: 700 }}>
-                                📝 Nota Poke: {item.notes}
+                                {isFishItem ? 'Nota Banco: ' : isFriedItem ? 'Nota Fritto: ' : 'Nota Poke: '}{item.notes}
                               </div>
                             )}
                           </div>

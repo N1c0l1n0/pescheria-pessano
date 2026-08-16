@@ -20,7 +20,7 @@ export const PokeBuilderPage: React.FC = () => {
           style={{
             backgroundColor: '#0B2545',
             color: 'white',
-            padding: '2rem 1.5rem',
+            padding: '2rem 0',
             borderBottom: '1px solid rgba(141, 169, 196, 0.2)',
           }}
         >
@@ -68,11 +68,11 @@ export const PokeBuilderPage: React.FC = () => {
                   lineHeight: 1.2,
                 }}
               >
-                Componi la tua Poke
+                Ordina d'Asporto Online
               </h1>
             </div>
             <p style={{ color: '#CBD5E1', margin: '0.5rem 0 0 0', fontSize: '0.95rem', maxWidth: '700px' }}>
-              Crea la tua formula personalizzata o quelle per amici e colleghi. Dopo aver inviato l'ordine potrai seguirne la preparazione in tempo reale!
+              Ordina online per l'asporto: componi la tua Poke su misura, ordina i coni di fritto espresso caldi e croccanti, oppure prenota il pesce fresco del giorno con pulizia e sfilettatura dedicata. Segui la preparazione in tempo reale!
             </p>
           </div>
         </div>

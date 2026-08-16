@@ -31,6 +31,7 @@ export interface OrderItem {
   has_sesame?: boolean;
   notes?: string;
   price?: number;
+  unit_price?: number;
   quantity?: number;
   // Fallbacks
   name?: string;
@@ -505,18 +506,9 @@ export const OrderTracking: React.FC = () => {
       </header>
 
       {/* MAIN CONTAINER */}
-      <main
-        style={{
-          flex: 1,
-          maxWidth: '900px',
-          width: '100%',
-          margin: '0 auto',
-          padding: '2rem 1.25rem 4rem 1.25rem',
-          boxSizing: 'border-box',
-        }}
-      >
+      <main className="tracker-main-container">
         {/* Back Link */}
-        <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ marginBottom: '1.25rem' }}>
           <Link
             to="/"
             style={{
@@ -525,36 +517,33 @@ export const OrderTracking: React.FC = () => {
               gap: '0.4rem',
               color: '#8DA9C4',
               textDecoration: 'none',
-              fontSize: '0.875rem',
+              fontSize: '0.85rem',
               fontWeight: 600,
               transition: 'color 0.2s',
             }}
           >
-            <ArrowLeft size={16} /> Torna al menu principale
+            <ArrowLeft size={15} /> Torna al menu principale
           </Link>
         </div>
 
         {/* LOADING STATE */}
         {loading && (
           <div
+            className="tracker-card"
             style={{
-              backgroundColor: 'rgba(11, 37, 69, 0.6)',
-              borderRadius: '1.25rem',
-              border: '1px solid rgba(141, 169, 196, 0.15)',
-              padding: '4rem 2rem',
+              padding: '3rem 1.5rem',
               textAlign: 'center',
-              backdropFilter: 'blur(10px)',
             }}
           >
             <RefreshCw
-              size={42}
+              size={36}
               color="#38BDF8"
-              style={{ animation: 'spin 1.2s linear infinite', marginBottom: '1rem' }}
+              style={{ animation: 'spin 1.2s linear infinite', marginBottom: '0.85rem' }}
             />
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.35rem', color: 'white' }}>
               Caricamento stato ordine in corso...
             </h2>
-            <p style={{ color: '#8DA9C4', fontSize: '0.9rem' }}>
+            <p style={{ color: '#8DA9C4', fontSize: '0.85rem' }}>
               Connessione in tempo reale a Pescheria Pessano
             </p>
           </div>
@@ -563,19 +552,19 @@ export const OrderTracking: React.FC = () => {
         {/* ERROR STATE */}
         {error && !loading && (
           <div
+            className="tracker-card"
             style={{
               backgroundColor: 'rgba(239, 68, 68, 0.12)',
-              borderRadius: '1.25rem',
               border: '1px solid rgba(239, 68, 68, 0.3)',
-              padding: '3rem 2rem',
+              padding: '2.5rem 1.5rem',
               textAlign: 'center',
             }}
           >
-            <AlertCircle size={48} color="#EF4444" style={{ marginBottom: '1rem' }} />
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#F87171', marginBottom: '0.5rem' }}>
+            <AlertCircle size={40} color="#EF4444" style={{ marginBottom: '0.75rem' }} />
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#F87171', marginBottom: '0.35rem' }}>
               Ordine non trovato
             </h2>
-            <p style={{ color: '#FECACA', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+            <p style={{ color: '#FECACA', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
               {error}
             </p>
             <button
@@ -584,7 +573,7 @@ export const OrderTracking: React.FC = () => {
                 backgroundColor: '#134074',
                 color: 'white',
                 border: 'none',
-                padding: '0.75rem 1.5rem',
+                padding: '0.65rem 1.25rem',
                 borderRadius: '0.5rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -597,393 +586,389 @@ export const OrderTracking: React.FC = () => {
 
         {/* MAIN ORDER LIVE TRACKING CONTENT */}
         {!loading && !error && order && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div className="tracker-grid-layout">
             
-            {/* SUCCESS TOAST MESSAGE */}
-            {pushToastMsg && (
-              <div
-                style={{
-                  padding: '1rem 1.25rem',
-                  borderRadius: '0.75rem',
-                  backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                  border: '1.5px solid #10B981',
-                  color: '#A7F3D0',
-                  fontWeight: 700,
-                  fontSize: '0.95rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  boxShadow: '0 8px 25px rgba(16, 185, 129, 0.2)',
-                  animation: 'fadeIn 0.2s ease',
-                }}
-              >
-                <CheckCircle2 size={22} color="#10B981" />
-                <span>{pushToastMsg}</span>
-              </div>
-            )}
+            {/* LEFT COLUMN: REALTIME STATUS, PRONTO ALERT, PUSH & ASSISTANCE */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+              
+              {/* SUCCESS TOAST MESSAGE */}
+              {pushToastMsg && (
+                <div
+                  style={{
+                    padding: '0.75rem 1rem',
+                    borderRadius: '0.65rem',
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    border: '1.5px solid #10B981',
+                    color: '#A7F3D0',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.2)',
+                  }}
+                >
+                  <CheckCircle2 size={18} color="#10B981" style={{ flexShrink: 0 }} />
+                  <span>{pushToastMsg}</span>
+                </div>
+              )}
 
-            {/* PUSH NOTIFICATION SUBSCRIPTION BANNER (ONLY SHOWN IF NOT YET SUBSCRIBED) */}
-            {!isPushSubscribed && (
-              <div
-                style={{
-                  backgroundColor: 'rgba(56, 189, 248, 0.12)',
-                  border: '1.5px solid #38BDF8',
-                  borderRadius: '1rem',
-                  padding: '1.25rem 1.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '1rem',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: '240px' }}>
+              {/* COMPACT & MODERN PRONTO TRIGGER BANNER */}
+              {(order.status === 'PRONTO' || isProntoAlertOpen) && (
+                <div
+                  style={{
+                    backgroundColor: '#059669',
+                    backgroundImage: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                    borderRadius: '1rem',
+                    padding: '1.35rem 1.25rem',
+                    color: 'white',
+                    textAlign: 'center',
+                    boxShadow: '0 8px 30px rgba(16, 185, 129, 0.35)',
+                    border: '2px solid #6EE7B7',
+                    animation: 'pulseGlow 2s infinite alternate',
+                  }}
+                >
                   <div
                     style={{
-                      width: '42px',
-                      height: '42px',
-                      borderRadius: '50%',
-                      backgroundColor: '#0284C7',
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      flexShrink: 0,
+                      width: '46px',
+                      height: '46px',
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                      marginBottom: '0.65rem',
                     }}
                   >
-                    <Bell size={22} color="white" />
+                    <CheckCircle2 size={26} color="#FFFFFF" />
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '1rem', color: 'white', marginBottom: '0.2rem' }}>
-                      🔔 Vuoi ricevere una notifica appena la tua Poke è pronta?
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.8)', lineHeight: 1.35 }}>
-                      Attiva le notifiche Web Push per ricevere un avviso sul telefono o computer quando la tua Poke è pronta.
-                    </div>
-                    {typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent) && !(navigator as any).standalone && (
-                      <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', color: '#FCD34D', fontWeight: 600 }}>
-                        📱 Su iPhone: tocca l'icona Condividi ⎋ in basso e seleziona "Aggiungi alla Schermata Home" per ricevere notifiche a schermo spento.
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleActivatePush}
-                  className="btn btn-coral"
-                  style={{
-                    padding: '0.65rem 1.25rem',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    borderRadius: '0.5rem',
-                  }}
-                >
-                  Avvisami quando è Pronta
-                </button>
-              </div>
-            )}
-
-            {/* GIANT HIGH-CONTRAST PRONTO TRIGGER BANNER */}
-            {(order.status === 'PRONTO' || isProntoAlertOpen) && (
-              <div
-                style={{
-                  backgroundColor: '#059669',
-                  backgroundImage: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
-                  borderRadius: '1.25rem',
-                  padding: '2rem 1.5rem',
-                  color: 'white',
-                  textAlign: 'center',
-                  boxShadow: '0 12px 40px rgba(16, 185, 129, 0.4)',
-                  border: '3px solid #6EE7B7',
-                  animation: 'pulseGlow 2s infinite alternate',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '50%',
-                    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                    marginBottom: '1rem',
-                  }}
-                >
-                  <CheckCircle2 size={40} color="#FFFFFF" />
-                </div>
-                <h1
-                  style={{
-                    fontSize: 'clamp(1.5rem, 5vw, 2.25rem)',
-                    fontWeight: 900,
-                    margin: '0 0 0.5rem 0',
-                    letterSpacing: '-0.02em',
-                    textTransform: 'uppercase',
-                    textShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                  }}
-                >
-                  🎉 IL TUO POKE È PRONTO!
-                </h1>
-                <p
-                  style={{
-                    fontSize: 'clamp(1rem, 3vw, 1.25rem)',
-                    fontWeight: 600,
-                    margin: '0 0 1.25rem 0',
-                    color: '#ECFDF5',
-                  }}
-                >
-                  Mostra questo schermo al banco per il ritiro immediato
-                </p>
-                <div
-                  style={{
-                    display: 'inline-block',
-                    backgroundColor: '#FFFFFF',
-                    color: '#065F46',
-                    padding: '0.6rem 1.5rem',
-                    borderRadius: '999px',
-                    fontWeight: 900,
-                    fontSize: '1.2rem',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                  }}
-                >
-                  ORDINE {displayId}
-                </div>
-              </div>
-            )}
-
-            {/* REALTIME STATUS TRACKER CARD */}
-            <div
-              style={{
-                backgroundColor: 'rgba(11, 37, 69, 0.75)',
-                backdropFilter: 'blur(16px)',
-                borderRadius: '1.25rem',
-                border: '1px solid rgba(141, 169, 196, 0.25)',
-                padding: '2rem 1.5rem',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '2rem',
-                  flexWrap: 'wrap',
-                  gap: '1rem',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: '0.85rem', color: '#8DA9C4', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Stato Ordine in Tempo Reale
-                  </div>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0.25rem 0 0 0', color: '#FFFFFF' }}>
-                    {currentStep === 0 && '🕒 Ordine preso in carico'}
-                    {currentStep === 1 && '👨‍🍳 Il tuo Poke è in preparazione!'}
-                    {currentStep === 2 && '✅ Pronto al banco per il ritiro!'}
+                  <h2
+                    style={{
+                      fontSize: '1.35rem',
+                      fontWeight: 900,
+                      margin: '0 0 0.25rem 0',
+                      letterSpacing: '-0.01em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    🎉 IL TUO ORDINE È PRONTO!
                   </h2>
+                  <p
+                    style={{
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      margin: '0 0 0.85rem 0',
+                      color: '#ECFDF5',
+                    }}
+                  >
+                    Mostra questo schermo al banco per il ritiro immediato
+                  </p>
+                  <div
+                    style={{
+                      display: 'inline-block',
+                      backgroundColor: '#FFFFFF',
+                      color: '#065F46',
+                      padding: '0.45rem 1.25rem',
+                      borderRadius: '999px',
+                      fontWeight: 900,
+                      fontSize: '1rem',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                    }}
+                  >
+                    ORDINE {displayId}
+                  </div>
                 </div>
+              )}
 
+              {/* REALTIME STATUS TRACKER CARD */}
+              <div className="tracker-card">
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '1.15rem',
+                    flexWrap: 'wrap',
                     gap: '0.5rem',
-                    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-                    padding: '0.4rem 0.85rem',
-                    borderRadius: '0.5rem',
-                    border: '1px solid rgba(56, 189, 248, 0.3)',
-                    color: '#38BDF8',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
                   }}
                 >
-                  <span
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#8DA9C4', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Stato Ordine in Tempo Reale
+                    </div>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0.15rem 0 0 0', color: '#FFFFFF' }}>
+                      {currentStep === 0 && '🕒 Preso in carico'}
+                      {currentStep === 1 && '👨‍🍳 In preparazione!'}
+                      {currentStep === 2 && '✅ Pronto per il ritiro!'}
+                    </h2>
+                  </div>
+
+                  <div
                     style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: '#38BDF8',
-                      boxShadow: '0 0 8px #38BDF8',
-                      display: 'inline-block',
-                      animation: 'pulse 1.5s infinite',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                      padding: '0.3rem 0.65rem',
+                      borderRadius: '999px',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      color: '#38BDF8',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
                     }}
-                  />
-                  LIVE REALTIME
+                  >
+                    <span
+                      style={{
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        backgroundColor: '#38BDF8',
+                        boxShadow: '0 0 8px #38BDF8',
+                        display: 'inline-block',
+                      }}
+                    />
+                    LIVE
+                  </div>
+                </div>
+
+                {/* 3-PHASE VISUAL PROGRESS BAR */}
+                <div style={{ margin: '1.25rem 0 0.5rem 0' }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      position: 'relative',
+                      gap: '0.35rem',
+                    }}
+                  >
+                    {/* Phase 1: RICEVUTO */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative', zIndex: 2 }}>
+                      <div
+                        className="tracker-stepper-circle"
+                        style={{
+                          backgroundColor: currentStep >= 0 ? '#134074' : 'rgba(255, 255, 255, 0.05)',
+                          border: currentStep >= 0 ? '2.5px solid #38BDF8' : '2px solid rgba(255, 255, 255, 0.2)',
+                          color: currentStep >= 0 ? '#38BDF8' : '#64748B',
+                          boxShadow: currentStep >= 0 ? '0 0 16px rgba(56, 189, 248, 0.4)' : 'none',
+                        }}
+                      >
+                        <Clock size={20} />
+                      </div>
+                      <div style={{ fontWeight: 800, fontSize: '0.825rem', color: currentStep >= 0 ? '#F0F9FF' : '#64748B' }}>
+                        RICEVUTO
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: currentStep >= 0 ? '#8DA9C4' : '#475569', marginTop: '0.15rem' }}>
+                        In coda
+                      </div>
+                    </div>
+
+                    {/* Phase 2: IN PREPARAZIONE */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative', zIndex: 2 }}>
+                      <div
+                        className="tracker-stepper-circle"
+                        style={{
+                          backgroundColor: currentStep >= 1 ? '#D97706' : 'rgba(255, 255, 255, 0.05)',
+                          border: currentStep >= 1 ? '2.5px solid #FBBF24' : '2px solid rgba(255, 255, 255, 0.2)',
+                          color: currentStep >= 1 ? '#FBBF24' : '#64748B',
+                          boxShadow: currentStep >= 1 ? '0 0 16px rgba(251, 191, 36, 0.45)' : 'none',
+                        }}
+                      >
+                        <ChefHat size={20} />
+                      </div>
+                      <div style={{ fontWeight: 800, fontSize: '0.825rem', color: currentStep >= 1 ? '#F0F9FF' : '#64748B' }}>
+                        PREPARAZIONE
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: currentStep >= 1 ? '#FCD34D' : '#475569', marginTop: '0.15rem' }}>
+                        In lavorazione
+                      </div>
+                    </div>
+
+                    {/* Phase 3: PRONTO */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative', zIndex: 2 }}>
+                      <div
+                        className="tracker-stepper-circle"
+                        style={{
+                          backgroundColor: currentStep >= 2 ? '#059669' : 'rgba(255, 255, 255, 0.05)',
+                          border: currentStep >= 2 ? '2.5px solid #34D399' : '2px solid rgba(255, 255, 255, 0.2)',
+                          color: currentStep >= 2 ? '#34D399' : '#64748B',
+                          boxShadow: currentStep >= 2 ? '0 0 20px rgba(52, 211, 153, 0.5)' : 'none',
+                        }}
+                      >
+                        <CheckCircle2 size={22} />
+                      </div>
+                      <div style={{ fontWeight: 800, fontSize: '0.825rem', color: currentStep >= 2 ? '#34D399' : '#64748B' }}>
+                        PRONTO
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: currentStep >= 2 ? '#A7F3D0' : '#475569', marginTop: '0.15rem' }}>
+                        Al banco!
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* 3-PHASE VISUAL PROGRESS BAR */}
-              <div style={{ margin: '2rem 0 1rem 0' }}>
+              {/* PUSH NOTIFICATION SUBSCRIPTION BANNER */}
+              {!isPushSubscribed && (
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    position: 'relative',
-                    gap: '0.5rem',
+                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                    borderRadius: '0.85rem',
+                    padding: '0.9rem 1.1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    flexWrap: 'wrap',
                   }}
                 >
-                  {/* Phase 1: RICEVUTO */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      textAlign: 'center',
-                      position: 'relative',
-                      zIndex: 2,
-                    }}
-                  >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: '180px' }}>
                     <div
                       style={{
-                        width: '56px',
-                        height: '56px',
+                        width: '34px',
+                        height: '34px',
                         borderRadius: '50%',
-                        backgroundColor: currentStep >= 0 ? '#134074' : 'rgba(255, 255, 255, 0.05)',
-                        border: currentStep >= 0 ? '3px solid #38BDF8' : '2px solid rgba(255, 255, 255, 0.2)',
-                        color: currentStep >= 0 ? '#38BDF8' : '#64748B',
+                        backgroundColor: '#0284C7',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        marginBottom: '0.75rem',
-                        boxShadow: currentStep >= 0 ? '0 0 20px rgba(56, 189, 248, 0.4)' : 'none',
-                        transition: 'all 0.3s ease',
+                        flexShrink: 0,
                       }}
                     >
-                      <Clock size={26} />
+                      <Bell size={17} color="white" />
                     </div>
-                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: currentStep >= 0 ? '#F0F9FF' : '#64748B' }}>
-                      RICEVUTO
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: currentStep >= 0 ? '#8DA9C4' : '#475569', marginTop: '0.2rem' }}>
-                      Ordine preso in carico
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'white' }}>
+                        Notifica quando pronto?
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.8)', lineHeight: 1.3 }}>
+                        Ricevi un avviso push sul tuo dispositivo.
+                      </div>
                     </div>
                   </div>
 
-                  {/* Phase 2: IN PREPARAZIONE */}
-                  <div
+                  <button
+                    type="button"
+                    onClick={handleActivatePush}
+                    className="btn btn-coral"
                     style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      textAlign: 'center',
-                      position: 'relative',
-                      zIndex: 2,
+                      padding: '0.45rem 0.9rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      borderRadius: '0.5rem',
                     }}
                   >
-                    <div
-                      style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '50%',
-                        backgroundColor: currentStep >= 1 ? '#D97706' : 'rgba(255, 255, 255, 0.05)',
-                        border: currentStep >= 1 ? '3px solid #FBBF24' : '2px solid rgba(255, 255, 255, 0.2)',
-                        color: currentStep >= 1 ? '#FBBF24' : '#64748B',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: '0.75rem',
-                        boxShadow: currentStep >= 1 ? '0 0 20px rgba(251, 191, 36, 0.5)' : 'none',
-                        transition: 'all 0.3s ease',
-                      }}
-                    >
-                      <ChefHat size={26} />
-                    </div>
-                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: currentStep >= 1 ? '#F0F9FF' : '#64748B' }}>
-                      IN PREPARAZIONE
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: currentStep >= 1 ? '#FCD34D' : '#475569', marginTop: '0.2rem' }}>
-                      Il tuo Poke è in preparazione!
-                    </div>
-                  </div>
+                    Attiva Notifiche
+                  </button>
+                </div>
+              )}
 
-                  {/* Phase 3: PRONTO */}
-                  <div
+              {/* NEED HELP / WHATSAPP STORE CONTACT */}
+              <div
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '0.85rem',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  padding: '0.9rem 1.1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#F0F9FF' }}>
+                    Serve aiuto per il tuo ordine?
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#8DA9C4', marginTop: '0.1rem' }}>
+                    Scrivi alla Pescheria specificando l'ordine <strong style={{ color: '#38BDF8' }}>{displayId}</strong>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                  <a
+                    href="https://wa.me/393459485857"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{
-                      display: 'flex',
-                      flexDirection: 'column',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      textAlign: 'center',
-                      position: 'relative',
-                      zIndex: 2,
+                      gap: '0.35rem',
+                      backgroundColor: '#25D366',
+                      color: '#040E1B',
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: '0.5rem',
+                      textDecoration: 'none',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      boxShadow: '0 4px 12px rgba(37, 211, 102, 0.25)',
                     }}
                   >
-                    <div
-                      style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '50%',
-                        backgroundColor: currentStep >= 2 ? '#059669' : 'rgba(255, 255, 255, 0.05)',
-                        border: currentStep >= 2 ? '3px solid #34D399' : '2px solid rgba(255, 255, 255, 0.2)',
-                        color: currentStep >= 2 ? '#34D399' : '#64748B',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: '0.75rem',
-                        boxShadow: currentStep >= 2 ? '0 0 25px rgba(52, 211, 153, 0.6)' : 'none',
-                        transition: 'all 0.3s ease',
-                      }}
-                    >
-                      <CheckCircle2 size={28} />
-                    </div>
-                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: currentStep >= 2 ? '#34D399' : '#64748B' }}>
-                      PRONTO
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: currentStep >= 2 ? '#A7F3D0' : '#475569', marginTop: '0.2rem' }}>
-                      Pronto al banco!
-                    </div>
-                  </div>
+                    <MessageCircle size={15} color="#040E1B" /> WhatsApp
+                  </a>
+
+                  <a
+                    href="tel:019692623"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                      color: '#8DA9C4',
+                      padding: '0.45rem 0.75rem',
+                      borderRadius: '0.5rem',
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                      fontSize: '0.775rem',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                    }}
+                  >
+                    <Phone size={13} /> 019 692623
+                  </a>
                 </div>
               </div>
             </div>
 
-            {/* ORDER SUMMARY CARD */}
-            <div
-              style={{
-                backgroundColor: 'rgba(11, 37, 69, 0.75)',
-                backdropFilter: 'blur(16px)',
-                borderRadius: '1.25rem',
-                border: '1px solid rgba(141, 169, 196, 0.25)',
-                padding: '2rem 1.5rem',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-              }}
-            >
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShoppingBag size={22} color="#38BDF8" />
-                Riepilogo Dettagli Ordine
+            {/* RIGHT COLUMN: ORDER SUMMARY & ITEMS BREAKDOWN */}
+            <div className="tracker-card">
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#F0F9FF' }}>
+                <ShoppingBag size={20} color="#38BDF8" />
+                Riepilogo Ordine
               </h3>
 
               {/* Customer Info & Order Type Grid */}
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                  gap: '1.25rem',
-                  padding: '1.25rem',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                  gap: '0.75rem',
+                  padding: '0.75rem 0.9rem',
                   backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                  borderRadius: '0.75rem',
-                  marginBottom: '1.75rem',
+                  borderRadius: '0.65rem',
+                  marginBottom: '1.15rem',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.8rem', color: '#8DA9C4', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
-                    <User size={14} /> Nome Cliente
+                  <div style={{ fontSize: '0.725rem', color: '#8DA9C4', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.15rem' }}>
+                    <User size={13} /> Nome Cliente
                   </div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F0F9FF' }}>
-                    {order.customer_name || 'Cliente Pessano'}
+                  <div style={{ fontSize: '0.925rem', fontWeight: 700, color: '#F0F9FF' }}>
+                    {order.customer_name || 'Cliente'}
                   </div>
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '0.8rem', color: '#8DA9C4', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
-                    <MapPin size={14} /> Modalità Ordine
+                  <div style={{ fontSize: '0.725rem', color: '#8DA9C4', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.15rem' }}>
+                    <MapPin size={13} /> Modalità
                   </div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#38BDF8' }}>
-                    {order.order_type || 'Ritiro in Pescheria'}
+                  <div style={{ fontSize: '0.925rem', fontWeight: 700, color: '#38BDF8' }}>
+                    {order.order_type || 'Ritiro'}
                   </div>
                   {order.delivery_address && (
-                    <div style={{ fontSize: '0.825rem', color: '#CBD5E1', marginTop: '0.2rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#CBD5E1', marginTop: '0.15rem' }}>
                       {order.delivery_address}
                     </div>
                   )}
@@ -994,113 +979,133 @@ export const OrderTracking: React.FC = () => {
               {order.notes && (
                 <div
                   style={{
-                    padding: '0.75rem 1rem',
+                    padding: '0.6rem 0.8rem',
                     backgroundColor: 'rgba(234, 179, 8, 0.12)',
                     border: '1px solid rgba(234, 179, 8, 0.35)',
-                    borderRadius: '0.65rem',
+                    borderRadius: '0.5rem',
                     color: '#FDE047',
-                    fontSize: '0.875rem',
+                    fontSize: '0.8rem',
                     fontWeight: 600,
-                    marginBottom: '1.5rem',
+                    marginBottom: '1.15rem',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
+                    gap: '0.45rem',
                   }}
                 >
-                  <Receipt size={18} style={{ flexShrink: 0 }} />
-                  <span>Dettaglio / Note Ordine: {order.notes}</span>
+                  <Receipt size={15} style={{ flexShrink: 0 }} />
+                  <span>Nota: {order.notes}</span>
                 </div>
               )}
 
-              {/* INGREDIENTS LIST */}
-              <div style={{ marginBottom: '2rem' }}>
-                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#8DA9C4', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '1rem' }}>
-                  Composizione del Poke Scelto
-                </div>
+              {/* INGREDIENTS / ITEMS LIST */}
+              <div style={{ marginBottom: '1.15rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '0.2rem' }}>
+                {(order.order_items || order.items || []).map((item, idx) => {
+                  const isFried =
+                    (item as any).item_type === 'fritto' ||
+                    (item.item_name || '').toLowerCase().includes('cono') ||
+                    (item.item_name || '').toLowerCase().includes('fritt');
 
-                {(order.order_items || order.items || []).map((item, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '1.25rem',
-                      backgroundColor: 'rgba(7, 21, 39, 0.6)',
-                      borderRadius: '0.75rem',
-                      border: '1px solid rgba(141, 169, 196, 0.15)',
-                      marginBottom: '1rem',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#F0F9FF' }}>
-                        {item.item_name || item.name || 'Poke Custom Pessano'}
+                  const isFish =
+                    (item as any).item_type === 'pesce' ||
+                    (item as any).details?.item_type === 'pesce' ||
+                    (item.item_name || '').startsWith('🐟') ||
+                    (item.item_name || '').toLowerCase().includes('kg');
+
+                  const itemPrice = item.price
+                    ? item.price
+                    : item.unit_price && item.quantity
+                      ? item.unit_price * item.quantity
+                      : order.total_price;
+
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '0.9rem 1rem',
+                        backgroundColor: isFish ? 'rgba(14, 165, 233, 0.08)' : isFried ? 'rgba(245, 158, 11, 0.08)' : 'rgba(7, 21, 39, 0.6)',
+                        borderRadius: '0.65rem',
+                        border: isFish ? '1px solid rgba(14, 165, 233, 0.35)' : isFried ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(141, 169, 196, 0.15)',
+                        marginBottom: '0.75rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.95rem', color: isFish ? '#38BDF8' : isFried ? '#FBBF24' : '#F0F9FF', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <span>{item.item_name || item.name || (isFish ? 'Pesce Fresco al Banco' : 'Articolo Pessano')}</span>
+                          {item.quantity && item.quantity > 1 && (
+                            <span style={{ fontSize: '0.75rem', backgroundColor: isFish ? '#0284C7' : isFried ? '#F59E0B' : '#0284C7', color: 'white', padding: '0.1rem 0.45rem', borderRadius: '999px', fontWeight: 800 }}>
+                              x{item.quantity}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontWeight: 700, color: '#38BDF8', fontSize: '0.95rem' }}>
+                          € {itemPrice.toFixed(2)}
+                        </div>
                       </div>
-                      <div style={{ fontWeight: 700, color: '#38BDF8', fontSize: '1rem' }}>
-                        € {item.price ? item.price.toFixed(2) : order.total_price.toFixed(2)}
+
+                      {item.size && (
+                        <div style={{ fontSize: '0.775rem', color: '#94A3B8', marginBottom: '0.5rem' }}>
+                          Formato: <span style={{ color: '#F1F5F9', fontWeight: 600 }}>{item.size}</span>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.5rem', fontSize: '0.8rem' }}>
+                        {item.bases && item.bases.length > 0 && (
+                          <div>
+                            <span style={{ color: '#8DA9C4', fontWeight: 600 }}>Basi:</span>{' '}
+                            <span style={{ color: '#E2E8F0' }}>{item.bases.join(', ')}</span>
+                          </div>
+                        )}
+
+                        {item.proteins && item.proteins.length > 0 && (
+                          <div>
+                            <span style={{ color: '#8DA9C4', fontWeight: 600 }}>Proteine:</span>{' '}
+                            <span style={{ color: '#E2E8F0' }}>{item.proteins.join(', ')}</span>
+                          </div>
+                        )}
+
+                        {item.toppings && item.toppings.length > 0 && (
+                          <div>
+                            <span style={{ color: '#8DA9C4', fontWeight: 600 }}>Topping:</span>{' '}
+                            <span style={{ color: '#E2E8F0' }}>{item.toppings.join(', ')}</span>
+                          </div>
+                        )}
+
+                        {item.sauces && item.sauces.length > 0 && (
+                          <div>
+                            <span style={{ color: '#8DA9C4', fontWeight: 600 }}>Salse:</span>{' '}
+                            <span style={{ color: '#E2E8F0' }}>{item.sauces.join(', ')}</span>
+                          </div>
+                        )}
+
+                        {item.has_sesame !== undefined && (
+                          <div>
+                            <span style={{ color: '#8DA9C4', fontWeight: 600 }}>Sesamo:</span>{' '}
+                            <span style={{ color: item.has_sesame ? '#34D399' : '#F87171', fontWeight: 700 }}>
+                              {item.has_sesame ? 'SÌ' : 'NO'}
+                            </span>
+                          </div>
+                        )}
                       </div>
+
+                      {item.notes && (
+                        <div
+                          style={{
+                            marginTop: '0.5rem',
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: '0.375rem',
+                            backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                            border: '1px solid rgba(234, 179, 8, 0.35)',
+                            color: '#FDE047',
+                            fontSize: '0.775rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          📝 Nota: {item.notes}
+                        </div>
+                      )}
                     </div>
-
-                    {item.size && (
-                      <div style={{ fontSize: '0.85rem', color: '#94A3B8', marginBottom: '0.75rem' }}>
-                        Formato: <span style={{ color: '#F1F5F9', fontWeight: 600 }}>{item.size}</span>
-                      </div>
-                    )}
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', fontSize: '0.875rem' }}>
-                      {item.bases && item.bases.length > 0 && (
-                        <div>
-                          <span style={{ color: '#8DA9C4', fontWeight: 600 }}>🍚 Basi:</span>{' '}
-                          <span style={{ color: '#E2E8F0' }}>{item.bases.join(', ')}</span>
-                        </div>
-                      )}
-
-                      {item.proteins && item.proteins.length > 0 && (
-                        <div>
-                          <span style={{ color: '#8DA9C4', fontWeight: 600 }}>🐟 Proteine:</span>{' '}
-                          <span style={{ color: '#E2E8F0' }}>{item.proteins.join(', ')}</span>
-                        </div>
-                      )}
-
-                      {item.toppings && item.toppings.length > 0 && (
-                        <div>
-                          <span style={{ color: '#8DA9C4', fontWeight: 600 }}>🥑 Topping:</span>{' '}
-                          <span style={{ color: '#E2E8F0' }}>{item.toppings.join(', ')}</span>
-                        </div>
-                      )}
-
-                      {item.sauces && item.sauces.length > 0 && (
-                        <div>
-                          <span style={{ color: '#8DA9C4', fontWeight: 600 }}>Soy/Salse:</span>{' '}
-                          <span style={{ color: '#E2E8F0' }}>{item.sauces.join(', ')}</span>
-                        </div>
-                      )}
-
-                      {item.has_sesame !== undefined && (
-                        <div>
-                          <span style={{ color: '#8DA9C4', fontWeight: 600 }}>🌱 Sesamo:</span>{' '}
-                          <span style={{ color: item.has_sesame ? '#34D399' : '#F87171', fontWeight: 700 }}>
-                            {item.has_sesame ? 'SÌ' : 'NO'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {item.notes && (
-                      <div
-                        style={{
-                          marginTop: '0.75rem',
-                          padding: '0.45rem 0.75rem',
-                          borderRadius: '0.375rem',
-                          backgroundColor: 'rgba(234, 179, 8, 0.15)',
-                          border: '1px solid rgba(234, 179, 8, 0.35)',
-                          color: '#FDE047',
-                          fontSize: '0.825rem',
-                          fontWeight: 700,
-                        }}
-                      >
-                        📝 Nota Poke: {item.notes}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* TOTAL PRICE TO PAY */}
@@ -1109,92 +1114,26 @@ export const OrderTracking: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '1.25rem 1.5rem',
+                  padding: '0.9rem 1.15rem',
                   backgroundColor: 'rgba(19, 64, 116, 0.6)',
-                  borderRadius: '0.85rem',
+                  borderRadius: '0.75rem',
                   border: '1px solid rgba(56, 189, 248, 0.3)',
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.85rem', color: '#8DA9C4', fontWeight: 600 }}>
-                    Totale da pagare al banco/consegna
+                  <div style={{ fontSize: '0.8rem', color: '#8DA9C4', fontWeight: 600 }}>
+                    Totale da pagare
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#CBD5E1' }}>
-                    Iva inclusa • Scontrino fisco Pescheria Pessano
+                  <div style={{ fontSize: '0.7rem', color: '#CBD5E1' }}>
+                    Iva inclusa • Al banco / consegna
                   </div>
                 </div>
 
-                <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#38BDF8' }}>
+                <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#38BDF8' }}>
                   € {order.total_price ? order.total_price.toFixed(2) : '14.50'}
                 </div>
               </div>
-            </div>
 
-            {/* NEED HELP / STORE CONTACT CARD (WHATSAPP PRIMARY) */}
-            <div
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                borderRadius: '1rem',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                padding: '1.25rem 1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1rem',
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '1rem', color: '#F0F9FF' }}>
-                  Serve assistenza o modifiche al tuo ordine?
-                </div>
-                <div style={{ fontSize: '0.825rem', color: '#8DA9C4', marginTop: '0.2rem' }}>
-                  Scrivi direttamente alla Pescheria Pessano su WhatsApp specificando il tuo numero ordine <strong style={{ color: '#38BDF8' }}>{displayId}</strong>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <a
-                  href="https://wa.me/393459485857"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    backgroundColor: '#25D366',
-                    color: '#040E1B',
-                    padding: '0.65rem 1.25rem',
-                    borderRadius: '0.5rem',
-                    textDecoration: 'none',
-                    fontWeight: 800,
-                    fontSize: '0.9rem',
-                    boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
-                    transition: 'transform 0.2s ease',
-                  }}
-                >
-                  <MessageCircle size={18} color="#040E1B" /> Contatta su WhatsApp (345 9485857)
-                </a>
-
-                <a
-                  href="tel:019692623"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                    color: '#8DA9C4',
-                    padding: '0.65rem 1rem',
-                    borderRadius: '0.5rem',
-                    textDecoration: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.85rem',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                  }}
-                >
-                  <Phone size={15} /> 019 692623
-                </a>
-              </div>
             </div>
 
           </div>
