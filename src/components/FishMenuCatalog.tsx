@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Waves, Anchor, Sparkles, Search, Info, X, ShieldCheck } from 'lucide-react';
 
 export interface FishItem {
@@ -477,16 +478,16 @@ export const FishMenuCatalog: React.FC = () => {
             </div>
             <div>
               <h4 className="font-serif" style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.15rem', color: 'white' }}>
-                Servizio di Pulizia & Sfilettatura Gratuito al Banco
+                Ordina il Pesce Fresco del Giorno Online
               </h4>
               <p style={{ fontSize: '0.85rem', color: 'var(--color-sea-blue)', margin: 0 }}>
-                Puliamo, sfilettiamo ed evisceriamo il tuo pesce senza alcun costo aggiuntivo.
+                Scegli la pezzatura, richiedi pulizia e sfilettatura gratuite e ritira al banco quando preferisci.
               </p>
             </div>
           </div>
 
-          <a
-            href="/componi-poke"
+          <Link
+            to="/componi-poke?tab=pesce"
             style={{
               padding: '0.7rem 1.3rem',
               borderRadius: 'var(--radius-full)',
@@ -499,11 +500,18 @@ export const FishMenuCatalog: React.FC = () => {
               alignItems: 'center',
               gap: '0.4rem',
               boxShadow: 'var(--shadow-glow)',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <span>Ordina Poke o Ritiro</span>
+            <span>Ordina Pesce Fresco</span>
             <Sparkles size={15} />
-          </a>
+          </Link>
         </div>
       </div>
 

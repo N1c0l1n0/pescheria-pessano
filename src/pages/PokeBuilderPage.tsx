@@ -14,13 +14,13 @@ export const PokeBuilderPage: React.FC = () => {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F1F5F9', width: '100%', overflowX: 'hidden' }}>
       <Header />
 
-      <main style={{ flex: 1, paddingTop: '5.5rem', width: '100%', overflowX: 'hidden' }}>
+      <main style={{ flex: 1, width: '100%', overflowX: 'hidden' }}>
         {/* Top Banner / Breadcrumb */}
         <div
           style={{
             backgroundColor: '#0B2545',
             color: 'white',
-            padding: '2rem 0',
+            padding: '6.5rem 0 2.25rem 0',
             borderBottom: '1px solid rgba(141, 169, 196, 0.2)',
           }}
         >

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, Check, AlertCircle, Sparkles, MessageCircle, Info, Trash2, PlusCircle, Edit3, RotateCcw, Waves, Anchor, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { saveLocalOrder } from '../utils/orderStore';
@@ -136,7 +136,7 @@ export const FRIED_ITEMS: FriedProductOption[] = [
     name: 'Cono di Calamari',
     price: 12,
     description: 'Calamari veraci croccanti fritti al momento in olio ad alta temperatura.',
-    image: '/fritti/fritto_misto.png',
+    image: '/fritti/cono_calamari.jpg',
     badge: 'I più richiesti',
   },
   {
@@ -144,7 +144,7 @@ export const FRIED_ITEMS: FriedProductOption[] = [
     name: 'Cono Misto',
     price: 10,
     description: 'Calamari, paranza del giorno e gamberi dorati e croccanti.',
-    image: '/fritti/fritto_misto.png',
+    image: '/fritti/cono_misto.jpg',
     badge: 'Classico Ligure',
   },
   {
@@ -152,7 +152,7 @@ export const FRIED_ITEMS: FriedProductOption[] = [
     name: 'Cono di Acciughe',
     price: 7,
     description: 'Acciughe fresche del Mar Ligure aperte a libro e fritte dorate.',
-    image: '/fritti/fritto_misto.png',
+    image: '/fritti/cono_acciughe.jpg',
     badge: 'Pescato Locale',
   },
 ];
@@ -225,8 +225,33 @@ export const PokeBuilder: React.FC = () => {
   const [pokeNotes, setPokeNotes] = useState<string>('');
   const [generalOrderNotes, setGeneralOrderNotes] = useState<string>('');
 
+  const location = useLocation();
+
   // Navigation Tab State: Poke vs Fritti Espresso vs Pesce Fresco
-  const [activeTab, setActiveTab] = useState<'poke' | 'fritti' | 'pesce'>('poke');
+  const getInitialTab = (): 'poke' | 'fritti' | 'pesce' => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam === 'pesce' || tabParam === 'fritti' || tabParam === 'poke') {
+      return tabParam;
+    }
+    if (location.hash === '#pesce') return 'pesce';
+    if (location.hash === '#fritti') return 'fritti';
+    return 'poke';
+  };
+
+  const [activeTab, setActiveTab] = useState<'poke' | 'fritti' | 'pesce'>(getInitialTab);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam === 'pesce' || tabParam === 'fritti' || tabParam === 'poke') {
+      setActiveTab(tabParam);
+    } else if (location.hash === '#pesce') {
+      setActiveTab('pesce');
+    } else if (location.hash === '#fritti') {
+      setActiveTab('fritti');
+    }
+  }, [location.search, location.hash]);
 
   // Fried Item Selection Form State
   const [cardQuantities, setCardQuantities] = useState<Record<string, number>>({
