@@ -5,12 +5,14 @@
   --color-ocean-medium: #134074;
   --color-sea-blue: #8DA9C4;
   --color-ice-blue: #EEF4F8;
+  --color-surface-alt: #F1F5F9;
   --color-pure-white: #FFFFFF;
   --color-coral: #FF6B6B;
   --color-coral-hover: #ff5252;
   --color-gold: #E5BA42;
   --color-text-dark: #0F172A;
   --color-text-muted: #475569;
+  --layout-max-width: 1200px;
 
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -64,7 +66,7 @@ body {
 
 /* Container */
 .container {
-  max-width: 1280px;
+  max-width: var(--layout-max-width);
   margin: 0 auto;
   padding: 0 1.5rem;
   width: 100%;
@@ -159,6 +161,109 @@ body {
 .btn-ocean:hover {
   background: var(--color-ocean-medium);
   transform: translateY(-2px);
+}
+
+.btn-ghost-light {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.82);
+  padding: 0.65rem 0.25rem;
+  box-shadow: none;
+}
+
+.btn-ghost-light:hover {
+  color: white;
+  transform: none;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.925rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.nav-link:hover {
+  color: white;
+}
+
+.nav-link:focus-visible,
+.btn:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+.service-card {
+  padding: 1.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  background-color: white;
+  border: 1px solid rgba(11, 37, 69, 0.08);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.section-surface-alt {
+  background-color: var(--color-surface-alt);
+}
+
+.section-wave-top {
+  position: relative;
+}
+
+.section-wave-top::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 48' preserveAspectRatio='none'%3E%3Cpath fill='%23F1F5F9' d='M0 24C200 48 400 0 600 24S1000 48 1200 24V48H0z'/%3E%3C/svg%3E") center bottom / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.trust-quote-card {
+  background: white;
+  border: 1px solid rgba(11, 37, 69, 0.08);
+  border-radius: var(--radius-md);
+  padding: 1.35rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.map-embed {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  height: 240px;
+  border: 1px solid rgba(11, 37, 69, 0.1);
+}
+
+@media (min-width: 768px) {
+  .map-embed {
+    height: 320px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Pulse animation for Live Badge */
@@ -292,7 +397,7 @@ textarea {
 /* Responsive Grid & Card Layout for Poke Builder */
 .container {
   width: 100% !important;
-  max-width: 1200px !important;
+  max-width: var(--layout-max-width) !important;
   margin-left: auto !important;
   margin-right: auto !important;
   padding-left: 1.25rem !important;

@@ -112,6 +112,7 @@ export const Hero: React.FC = () => {
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
+                alignItems: 'center',
                 gap: '0.85rem',
                 marginBottom: '2.5rem',
               }}
@@ -125,21 +126,29 @@ export const Hero: React.FC = () => {
                 <span>Componi la tua Poke</span>
               </Link>
 
+              <Link
+                to="/componi-poke?tab=fritti"
+                className="btn btn-outline-light"
+                style={{ fontSize: '0.95rem', padding: '0.85rem 1.5rem', whiteSpace: 'nowrap', textDecoration: 'none' }}
+              >
+                <span>Ordina Fritti d'Asporto</span>
+              </Link>
+
               <a
                 href="tel:019692623"
-                className="btn btn-outline-light"
-                style={{ fontSize: '1rem', padding: '0.9rem 1.8rem', whiteSpace: 'nowrap' }}
+                className="btn btn-ghost-light"
+                style={{ fontSize: '0.925rem', whiteSpace: 'nowrap' }}
               >
-                <Phone size={18} color="var(--color-sea-blue)" />
-                <span>Chiama: 019 692623</span>
+                <Phone size={16} color="var(--color-sea-blue)" />
+                <span>019 692623</span>
               </a>
 
               <a
                 href="#orari"
-                className="btn btn-outline-light"
-                style={{ fontSize: '0.95rem', padding: '0.85rem 1.4rem', whiteSpace: 'nowrap' }}
+                className="btn btn-ghost-light"
+                style={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}
               >
-                <Clock size={18} color="var(--color-sea-blue)" />
+                <Clock size={16} color="var(--color-sea-blue)" />
                 <span>Orari & Mappa</span>
               </a>
             </div>

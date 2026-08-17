@@ -70,8 +70,17 @@ export const Footer: React.FC = () => {
             <Link to="/" onClick={(e) => navigateToSection('hero', e)} style={footerLinkStyle}>Home</Link>
             <Link to="/componi-poke" style={footerLinkStyle}>Componi la tua poke</Link>
             <a href="/#servizi" onClick={(e) => navigateToSection('servizi', e)} style={footerLinkStyle}>Servizi</a>
+            <a href="/#recensioni" onClick={(e) => navigateToSection('recensioni', e)} style={footerLinkStyle}>Recensioni</a>
             <a href="/#orari" onClick={(e) => navigateToSection('orari', e)} style={footerLinkStyle}>Orari</a>
             <a href="/#contatti" onClick={(e) => navigateToSection('contatti', e)} style={footerLinkStyle}>Dove Siamo</a>
+            <a
+              href="https://www.google.com/maps/search/?api=1&query=Pescheria+Pessano+Via+Avvocato+Emanuele+Rossi+17+Finale+Ligure"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={footerLinkStyle}
+            >
+              Google Maps
+            </a>
           </div>
 
           {/* Direct Phone */}

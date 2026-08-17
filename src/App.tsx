@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { FishMenuCatalog } from './components/FishMenuCatalog';
+import { TrustSection } from './components/TrustSection';
 import { InfoSection } from './components/InfoSection';
 import { HoursAndLocation } from './components/HoursAndLocation';
 import { Footer } from './components/Footer';
@@ -56,6 +57,7 @@ export function App() {
               <main style={{ flex: 1 }}>
                 <Hero />
                 <FishMenuCatalog />
+                <TrustSection />
                 <InfoSection />
                 <HoursAndLocation />
               </main>

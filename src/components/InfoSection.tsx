@@ -1,5 +1,6 @@
 import React from 'react';
-import { ShieldCheck, Utensils, ShoppingBag, Anchor, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ShieldCheck, Utensils, ShoppingBag, Anchor, Sparkles, ArrowRight } from 'lucide-react';
 
 export const InfoSection: React.FC = () => {
   return (
@@ -53,24 +54,7 @@ export const InfoSection: React.FC = () => {
         >
           {/* Card 1: Pesce Fresco */}
           <div
-            className="glass-panel"
-            style={{
-              padding: '1.75rem 1.5rem',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'white',
-              border: '1px solid rgba(11, 37, 69, 0.08)',
-              display: 'flex',
-              flexDirection: 'column',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-            }}
+            className="glass-panel service-card"
           >
             <div
               style={{
@@ -126,28 +110,27 @@ export const InfoSection: React.FC = () => {
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Filiera corta e pescato locale
               </li>
             </ul>
+            <Link
+              to="/componi-poke?tab=pesce"
+              style={{
+                marginTop: '1.25rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                color: 'var(--color-ocean-medium)',
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                textDecoration: 'none',
+              }}
+            >
+              Ordina pesce fresco
+              <ArrowRight size={15} />
+            </Link>
           </div>
 
           {/* Card 2: Poke Bowl Artigianali */}
           <div
-            className="glass-panel"
-            style={{
-              padding: '1.75rem 1.5rem',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'white',
-              border: '1px solid rgba(11, 37, 69, 0.08)',
-              display: 'flex',
-              flexDirection: 'column',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-            }}
+            className="glass-panel service-card"
           >
             <div
               style={{
@@ -203,28 +186,27 @@ export const InfoSection: React.FC = () => {
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Basi, topping e salse a scelta
               </li>
             </ul>
+            <Link
+              to="/componi-poke"
+              style={{
+                marginTop: '1.25rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                color: 'var(--color-coral)',
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                textDecoration: 'none',
+              }}
+            >
+              Componi la tua poke
+              <ArrowRight size={15} />
+            </Link>
           </div>
 
           {/* Card 3: Gastronomia Pronta */}
           <div
-            className="glass-panel"
-            style={{
-              padding: '1.75rem 1.5rem',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'white',
-              border: '1px solid rgba(11, 37, 69, 0.08)',
-              display: 'flex',
-              flexDirection: 'column',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-            }}
+            className="glass-panel service-card"
           >
             <div
               style={{
@@ -280,28 +262,27 @@ export const InfoSection: React.FC = () => {
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Specialità liguri preparate oggi
               </li>
             </ul>
+            <Link
+              to="/componi-poke?tab=fritti"
+              style={{
+                marginTop: '1.25rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                color: 'var(--color-ocean-medium)',
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                textDecoration: 'none',
+              }}
+            >
+              Scopri i fritti d'asporto
+              <ArrowRight size={15} />
+            </Link>
           </div>
 
           {/* Card 4: Ordini Online & Tracciamento */}
           <div
-            className="glass-panel"
-            style={{
-              padding: '1.75rem 1.5rem',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'white',
-              border: '1px solid rgba(11, 37, 69, 0.08)',
-              display: 'flex',
-              flexDirection: 'column',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-            }}
+            className="glass-panel service-card"
           >
             <div
               style={{
@@ -357,6 +338,22 @@ export const InfoSection: React.FC = () => {
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Confezionamento salvafreschezza
               </li>
             </ul>
+            <Link
+              to="/componi-poke"
+              style={{
+                marginTop: '1.25rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                color: 'var(--color-ocean-medium)',
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                textDecoration: 'none',
+              }}
+            >
+              Inizia un ordine
+              <ArrowRight size={15} />
+            </Link>
           </div>
 
         </div>

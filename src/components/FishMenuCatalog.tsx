@@ -167,9 +167,9 @@ export const FishMenuCatalog: React.FC = () => {
   return (
     <section
       id="pesce-fresco"
+      className="section-surface-alt"
       style={{
         padding: '5.5rem 0',
-        backgroundColor: '#F1F5F9', // Slate ice background
         backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(19, 64, 116, 0.04) 0%, transparent 75%)',
       }}
     >
@@ -598,10 +598,10 @@ export const FishMenuCatalog: React.FC = () => {
               />
             </div>
 
-            {/* Modal Footer (Fish Name ONLY) */}
+            {/* Modal Footer */}
             <div
               style={{
-                padding: '1.25rem 1.5rem',
+                padding: '1.25rem 1.5rem 1.5rem',
                 backgroundColor: 'var(--color-ocean-dark)',
                 textAlign: 'center',
                 borderTop: '1px solid rgba(255, 255, 255, 0.1)',
@@ -613,12 +613,27 @@ export const FishMenuCatalog: React.FC = () => {
                   fontSize: '1.6rem',
                   fontWeight: 800,
                   color: 'white',
-                  margin: 0,
+                  margin: '0 0 0.5rem 0',
                   letterSpacing: '0.02em',
                 }}
               >
                 {selectedFish.name}
               </h3>
+              <p style={{ color: 'var(--color-sea-blue)', fontSize: '0.875rem', margin: '0 0 0.75rem 0' }}>
+                {selectedFish.origin}
+                {selectedFish.isPopular ? ' • Prodotto popolare' : ''}
+              </p>
+              <p style={{ color: 'white', fontSize: '1.15rem', fontWeight: 800, margin: '0 0 1.25rem 0' }}>
+                € {selectedFish.pricePerKg.toFixed(2).replace('.', ',')} / Kg
+              </p>
+              <Link
+                to="/componi-poke?tab=pesce"
+                className="btn btn-coral"
+                style={{ textDecoration: 'none', fontSize: '0.875rem', padding: '0.7rem 1.25rem' }}
+                onClick={() => setSelectedFish(null)}
+              >
+                Ordina questo pesce
+              </Link>
             </div>
           </div>
         </div>

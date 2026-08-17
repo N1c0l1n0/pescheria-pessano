@@ -127,12 +127,13 @@ export const Header: React.FC = () => {
             }}
             className="desktop-nav"
           >
-            <Link to="/" onClick={(e) => handleSectionNav('hero', e)} style={navLinkStyle}>Home</Link>
-            <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} style={navLinkStyle}>Banco Pesce</a>
-            <Link to="/componi-poke" style={navLinkStyle}>Ordina d'Asporto</Link>
-            <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} style={navLinkStyle}>Servizi</a>
-            <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} style={navLinkStyle}>Orari</a>
-            <a href="/#contatti" onClick={(e) => handleSectionNav('contatti', e)} style={navLinkStyle}>Contatti</a>
+            <Link to="/" onClick={(e) => handleSectionNav('hero', e)} className="nav-link">Home</Link>
+            <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} className="nav-link">Banco Pesce</a>
+            <Link to="/componi-poke" className="nav-link">Ordina d'Asporto</Link>
+            <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} className="nav-link">Servizi</a>
+            <a href="/#recensioni" onClick={(e) => handleSectionNav('recensioni', e)} className="nav-link">Recensioni</a>
+            <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} className="nav-link">Orari</a>
+            <a href="/#contatti" onClick={(e) => handleSectionNav('contatti', e)} className="nav-link">Contatti</a>
           </nav>
 
           {/* Right Header Status & Call */}
@@ -225,6 +226,7 @@ export const Header: React.FC = () => {
             <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} style={mobileNavLinkStyle}>Banco del Pesce Fresco</a>
             <Link to="/componi-poke" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Ordina d'Asporto</Link>
             <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} style={mobileNavLinkStyle}>I Nostri Servizi</a>
+            <a href="/#recensioni" onClick={(e) => handleSectionNav('recensioni', e)} style={mobileNavLinkStyle}>Recensioni</a>
             <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} style={mobileNavLinkStyle}>Orari di Apertura</a>
             <a href="/#contatti" onClick={(e) => handleSectionNav('contatti', e)} style={mobileNavLinkStyle}>Dove Siamo & Contatti</a>
           </div>
@@ -240,15 +242,6 @@ export const Header: React.FC = () => {
       `}</style>
     </header>
   );
-};
-
-const navLinkStyle: React.CSSProperties = {
-  color: 'rgba(255, 255, 255, 0.85)',
-  textDecoration: 'none',
-  fontSize: '0.925rem',
-  fontWeight: 600,
-  whiteSpace: 'nowrap',
-  transition: 'color 0.2s ease',
 };
 
 const mobileNavLinkStyle: React.CSSProperties = {
