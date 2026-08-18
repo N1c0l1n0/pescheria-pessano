@@ -254,9 +254,9 @@ export const FooterAndHours: React.FC = () => {
                   color: 'rgba(255, 255, 255, 0.9)',
                 }}
               >
-                "Pesce freschissimo di primissima scelta e personale sempre cortese. Il Cappon Magro è il migliore di tutta Finale Ligure!"
+                "Fritto misto e acciughe fritte buonissime. La numero uno per me. Prezzi modici e soprattutto qualità e pesce fresco."
                 <div style={{ fontSize: '0.775rem', color: 'var(--color-sea-blue)', marginTop: '0.4rem', fontWeight: 600 }}>
-                  — Marco R. (Recensione Google)
+                  — Daniele F. (Recensione Google)
                 </div>
               </div>
 
@@ -271,9 +271,9 @@ export const FooterAndHours: React.FC = () => {
                   color: 'rgba(255, 255, 255, 0.9)',
                 }}
               >
-                "Ottimo servizio di consegna a domicilio: pesce arrivato a casa già sfilettato e freddissimo. Consigliatissimi!"
+                "Abbiamo mangiato frittura di pesce e un poke semplicemente deliziosi! Croccante al punto giusto, leggero e per nulla unto, si sentiva tutta la freschezza del pesce. Porzioni abbondanti e servizio cortese e veloce. Si vede che qui il pesce è una cosa seria! Ottimo rapporto qualità-prezzo. Torneremo sicuramente, consigliatissimo!"
                 <div style={{ fontSize: '0.775rem', color: 'var(--color-sea-blue)', marginTop: '0.4rem', fontWeight: 600 }}>
-                  — Elena B. (Recensione Google)
+                  — Dalal E. (Recensione Google)
                 </div>
               </div>
             </div>

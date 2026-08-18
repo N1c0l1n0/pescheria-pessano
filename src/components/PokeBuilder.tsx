@@ -298,13 +298,14 @@ export const PokeBuilder: React.FC = () => {
   const updateCardFishWeight = (id: string, deltaGrams: number) => {
     setCardFishWeights((prev) => {
       const current = prev[id] || 500;
-      const next = Math.max(250, current + deltaGrams);
+      const next = Math.min(10000, Math.max(100, current + deltaGrams));
       return { ...prev, [id]: next };
     });
   };
 
   const setCardFishWeightValue = (id: string, grams: number) => {
-    setCardFishWeights((prev) => ({ ...prev, [id]: grams }));
+    const clamped = Math.min(10000, Math.max(100, Math.round(grams)));
+    setCardFishWeights((prev) => ({ ...prev, [id]: clamped }));
   };
 
   const updateCardFishPrep = (id: string, prep: string) => {
@@ -1220,93 +1221,33 @@ export const PokeBuilder: React.FC = () => {
             </div>
 
             {/* TAB NAVIGATION: POKE VS FRITTI ESPRESSO VS PESCE FRESCO */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: '#0B2545',
-                padding: '0.5rem',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--shadow-md)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                width: '100%',
-                maxWidth: '100%',
-                boxSizing: 'border-box',
-                flexWrap: 'wrap',
-              }}
-            >
+            <div className="poke-category-tabs" role="tablist" aria-label="Categorie ordine">
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === 'poke'}
+                className={`poke-category-tab${activeTab === 'poke' ? ' poke-category-tab--active' : ''}`}
                 onClick={() => setActiveTab('poke')}
-                style={{
-                  flex: '1 1 110px',
-                  maxWidth: '100%',
-                  padding: '0.75rem 0.5rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: 'none',
-                  backgroundColor: activeTab === 'poke' ? 'var(--color-coral)' : 'transparent',
-                  color: activeTab === 'poke' ? 'white' : '#94A3B8',
-                  fontWeight: 800,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem',
-                  transition: 'all 0.25s ease',
-                  boxSizing: 'border-box',
-                }}
               >
                 <span>1. Poke</span>
               </button>
 
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === 'fritti'}
+                className={`poke-category-tab${activeTab === 'fritti' ? ' poke-category-tab--active' : ''}`}
                 onClick={() => setActiveTab('fritti')}
-                style={{
-                  flex: '1 1 110px',
-                  maxWidth: '100%',
-                  padding: '0.75rem 0.5rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: 'none',
-                  backgroundColor: activeTab === 'fritti' ? 'var(--color-coral)' : 'transparent',
-                  color: activeTab === 'fritti' ? 'white' : '#94A3B8',
-                  fontWeight: 800,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem',
-                  transition: 'all 0.25s ease',
-                  boxSizing: 'border-box',
-                }}
               >
                 <span>2. Coni Fritti</span>
               </button>
 
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === 'pesce'}
+                className={`poke-category-tab poke-category-tab--wide${activeTab === 'pesce' ? ' poke-category-tab--active' : ''}`}
                 onClick={() => setActiveTab('pesce')}
-                style={{
-                  flex: '1 1 130px',
-                  maxWidth: '100%',
-                  padding: '0.75rem 0.5rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: 'none',
-                  backgroundColor: activeTab === 'pesce' ? 'var(--color-coral)' : 'transparent',
-                  color: activeTab === 'pesce' ? 'white' : '#94A3B8',
-                  fontWeight: 800,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem',
-                  transition: 'all 0.25s ease',
-                  boxSizing: 'border-box',
-                }}
               >
                 <Waves size={16} />
                 <span>3. Pesce Fresco</span>
@@ -1973,7 +1914,7 @@ export const PokeBuilder: React.FC = () => {
                   <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                     {[
                       { id: 'all', label: 'Tutto il Pescato' },
-                      { id: 'Mar Ligure', label: 'Mar Ligure 🌊' },
+                      { id: 'Mar Ligure', label: 'Mar Ligure' },
                       { id: 'Medit. Occ.', label: 'Mediterraneo' },
                     ].map((filt) => (
                       <button
@@ -2129,19 +2070,19 @@ export const PokeBuilder: React.FC = () => {
                                 </span>
                               </div>
 
-                              {/* Weight Selection Presets */}
+                              {/* Weight Selection */}
                               <div style={{ marginBottom: '0.85rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                                   <label style={{ fontSize: '0.775rem', fontWeight: 700, color: 'var(--color-ocean-dark)' }}>
-                                    Grammatura:
+                                    Peso desiderato:
                                   </label>
                                   <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-sea-blue)' }}>
-                                    {weight >= 1000 ? `${(weight / 1000).toFixed(1)} kg` : `${weight}g`}
+                                    {weight >= 1000 ? `${(weight / 1000).toFixed(2)} kg` : `${weight} g`}
                                   </span>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                                  {[250, 500, 750, 1000].map((presetGrams) => (
+                                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                                  {[250, 500, 750, 1000, 1500, 2000].map((presetGrams) => (
                                     <button
                                       type="button"
                                       key={presetGrams}
@@ -2161,35 +2102,91 @@ export const PokeBuilder: React.FC = () => {
                                         cursor: 'pointer',
                                       }}
                                     >
-                                      {presetGrams >= 1000 ? '1 kg' : `${presetGrams}g`}
+                                      {presetGrams >= 1000 ? `${presetGrams / 1000} kg` : `${presetGrams}g`}
                                     </button>
                                   ))}
-                                  <div
-                                    onClick={(e) => e.stopPropagation()}
+                                </div>
+
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    backgroundColor: '#F8FAFC',
+                                    borderRadius: '8px',
+                                    border: '1px solid rgba(11, 37, 69, 0.15)',
+                                    padding: '0.35rem 0.5rem',
+                                  }}
+                                >
+                                  <button
+                                    type="button"
+                                    aria-label="Riduci peso"
+                                    onClick={() => updateCardFishWeight(item.id, -50)}
                                     style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      backgroundColor: '#F1F5F9',
+                                      border: 'none',
+                                      background: 'white',
                                       borderRadius: '6px',
-                                      border: '1px solid rgba(11, 37, 69, 0.15)',
+                                      width: '2rem',
+                                      height: '2rem',
+                                      fontWeight: 800,
+                                      cursor: 'pointer',
+                                      color: 'var(--color-ocean-dark)',
+                                      boxShadow: '0 1px 3px rgba(11, 37, 69, 0.12)',
                                     }}
                                   >
-                                    <button
-                                      type="button"
-                                      onClick={() => updateCardFishWeight(item.id, -250)}
-                                      style={{ border: 'none', background: 'none', padding: '0.15rem 0.4rem', fontWeight: 800, cursor: 'pointer' }}
-                                    >
-                                      -
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => updateCardFishWeight(item.id, 250)}
-                                      style={{ border: 'none', background: 'none', padding: '0.15rem 0.4rem', fontWeight: 800, cursor: 'pointer' }}
-                                    >
-                                      +
-                                    </button>
-                                  </div>
+                                    −
+                                  </button>
+                                  <input
+                                    type="number"
+                                    min={0.1}
+                                    max={10}
+                                    step={0.05}
+                                    value={Number((weight / 1000).toFixed(2))}
+                                    onChange={(e) => {
+                                      const kg = parseFloat(e.target.value);
+                                      if (!Number.isNaN(kg)) {
+                                        setCardFishWeightValue(item.id, Math.round(kg * 1000));
+                                      }
+                                    }}
+                                    aria-label={`Peso in kg per ${item.name}`}
+                                    style={{
+                                      flex: 1,
+                                      minWidth: 0,
+                                      border: 'none',
+                                      background: 'transparent',
+                                      textAlign: 'center',
+                                      fontSize: '0.95rem',
+                                      fontWeight: 800,
+                                      color: 'var(--color-ocean-dark)',
+                                      outline: 'none',
+                                    }}
+                                  />
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text-muted)', flexShrink: 0 }}>
+                                    kg
+                                  </span>
+                                  <button
+                                    type="button"
+                                    aria-label="Aumenta peso"
+                                    onClick={() => updateCardFishWeight(item.id, 50)}
+                                    style={{
+                                      border: 'none',
+                                      background: 'white',
+                                      borderRadius: '6px',
+                                      width: '2rem',
+                                      height: '2rem',
+                                      fontWeight: 800,
+                                      cursor: 'pointer',
+                                      color: 'var(--color-ocean-dark)',
+                                      boxShadow: '0 1px 3px rgba(11, 37, 69, 0.12)',
+                                    }}
+                                  >
+                                    +
+                                  </button>
                                 </div>
+                                <p style={{ margin: '0.35rem 0 0', fontSize: '0.7rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                                  Inserisci il peso libero (min. 100 g, max 10 kg) o usa i tasti rapidi.
+                                </p>
                               </div>
 
                               {/* Preparation / Cleaning Selection */}

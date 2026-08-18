@@ -3,12 +3,12 @@ import { Star, ExternalLink } from 'lucide-react';
 
 const REVIEWS = [
   {
-    quote: 'Pesce sempre freschissimo e pulizia impeccabile al banco. Le poke sono generose e il fritto croccante come da pescheria vera.',
-    author: 'Cliente Google',
+    quote: 'Fritto misto e acciughe fritte buonissime. La numero uno per me. Prezzi modici e soprattutto qualità e pesce fresco.',
+    author: 'Daniele F.',
   },
   {
-    quote: 'Acciughe del Golfo spettacolari e personale gentilissimo. Finalmente si può ordinare online e ritirare senza attese.',
-    author: 'Cliente Google',
+    quote: 'Abbiamo mangiato frittura di pesce e un poke semplicemente deliziosi! Croccante al punto giusto, leggero e per nulla unto, si sentiva tutta la freschezza del pesce. Porzioni abbondanti e servizio cortese e veloce. Si vede che qui il pesce è una cosa seria! Ottimo rapporto qualità-prezzo. Torneremo sicuramente, consigliatissimo!',
+    author: 'Dalal E.',
   },
 ];
 

@@ -639,3 +639,70 @@ textarea {
     height: 38px;
   }
 }
+
+/* Category tab navigation — Poke Builder */
+.poke-category-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  background-color: var(--color-ocean-dark);
+  padding: 0.5rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+}
+
+.poke-category-tab {
+  flex: 1 1 110px;
+  max-width: 100%;
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--radius-md);
+  border: 1.5px solid rgba(148, 163, 184, 0.45);
+  background-color: rgba(255, 255, 255, 0.04);
+  color: #94A3B8;
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.poke-category-tab--wide {
+  flex: 1 1 130px;
+}
+
+.poke-category-tab:hover:not(.poke-category-tab--active) {
+  border-color: rgba(148, 163, 184, 0.72);
+  background-color: rgba(255, 255, 255, 0.09);
+  color: #CBD5E1;
+}
+
+.poke-category-tab:active:not(.poke-category-tab--active) {
+  transform: scale(0.98);
+}
+
+.poke-category-tab:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+.poke-category-tab--active {
+  border-color: rgba(255, 255, 255, 0.35);
+  background-color: var(--color-coral);
+  color: white;
+  box-shadow: 0 4px 14px rgba(255, 107, 107, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.poke-category-tab--active:hover {
+  background-color: var(--color-coral-hover);
+  border-color: rgba(255, 255, 255, 0.45);
+}
