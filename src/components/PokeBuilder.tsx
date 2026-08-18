@@ -7,6 +7,39 @@ import { subscribeToOrderPush } from '../lib/onesignal';
 import { AlarmTimePicker } from './AlarmTimePicker';
 import { FISH_CATALOG, FishItem } from './FishMenuCatalog';
 
+type CategoryTabIconProps = {
+  size?: number;
+};
+
+const categoryTabIconProps = (size: number) => ({
+  width: size,
+  height: size,
+  viewBox: '0 0 24 24',
+  fill: 'none' as const,
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+  'aria-hidden': true as const,
+});
+
+/** Ciotola stilizzata per la poke. */
+const PokeBowlIcon: React.FC<CategoryTabIconProps> = ({ size = 18 }) => (
+  <svg {...categoryTabIconProps(size)}>
+    <ellipse cx="12" cy="8" rx="9" ry="2.6" />
+    <path d="M3 8c0 7 4 13 9 13s9-6 9-13" />
+    <path d="M8 21h8" />
+  </svg>
+);
+
+/** Cono stilizzato per i coni fritti. */
+const FriedConeIcon: React.FC<CategoryTabIconProps> = ({ size = 18 }) => (
+  <svg {...categoryTabIconProps(size)}>
+    <ellipse cx="12" cy="6" rx="8" ry="2.5" />
+    <path d="M4 6 12 22 20 6" />
+  </svg>
+);
+
 interface FormatOption {
   id: string;
   name: string;
@@ -1229,6 +1262,7 @@ export const PokeBuilder: React.FC = () => {
                 className={`poke-category-tab${activeTab === 'poke' ? ' poke-category-tab--active' : ''}`}
                 onClick={() => setActiveTab('poke')}
               >
+                <PokeBowlIcon size={18} />
                 <span>1. Poke</span>
               </button>
 
@@ -1239,6 +1273,7 @@ export const PokeBuilder: React.FC = () => {
                 className={`poke-category-tab${activeTab === 'fritti' ? ' poke-category-tab--active' : ''}`}
                 onClick={() => setActiveTab('fritti')}
               >
+                <FriedConeIcon size={18} />
                 <span>2. Coni Fritti</span>
               </button>
 
@@ -1249,7 +1284,7 @@ export const PokeBuilder: React.FC = () => {
                 className={`poke-category-tab poke-category-tab--wide${activeTab === 'pesce' ? ' poke-category-tab--active' : ''}`}
                 onClick={() => setActiveTab('pesce')}
               >
-                <Waves size={16} />
+                <Waves size={18} />
                 <span>3. Pesce Fresco</span>
               </button>
             </div>

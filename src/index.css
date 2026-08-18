@@ -676,6 +676,10 @@ textarea {
   font-family: inherit;
 }
 
+.poke-category-tab svg {
+  flex-shrink: 0;
+}
+
 .poke-category-tab--wide {
   flex: 1 1 130px;
 }
