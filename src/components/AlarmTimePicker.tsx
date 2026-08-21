@@ -63,15 +63,7 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
   const isValidCustomTime = isTimeInOpeningHours(customTime, activeDate);
 
   return (
-    <div
-      style={{
-        borderRadius: 'var(--radius-md)',
-        backgroundColor: '#F8FAFC',
-        border: '1px solid rgba(11, 37, 69, 0.12)',
-        padding: '1.25rem',
-        marginTop: '0.5rem',
-      }}
-    >
+    <div className="order-timepicker">
       {/* 1. Day Selector (Oggi vs Domani) */}
       <div
         style={{
@@ -100,44 +92,26 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
         <div
           style={{
             display: 'flex',
-            gap: '0.35rem',
+            gap: '0.2rem',
             backgroundColor: 'white',
-            padding: '3px',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid rgba(11, 37, 69, 0.12)',
+            padding: '0.22rem',
+            borderRadius: 'var(--radius-full)',
+            border: '1px solid rgba(10, 35, 66, 0.08)',
           }}
         >
           <button
             type="button"
             onClick={() => handleDaySelect('oggi')}
-            style={{
-              padding: '0.4rem 0.85rem',
-              borderRadius: '6px',
-              border: 'none',
-              backgroundColor: day === 'oggi' ? 'var(--color-ocean-dark)' : 'transparent',
-              color: day === 'oggi' ? 'white' : 'var(--color-text-muted)',
-              fontWeight: day === 'oggi' ? 800 : 600,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
+            className={`order-filter-chip${day === 'oggi' ? ' order-filter-chip--active' : ''}`}
+            style={{ fontSize: '0.8rem' }}
           >
             Oggi ({todayDate.toLocaleDateString('it-IT', { weekday: 'short' })})
           </button>
           <button
             type="button"
             onClick={() => handleDaySelect('domani')}
-            style={{
-              padding: '0.4rem 0.85rem',
-              borderRadius: '6px',
-              border: 'none',
-              backgroundColor: day === 'domani' ? 'var(--color-ocean-dark)' : 'transparent',
-              color: day === 'domani' ? 'white' : 'var(--color-text-muted)',
-              fontWeight: day === 'domani' ? 800 : 600,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
+            className={`order-filter-chip${day === 'domani' ? ' order-filter-chip--active' : ''}`}
+            style={{ fontSize: '0.8rem' }}
           >
             Domani ({tomorrowDate.toLocaleDateString('it-IT', { weekday: 'short' })})
           </button>

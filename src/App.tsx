@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
@@ -10,8 +10,6 @@ import { Footer } from './components/Footer';
 import { OrderTracking } from './components/OrderTracking';
 import { PokeBuilderPage } from './pages/PokeBuilderPage';
 import { KdsBoard } from './components/KdsBoard';
-import { initOneSignal } from './lib/onesignal';
-import { OneSignalVerificationModal } from './components/OneSignalVerificationModal';
 
 function ScrollToHash() {
   const { pathname, hash } = useLocation();
@@ -32,21 +30,9 @@ function ScrollToHash() {
 }
 
 export function App() {
-  const [showVerificationModal, setShowVerificationModal] = useState<boolean>(false);
-
-  useEffect(() => {
-    initOneSignal((shouldShow) => {
-      setShowVerificationModal(shouldShow);
-    });
-  }, []);
-
   return (
     <>
       <ScrollToHash />
-      <OneSignalVerificationModal
-        isOpen={showVerificationModal}
-        onClose={() => setShowVerificationModal(false)}
-      />
       <Routes>
         <Route
           path="/"

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, Check, AlertCircle, Sparkles, MessageCircle, Info, Trash2, PlusCircle, Edit3, RotateCcw, Waves, Anchor, Search } from 'lucide-react';
+import { ShoppingBag, Check, AlertCircle, Sparkles, MessageCircle, Info, Trash2, PlusCircle, Edit3, RotateCcw, Waves, Anchor, Search, User, Phone, MapPin, Store, Bike, X, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { saveLocalOrder } from '../utils/orderStore';
-import { subscribeToOrderPush } from '../lib/onesignal';
 import { AlarmTimePicker } from './AlarmTimePicker';
 import { FISH_CATALOG, FishItem } from './FishMenuCatalog';
 
@@ -239,6 +238,22 @@ export interface ConfiguredFishItem {
 }
 
 export type OrderCartItem = ConfiguredPoke | ConfiguredFriedItem | ConfiguredFishItem;
+
+const OrderStepHeader: React.FC<{
+  step: number;
+  title: string;
+  subtitle?: string;
+  count?: string;
+}> = ({ step, title, subtitle, count }) => (
+  <div className="order-step-header">
+    <span className="order-step-num" aria-hidden>{step}</span>
+    <div className="order-step-copy">
+      <h3 className="order-step-title">{title}</h3>
+      {subtitle ? <p className="order-step-sub">{subtitle}</p> : null}
+    </div>
+    {count ? <span className="order-count-pill">{count}</span> : null}
+  </div>
+);
 
 export const PokeBuilder: React.FC = () => {
   const navigate = useNavigate();
@@ -870,15 +885,6 @@ export const PokeBuilder: React.FC = () => {
       }),
     });
 
-    // Automatically register push notifications for this new order
-    try {
-      subscribeToOrderPush(String(finalOrderId)).catch((err) => {
-        console.warn('Background push subscription on order submit error:', err);
-      });
-    } catch (e) {
-      console.warn('Push subscription trigger error:', e);
-    }
-
     setIsSubmitting(false);
 
     // Redirect immediately to Live Order Tracking page!
@@ -886,353 +892,178 @@ export const PokeBuilder: React.FC = () => {
   };
 
   return (
-    <section
-      id="poke"
-      style={{
-        padding: '4.5rem 0 5.5rem',
-        backgroundColor: 'var(--color-sand)',
-      }}
-    >
-      {/* Floating Sticky Top Validation Error Banner (Visible Immediately!) */}
+    <section id="poke" className="order-section">
       {validationError && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '85px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 10000,
-            width: '92%',
-            maxWidth: '650px',
-            backgroundColor: '#FEF2F2',
-            border: '2px solid #EF4444',
-            borderRadius: 'var(--radius-md)',
-            padding: '0.9rem 1.25rem',
-            boxShadow: '0 12px 36px rgba(239, 68, 68, 0.35)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '0.85rem',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                backgroundColor: '#EF4444',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <AlertCircle size={20} color="white" />
+        <div className="order-toast order-toast--error" role="alert">
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+            <div className="order-toast-icon" style={{ backgroundColor: 'var(--color-coral)' }}>
+              <AlertCircle size={18} color="white" />
             </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: '0.925rem', color: '#991B1B', marginBottom: '0.1rem' }}>
-                Campo Obbligatorio Mancante
+              <div className="order-toast-title" style={{ color: '#991B1B' }}>
+                Completa i campi obbligatori
               </div>
-              <div style={{ fontSize: '0.875rem', color: '#B91C1C', fontWeight: 600, lineHeight: 1.35 }}>
+              <div className="order-toast-body" style={{ color: '#B91C1C' }}>
                 {validationError}
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setValidationError(null)}
-            style={{
-              backgroundColor: 'rgba(239, 68, 68, 0.15)',
-              border: 'none',
-              borderRadius: '50%',
-              width: '30px',
-              height: '30px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#991B1B',
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
-          >
-            ✕
+          <button type="button" className="order-toast-close" onClick={() => setValidationError(null)} aria-label="Chiudi avviso">
+            <X size={14} />
           </button>
         </div>
       )}
 
       <div className="container">
+        <div className="poke-grid">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr',
-            gap: '2.5rem',
-          }}
-          className="poke-grid"
-        >
-          {/* Main Builder Form Container */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-
-            {/* Success Toast Banner */}
             {successMsg && (
-              <div
-                style={{
-                  padding: '1.25rem 1.5rem',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'rgba(34, 197, 94, 0.12)',
-                  border: '2px solid rgba(34, 197, 94, 0.5)',
-                  boxShadow: '0 4px 15px rgba(34, 197, 94, 0.15)',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '0.85rem',
-                }}
-              >
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    backgroundColor: '#22C55E',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    marginTop: '2px',
-                  }}
-                >
-                  <Check size={20} color="white" />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#15803D', marginBottom: '0.25rem' }}>
-                    Poke salvata con successo!
+              <div className="order-toast order-toast--success">
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                  <div className="order-toast-icon" style={{ backgroundColor: '#16A34A' }}>
+                    <Check size={18} color="white" />
                   </div>
-                  <div style={{ fontSize: '0.925rem', color: '#166534', lineHeight: 1.5, fontWeight: 500 }}>
-                    {successMsg}
+                  <div>
+                    <div className="order-toast-title" style={{ color: '#166534' }}>
+                      Aggiunto all'ordine
+                    </div>
+                    <div className="order-toast-body" style={{ color: '#166534' }}>
+                      {successMsg}
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Editing Mode Banner */}
             {editingPokeId && (
-              <div
-                style={{
-                  padding: '1rem 1.25rem',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'rgba(229, 186, 66, 0.15)',
-                  border: '1.5px solid var(--color-gold)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '1rem',
-                }}
-              >
+              <div className="order-toast order-toast--edit">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <Edit3 size={20} color="var(--color-ocean-dark)" />
-                  <strong style={{ color: 'var(--color-ocean-dark)', fontSize: '0.95rem' }}>
-                    Stai modificando la Poke di "{pokePersonName}"
+                  <Edit3 size={18} color="var(--color-ocean-dark)" />
+                  <strong style={{ color: 'var(--color-ocean-dark)', fontSize: '0.92rem' }}>
+                    Stai modificando la poke di {pokePersonName}
                   </strong>
                 </div>
-
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  className="btn btn-outline-light"
+                  className="btn"
                   style={{
-                    padding: '0.4rem 0.85rem',
-                    fontSize: '0.8rem',
+                    padding: '0.42rem 0.9rem',
+                    fontSize: '0.78rem',
                     color: 'var(--color-ocean-dark)',
-                    borderColor: 'rgba(11,37,69,0.3)',
+                    border: '1px solid rgba(10, 35, 66, 0.16)',
                     backgroundColor: 'white',
                   }}
                 >
                   <RotateCcw size={14} />
-                  <span>Annulla Modifica</span>
+                  <span>Annulla</span>
                 </button>
               </div>
             )}
 
-            {/* 1. Dati Cliente & Orario Ritiro/Consegna */}
-            <div
-              className="glass-panel poke-card-panel"
-              style={{
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'white',
-                border: '1px solid rgba(11, 37, 69, 0.12)',
-              }}
-            >
-              <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', margin: '0 0 0.85rem 0' }}>
-                1. Dati Cliente & Orario di Ritiro/Consegna
-              </h3>
+            <div className="glass-panel poke-card-panel order-card">
+              <OrderStepHeader
+                step={1}
+                title="I tuoi dati"
+                subtitle="Servono per identificare l'ordine al banco e aggiornarti sullo stato."
+              />
 
-              {/* Informative Banner for Unique Order Number vs Poke Names */}
-              <div
-                style={{
-                  padding: '0.75rem 1rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
-                  color: '#0369A1',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  marginBottom: '1.25rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <Info size={20} style={{ flexShrink: 0, color: '#0284C7' }} />
+              <div className="order-callout">
+                <Info size={18} />
                 <span>
-                  <strong>Gestione Ordine:</strong> Il <strong>numero di telefono è unico</strong> per l'intero ordine. Inserisci il nome del referente per identificare il tuo ritiro o la tua consegna.
+                  Il telefono è unico per tutto l'ordine. Il nome identifica il referente al ritiro o in consegna.
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.25rem', alignItems: 'start' }}>
-                {/* Nome Persona */}
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <label htmlFor="customerNameInput" style={{ display: 'flex', alignItems: 'flex-end', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.4rem', minHeight: '2.85rem' }}>
-                    <span>
-                      Nome e Cognome (Referente Ordine) <span style={{ color: 'var(--color-coral)' }}>*</span>
-                    </span>
+              <div className="order-fields">
+                <div className="order-field">
+                  <label htmlFor="customerNameInput" className="order-label">
+                    Nome e cognome <span className="req">*</span>
                   </label>
-                  <input
-                    id="customerNameInput"
-                    type="text"
-                    placeholder="Es. Marco Rossi, Sara Bianchi..."
-                    value={pokePersonName}
-                    onChange={(e) => {
-                      setPokePersonName(e.target.value);
-                      if (validationError) setValidationError(null);
-                    }}
-                    style={{
-                      width: '100%',
-                      maxWidth: '100%',
-                      boxSizing: 'border-box',
-                      display: 'block',
-                      padding: '0.85rem 1.15rem',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid rgba(11, 37, 69, 0.18)',
-                      backgroundColor: '#F8FAFC',
-                      fontSize: '16px',
-                      outline: 'none',
-                      color: 'var(--color-ocean-dark)',
-                      WebkitAppearance: 'none',
-                    }}
-                  />
-                  <div style={{ fontSize: '0.775rem', color: 'var(--color-text-muted)', marginTop: '0.35rem', fontWeight: 500 }}>
-                    <span>Nome del referente principale per il ritiro o la consegna dell'ordine.</span>
+                  <div className="order-input-wrap">
+                    <User size={16} />
+                    <input
+                      id="customerNameInput"
+                      className="order-input"
+                      type="text"
+                      placeholder="Es. Marco Rossi"
+                      value={pokePersonName}
+                      onChange={(e) => {
+                        setPokePersonName(e.target.value);
+                        if (validationError) setValidationError(null);
+                      }}
+                    />
                   </div>
+                  <p className="order-hint">Referente principale per il ritiro o la consegna.</p>
                 </div>
 
-                {/* Numero di Telefono */}
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <label htmlFor="customerPhoneInput" style={{ display: 'flex', alignItems: 'flex-end', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.4rem', minHeight: '2.85rem' }}>
-                    <span>
-                      Numero di Telefono <span style={{ color: 'var(--color-coral)' }}>*</span>
-                    </span>
+                <div className="order-field">
+                  <label htmlFor="customerPhoneInput" className="order-label">
+                    Telefono <span className="req">*</span>
                   </label>
-                  <input
-                    id="customerPhoneInput"
-                    type="tel"
-                    placeholder="Es. 334 1234567"
-                    value={customerPhone}
-                    onChange={(e) => {
-                      setCustomerPhone(e.target.value);
-                      if (validationError) setValidationError(null);
-                    }}
-                    style={{
-                      width: '100%',
-                      maxWidth: '100%',
-                      boxSizing: 'border-box',
-                      display: 'block',
-                      padding: '0.85rem 1.15rem',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid rgba(11, 37, 69, 0.18)',
-                      backgroundColor: '#F8FAFC',
-                      fontSize: '16px',
-                      outline: 'none',
-                      color: 'var(--color-ocean-dark)',
-                      WebkitAppearance: 'none',
-                    }}
-                  />
+                  <div className="order-input-wrap">
+                    <Phone size={16} />
+                    <input
+                      id="customerPhoneInput"
+                      className="order-input"
+                      type="tel"
+                      placeholder="Es. 334 1234567"
+                      value={customerPhone}
+                      onChange={(e) => {
+                        setCustomerPhone(e.target.value);
+                        if (validationError) setValidationError(null);
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Modalità Ordine */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.5rem' }}>
-                  Modalità Ordine
-                </label>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <label className="order-label">Modalità</label>
+                <div className="order-segmented">
                   <button
                     type="button"
                     onClick={() => setOrderType('Ritiro')}
-                    style={{
-                      flex: 1,
-                      minWidth: '130px',
-                      padding: '0.75rem',
-                      borderRadius: 'var(--radius-sm)',
-                      border: orderType === 'Ritiro' ? '2px solid var(--color-coral)' : '1px solid rgba(11, 37, 69, 0.15)',
-                      backgroundColor: orderType === 'Ritiro' ? 'rgba(255, 107, 107, 0.08)' : 'white',
-                      fontWeight: 700,
-                      color: 'var(--color-ocean-dark)',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
-                    }}
+                    className={`order-segment${orderType === 'Ritiro' ? ' order-segment--active' : ''}`}
                   >
-                    Ritiro al Banco
+                    <Store size={16} />
+                    Ritiro al banco
                   </button>
                   <button
                     type="button"
                     onClick={() => setOrderType('Consegna')}
-                    style={{
-                      flex: 1,
-                      minWidth: '130px',
-                      padding: '0.75rem',
-                      borderRadius: 'var(--radius-sm)',
-                      border: orderType === 'Consegna' ? '2px solid var(--color-coral)' : '1px solid rgba(11, 37, 69, 0.15)',
-                      backgroundColor: orderType === 'Consegna' ? 'rgba(255, 107, 107, 0.08)' : 'white',
-                      fontWeight: 700,
-                      color: 'var(--color-ocean-dark)',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
-                    }}
+                    className={`order-segment${orderType === 'Consegna' ? ' order-segment--active' : ''}`}
                   >
-                    Consegna a Domicilio
+                    <Bike size={16} />
+                    Consegna a domicilio
                   </button>
                 </div>
               </div>
 
-              {/* Indirizzo Consegna se Consegna */}
               {orderType === 'Consegna' && (
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label htmlFor="deliveryAddressInput" style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.4rem' }}>
-                    Indirizzo di Consegna <span style={{ color: 'var(--color-coral)' }}>*</span>
+                  <label htmlFor="deliveryAddressInput" className="order-label">
+                    Indirizzo di consegna <span className="req">*</span>
                   </label>
-                  <input
-                    id="deliveryAddressInput"
-                    type="text"
-                    placeholder="Es. Via Garibaldi 14, Finale Ligure (piano, citofono...)"
-                    value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid rgba(11, 37, 69, 0.18)',
-                      backgroundColor: '#F8FAFC',
-                      fontSize: '16px',
-                      color: 'var(--color-ocean-dark)',
-                    }}
-                  />
+                  <div className="order-input-wrap">
+                    <MapPin size={16} />
+                    <input
+                      id="deliveryAddressInput"
+                      className="order-input"
+                      type="text"
+                      placeholder="Via, numero civico, piano, citofono"
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                    />
+                  </div>
                 </div>
               )}
 
-              {/* Orario Desiderato con AlarmTimePicker */}
               <div>
-                <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-ocean-dark)', marginBottom: '0.5rem' }}>
-                  Orario di {orderType} desiderato
+                <label className="order-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Clock size={14} />
+                  Orario di {orderType.toLowerCase()}
                 </label>
                 <AlarmTimePicker
                   orderType={orderType}
@@ -1263,7 +1094,7 @@ export const PokeBuilder: React.FC = () => {
                 onClick={() => setActiveTab('poke')}
               >
                 <PokeBowlIcon size={18} />
-                <span>1. Poke</span>
+                <span>Poke</span>
               </button>
 
               <button
@@ -1274,7 +1105,7 @@ export const PokeBuilder: React.FC = () => {
                 onClick={() => setActiveTab('fritti')}
               >
                 <FriedConeIcon size={18} />
-                <span>2. Coni Fritti</span>
+                <span>Coni fritti</span>
               </button>
 
               <button
@@ -1285,7 +1116,7 @@ export const PokeBuilder: React.FC = () => {
                 onClick={() => setActiveTab('pesce')}
               >
                 <Waves size={18} />
-                <span>3. Pesce Fresco</span>
+                <span>Pesce fresco</span>
               </button>
             </div>
 
@@ -1293,75 +1124,42 @@ export const PokeBuilder: React.FC = () => {
             {activeTab === 'poke' && (
               <>
                 {/* 2. Selezione Formato */}
-                <div
-                  className="glass-panel poke-card-panel"
-                  style={{
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'white',
-                    border: '1px solid rgba(11, 37, 69, 0.08)',
-                  }}
-                >
-                  <h3
-                    style={{
-                      fontWeight: 700,
-                      fontSize: '1.15rem',
-                      color: 'var(--color-ocean-dark)',
-                      marginBottom: '1rem',
-                      lineHeight: 1.35,
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    2. Scegli il Formato
-                  </h3>
+                <div className="glass-panel poke-card-panel order-card">
+                  <OrderStepHeader
+                    step={2}
+                    title="Formato"
+                    subtitle="Scegli la dimensione della ciotola. Gli extra si aggiungono dopo."
+                  />
 
-                  {/* FIX: da grid a flexbox con wrap + justifyContent center per centrare
-                  correttamente l'ultima riga incompleta (es. 3 card su 2 colonne) */}
-                  <div
-                    className="poke-format-grid"
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      justifyContent: 'center',
-                      gap: '1rem',
-                      marginBottom: '1.5rem',
-                      width: '100%',
-                      boxSizing: 'border-box',
-                    }}
-                  >
+                  <div className="order-format-grid">
                     {FORMATS.map((fmt) => {
                       const isSelected = selectedFormat.id === fmt.id;
 
                       return (
                         <div
                           key={fmt.id}
+                          role="button"
+                          tabIndex={0}
                           onClick={() => handleFormatChange(fmt)}
-                          className="poke-format-card"
-                          style={{
-                            // FIX: flex-basis al posto di minmax(220px,1fr) della grid,
-                            // maxWidth evita che la card si allarghi troppo da sola su una riga
-                            flex: '1 1 200px',
-                            maxWidth: '100%',
-                            boxSizing: 'border-box',
-                            padding: '1.25rem 1rem',
-                            borderRadius: 'var(--radius-md)',
-                            border: isSelected ? '2px solid var(--color-coral)' : '1px solid rgba(11, 37, 69, 0.12)',
-                            backgroundColor: isSelected ? 'rgba(255, 107, 107, 0.06)' : 'white',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            position: 'relative',
-                            textAlign: 'center',
-                            boxShadow: isSelected ? '0 4px 12px rgba(255, 107, 107, 0.15)' : 'none',
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleFormatChange(fmt);
+                            }
                           }}
+                          className={`order-format-card${isSelected ? ' order-format-card--selected' : ''}`}
                         >
-                          <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--color-ocean-dark)', marginBottom: '0.25rem' }}>
-                            {fmt.name}
+                          <div className="order-format-check">
+                            {isSelected ? <Check size={12} color="white" /> : null}
                           </div>
-                          <div style={{ color: 'var(--color-coral)', fontWeight: 800, fontSize: '1.25rem', marginBottom: '0.5rem' }}>
-                            €{fmt.price}
-                          </div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
-                            {fmt.maxBasi} Base • {fmt.maxProteine} {fmt.maxProteine > 1 ? 'Proteine' : 'Proteina'} • {fmt.maxSecondari} Ingredienti • {fmt.maxSalse} Salse
-                          </div>
+                          <div className="order-format-name">{fmt.name.replace('Formato ', '')}</div>
+                          <div className="order-format-price">€{fmt.price}</div>
+                          <ul className="order-format-meta">
+                            <li>{fmt.maxBasi} {fmt.maxBasi > 1 ? 'basi' : 'base'}</li>
+                            <li>{fmt.maxProteine} {fmt.maxProteine > 1 ? 'proteine' : 'proteina'}</li>
+                            <li>{fmt.maxSecondari} topping</li>
+                            <li>{fmt.maxSalse} {fmt.maxSalse > 1 ? 'salse' : 'salsa'}</li>
+                          </ul>
                         </div>
                       );
                     })}
@@ -1369,23 +1167,15 @@ export const PokeBuilder: React.FC = () => {
                 </div>
 
                 {/* 3. Basi */}
-                <div
-                  id="stepBasi"
-                  className="glass-panel poke-card-panel"
-                  style={{
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'white',
-                    border: '1px solid rgba(11, 37, 69, 0.08)',
-                    marginTop: '1.5rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', margin: 0 }}>
-                      3. Scegli le Basi <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>(Selezionate {selectedBasi.length}/{selectedFormat.maxBasi})</span>
-                    </h3>
-                  </div>
+                <div id="stepBasi" className="glass-panel poke-card-panel order-card">
+                  <OrderStepHeader
+                    step={3}
+                    title="Basi"
+                    subtitle="Il fondo della ciotola."
+                    count={`${selectedBasi.length}/${selectedFormat.maxBasi}`}
+                  />
 
-                  <div className="poke-options-grid" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.75rem' }}>
+                  <div className="poke-options-grid">
                     {BASI.map((b) => {
                       const isChecked = selectedBasi.includes(b);
                       const isDisabled = !isChecked && selectedBasi.length >= selectedFormat.maxBasi;
@@ -1393,7 +1183,7 @@ export const PokeBuilder: React.FC = () => {
                       return (
                         <label
                           key={b}
-                          style={chipLabelStyle(isChecked, isDisabled)}
+                          className={`order-chip${isChecked ? ' order-chip--selected' : ''}${isDisabled ? ' order-chip--disabled' : ''}`}
                         >
                           <input
                             type="checkbox"
@@ -1402,12 +1192,10 @@ export const PokeBuilder: React.FC = () => {
                             onChange={() => toggleSelection(b, selectedBasi, setSelectedBasi, selectedFormat.maxBasi)}
                             style={{ display: 'none' }}
                           />
-                          <div style={customCheckboxStyle(isChecked, isDisabled)}>
-                            {isChecked && <Check size={14} color="white" />}
+                          <div className="order-chip-check">
+                            {isChecked && <Check size={11} />}
                           </div>
-                          <span style={{ fontSize: '0.875rem', fontWeight: isChecked ? 700 : 500, color: isDisabled ? '#94A3B8' : 'var(--color-ocean-dark)', lineHeight: 1.3 }}>
-                            {b}
-                          </span>
+                          <span className="order-chip-name">{b}</span>
                         </label>
                       );
                     })}
@@ -1415,23 +1203,15 @@ export const PokeBuilder: React.FC = () => {
                 </div>
 
                 {/* 4. Proteine */}
-                <div
-                  id="stepProteine"
-                  className="glass-panel poke-card-panel"
-                  style={{
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'white',
-                    border: '1px solid rgba(11, 37, 69, 0.08)',
-                    marginTop: '1.5rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', margin: 0 }}>
-                      4. Scegli le Proteine <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>(Selezionate {selectedProteine.length}/{selectedFormat.maxProteine})</span>
-                    </h3>
-                  </div>
+                <div id="stepProteine" className="glass-panel poke-card-panel order-card">
+                  <OrderStepHeader
+                    step={4}
+                    title="Proteine"
+                    subtitle="Il cuore della poke. Alcune hanno un extra."
+                    count={`${selectedProteine.length}/${selectedFormat.maxProteine}`}
+                  />
 
-                  <div className="poke-options-grid" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.75rem' }}>
+                  <div className="poke-options-grid">
                     {PROTEINE.map((p) => {
                       const isChecked = selectedProteine.includes(p.name);
                       const isDisabled = !isChecked && selectedProteine.length >= selectedFormat.maxProteine;
@@ -1439,7 +1219,7 @@ export const PokeBuilder: React.FC = () => {
                       return (
                         <label
                           key={p.name}
-                          style={chipLabelStyle(isChecked, isDisabled)}
+                          className={`order-chip${isChecked ? ' order-chip--selected' : ''}${isDisabled ? ' order-chip--disabled' : ''}`}
                         >
                           <input
                             type="checkbox"
@@ -1448,18 +1228,12 @@ export const PokeBuilder: React.FC = () => {
                             onChange={() => toggleSelection(p.name, selectedProteine, setSelectedProteine, selectedFormat.maxProteine)}
                             style={{ display: 'none' }}
                           />
-                          <div style={customCheckboxStyle(isChecked, isDisabled)}>
-                            {isChecked && <Check size={14} color="white" />}
+                          <div className="order-chip-check">
+                            {isChecked && <Check size={11} />}
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, alignItems: 'center', gap: '0.35rem' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: isChecked ? 700 : 500, color: isDisabled ? '#94A3B8' : 'var(--color-ocean-dark)', lineHeight: 1.3 }}>
-                              {p.name}
-                            </span>
-                            {p.extraPrice > 0 && (
-                              <span style={{ fontSize: '0.725rem', fontWeight: 800, color: 'var(--color-coral)', backgroundColor: 'rgba(255, 107, 107, 0.15)', padding: '0.15rem 0.4rem', borderRadius: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                +{p.extraPrice}€
-                              </span>
-                            )}
+                            <span className="order-chip-name">{p.name}</span>
+                            {p.extraPrice > 0 && <span className="order-extra">+{p.extraPrice}€</span>}
                           </div>
                         </label>
                       );
@@ -1468,22 +1242,15 @@ export const PokeBuilder: React.FC = () => {
                 </div>
 
                 {/* 5. Ingredienti Secondari (Topping) */}
-                <div
-                  className="glass-panel poke-card-panel"
-                  style={{
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'white',
-                    border: '1px solid rgba(11, 37, 69, 0.08)',
-                    marginTop: '1.5rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', margin: 0 }}>
-                      5. Scegli gli Ingredienti / Topping <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>(Selezionati {selectedIngredienti.length}/{selectedFormat.maxSecondari})</span>
-                    </h3>
-                  </div>
+                <div className="glass-panel poke-card-panel order-card">
+                  <OrderStepHeader
+                    step={5}
+                    title="Topping"
+                    subtitle="Verdure, croccanti e extra a piacere."
+                    count={`${selectedIngredienti.length}/${selectedFormat.maxSecondari}`}
+                  />
 
-                  <div className="poke-options-grid" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.75rem' }}>
+                  <div className="poke-options-grid">
                     {INGREDIENTI.map((ing) => {
                       const isChecked = selectedIngredienti.includes(ing.name);
                       const isDisabled = !isChecked && selectedIngredienti.length >= selectedFormat.maxSecondari;
@@ -1491,7 +1258,7 @@ export const PokeBuilder: React.FC = () => {
                       return (
                         <label
                           key={ing.name}
-                          style={chipLabelStyle(isChecked, isDisabled)}
+                          className={`order-chip${isChecked ? ' order-chip--selected' : ''}${isDisabled ? ' order-chip--disabled' : ''}`}
                         >
                           <input
                             type="checkbox"
@@ -1500,18 +1267,12 @@ export const PokeBuilder: React.FC = () => {
                             onChange={() => toggleSelection(ing.name, selectedIngredienti, setSelectedIngredienti, selectedFormat.maxSecondari)}
                             style={{ display: 'none' }}
                           />
-                          <div style={customCheckboxStyle(isChecked, isDisabled)}>
-                            {isChecked && <Check size={14} color="white" />}
+                          <div className="order-chip-check">
+                            {isChecked && <Check size={11} />}
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, alignItems: 'center', gap: '0.35rem' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: isChecked ? 700 : 500, color: isDisabled ? '#94A3B8' : 'var(--color-ocean-dark)', lineHeight: 1.3 }}>
-                              {ing.name}
-                            </span>
-                            {ing.extraPrice > 0 && (
-                              <span style={{ fontSize: '0.725rem', fontWeight: 800, color: 'var(--color-coral)', backgroundColor: 'rgba(255, 107, 107, 0.15)', padding: '0.15rem 0.4rem', borderRadius: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                +{ing.extraPrice}€
-                              </span>
-                            )}
+                            <span className="order-chip-name">{ing.name}</span>
+                            {ing.extraPrice > 0 && <span className="order-extra">+{ing.extraPrice}€</span>}
                           </div>
                         </label>
                       );
@@ -1520,22 +1281,15 @@ export const PokeBuilder: React.FC = () => {
                 </div>
 
                 {/* 6. Salse */}
-                <div
-                  className="glass-panel poke-card-panel"
-                  style={{
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'white',
-                    border: '1px solid rgba(11, 37, 69, 0.08)',
-                    marginTop: '1.5rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', margin: 0 }}>
-                      6. Scegli le Salse & Condimenti <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>(Selezionate {selectedSalse.length}/{selectedFormat.maxSalse})</span>
-                    </h3>
-                  </div>
+                <div className="glass-panel poke-card-panel order-card">
+                  <OrderStepHeader
+                    step={6}
+                    title="Salse e condimenti"
+                    subtitle="Puoi chiedere la salsa a parte nelle note."
+                    count={`${selectedSalse.length}/${selectedFormat.maxSalse}`}
+                  />
 
-                  <div className="poke-options-grid" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                  <div className="poke-options-grid" style={{ marginBottom: '1.1rem' }}>
                     {SALSE.map((s) => {
                       const isChecked = selectedSalse.includes(s.name);
                       const isDisabled = !isChecked && selectedSalse.length >= selectedFormat.maxSalse;
@@ -1543,7 +1297,7 @@ export const PokeBuilder: React.FC = () => {
                       return (
                         <label
                           key={s.name}
-                          style={chipLabelStyle(isChecked, isDisabled)}
+                          className={`order-chip${isChecked ? ' order-chip--selected' : ''}${isDisabled ? ' order-chip--disabled' : ''}`}
                         >
                           <input
                             type="checkbox"
@@ -1552,100 +1306,66 @@ export const PokeBuilder: React.FC = () => {
                             onChange={() => toggleSelection(s.name, selectedSalse, setSelectedSalse, selectedFormat.maxSalse)}
                             style={{ display: 'none' }}
                           />
-                          <div style={customCheckboxStyle(isChecked, isDisabled)}>
-                            {isChecked && <Check size={14} color="white" />}
+                          <div className="order-chip-check">
+                            {isChecked && <Check size={11} />}
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, alignItems: 'center', gap: '0.35rem' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: isChecked ? 700 : 500, color: isDisabled ? '#94A3B8' : 'var(--color-ocean-dark)', lineHeight: 1.3 }}>
-                              {s.name}
-                            </span>
-                            {s.extraPrice > 0 && (
-                              <span style={{ fontSize: '0.725rem', fontWeight: 800, color: 'var(--color-coral)', backgroundColor: 'rgba(255, 107, 107, 0.15)', padding: '0.15rem 0.4rem', borderRadius: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                +{s.extraPrice}€
-                              </span>
-                            )}
+                            <span className="order-chip-name">{s.name}</span>
+                            {s.extraPrice > 0 && <span className="order-extra">+{s.extraPrice}€</span>}
                           </div>
                         </label>
                       );
                     })}
                   </div>
 
-                  {/* Semi di Sesamo Toggle */}
-                  <div style={{ borderTop: '1px solid rgba(11, 37, 69, 0.08)', paddingTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--color-ocean-dark)', fontSize: '0.95rem' }}>
-                      Aggiungere Semi di Sesamo?
+                  <div className="order-toggle">
+                    <span style={{ fontWeight: 700, color: 'var(--color-ocean-dark)', fontSize: '0.92rem' }}>
+                      Semi di sesamo
                     </span>
                     <button
                       type="button"
                       onClick={() => setSemiSesamo(!semiSesamo)}
-                      style={{
-                        padding: '0.45rem 1rem',
-                        borderRadius: 'var(--radius-full)',
-                        border: semiSesamo ? '2px solid var(--color-sea-blue)' : '1.5px solid rgba(11, 37, 69, 0.2)',
-                        backgroundColor: semiSesamo ? 'rgba(19, 64, 116, 0.1)' : 'transparent',
-                        color: semiSesamo ? 'var(--color-sea-blue)' : 'var(--color-text-muted)',
-                        fontWeight: 800,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                      }}
+                      className={`order-toggle-btn${semiSesamo ? ' order-toggle-btn--on' : ''}`}
                     >
-                      {semiSesamo ? '✓ SI Sesamo' : '✗ NO Sesamo'}
+                      {semiSesamo ? 'Sì' : 'No'}
                     </button>
                   </div>
                 </div>
 
                 {/* 7. Note Speciali per questa Poke */}
-                <div
-                  className="glass-panel poke-card-panel"
-                  style={{
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'white',
-                    border: '1px solid rgba(11, 37, 69, 0.08)',
-                    marginTop: '1.5rem',
-                  }}
-                >
-                  <h3 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--color-ocean-dark)', marginBottom: '0.75rem' }}>
-                    7. Note o Richieste per questa Poke (Opzionale)
-                  </h3>
+                <div className="glass-panel poke-card-panel order-card">
+                  <OrderStepHeader
+                    step={7}
+                    title="Note per questa poke"
+                    subtitle="Allergie, salsa a parte o preferenze di preparazione."
+                  />
                   <textarea
+                    className="order-textarea"
                     value={pokeNotes}
                     onChange={(e) => setPokeNotes(e.target.value)}
-                    placeholder="Es. salsa a parte, senza glutine, allergie o preferenze particolari..."
+                    placeholder="Es. salsa a parte, senza glutine, allergie..."
                     rows={2}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid rgba(11, 37, 69, 0.15)',
-                      fontSize: '0.9rem',
-                      fontFamily: 'inherit',
-                      resize: 'vertical',
-                      boxSizing: 'border-box',
-                    }}
                   />
 
-                  {/* Add / Save Poke to Order List Button */}
-                  <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <div style={{ marginTop: '1.2rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <button
                       type="button"
                       onClick={handleSavePokeToOrder}
                       className="btn btn-coral"
                       style={{
                         flex: '1 1 240px',
-                        padding: '0.85rem 1.25rem',
-                        fontSize: '1rem',
-                        fontWeight: 800,
+                        padding: '0.9rem 1.25rem',
+                        fontSize: '0.95rem',
                         justifyContent: 'center',
-                        boxShadow: '0 4px 15px rgba(255, 107, 107, 0.3)',
                       }}
                     >
-                      <PlusCircle size={20} />
+                      <PlusCircle size={18} />
                       <span>
                         {editingPokeId
-                          ? `Salva Modifiche per ${pokePersonName.trim() || 'Poke'} (€${currentPokePrice})`
+                          ? `Salva modifiche · €${currentPokePrice}`
                           : pokePersonName.trim()
-                            ? `Aggiungi Poke di "${pokePersonName.trim()}" all'Ordine (€${currentPokePrice})`
-                            : `Aggiungi Questa Poke all'Ordine (€${currentPokePrice})`}
+                            ? `Aggiungi poke di ${pokePersonName.trim()} · €${currentPokePrice}`
+                            : `Aggiungi questa poke · €${currentPokePrice}`}
                       </span>
                     </button>
 
@@ -1653,21 +1373,16 @@ export const PokeBuilder: React.FC = () => {
                       <button
                         type="button"
                         onClick={handleCancelEdit}
+                        className="btn"
                         style={{
-                          padding: '0.85rem 1.25rem',
-                          borderRadius: 'var(--radius-md)',
-                          border: '1px solid rgba(11, 37, 69, 0.2)',
+                          padding: '0.85rem 1.15rem',
+                          border: '1px solid rgba(10, 35, 66, 0.14)',
                           backgroundColor: 'transparent',
                           color: 'var(--color-ocean-dark)',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.4rem',
                         }}
                       >
                         <RotateCcw size={16} />
-                        Annulla Modifica
+                        Annulla
                       </button>
                     )}
                   </div>
@@ -1677,182 +1392,48 @@ export const PokeBuilder: React.FC = () => {
 
             {/* TAB 2: CONI FRITTI ESPRESSO */}
             {activeTab === 'fritti' && (
-              <div
-                className="glass-panel poke-card-panel"
-                style={{
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'white',
-                  border: '1px solid rgba(11, 37, 69, 0.12)',
-                  padding: '1.75rem',
-                }}
-              >
-                <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                      backgroundColor: 'rgba(255, 107, 107, 0.12)',
-                      color: 'var(--color-coral)',
-                      padding: '0.4rem 0.9rem',
-                      borderRadius: 'var(--radius-full)',
-                      fontSize: '0.825rem',
-                      fontWeight: 800,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.08em',
-                      marginBottom: '0.5rem',
-                    }}
-                  >
-                    <span>Frittura Croccante Espressa al Momento</span>
-                  </span>
-                  <h3
-                    className="font-serif"
-                    style={{
-                      fontSize: '1.75rem',
-                      fontWeight: 800,
-                      color: 'var(--color-ocean-dark)',
-                      margin: '0.25rem 0 0.5rem 0',
-                    }}
-                  >
-                    I Nostri Coni di Pesce Fritto
+              <div className="glass-panel poke-card-panel order-card">
+                <div className="order-catalog-intro">
+                  <span className="section-kicker" style={{ marginBottom: '0.7rem' }}>Frittura espressa</span>
+                  <h3 className="order-step-title" style={{ fontSize: '1.7rem' }}>
+                    Coni di pesce fritto
                   </h3>
-                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem', margin: 0, maxWidth: '600px', marginInline: 'auto' }}>
-                    Tutti i nostri coni vengono dorati e serviti caldissimi in olio ad alta temperatura. Scegli il tuo cono d'asporto preferito!
+                  <p className="order-step-sub" style={{ maxWidth: '36rem', marginInline: 'auto' }}>
+                    Dorati al momento in olio ad alta temperatura, serviti caldi da asporto.
                   </p>
                 </div>
 
-                {/* Fried Product Cards */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-                    gap: '1.25rem',
-                    marginBottom: '2rem',
-                  }}
-                >
+                <div className="order-product-grid">
                   {FRIED_ITEMS.map((item) => {
                     const qty = cardQuantities[item.id] || 1;
                     const itemTotal = item.price * qty;
 
                     return (
-                      <div
-                        key={item.id}
-                        style={{
-                          borderRadius: 'var(--radius-md)',
-                          border: '1.5px solid rgba(11, 37, 69, 0.12)',
-                          backgroundColor: 'white',
-                          boxShadow: 'var(--shadow-sm)',
-                          transition: 'all 0.25s ease',
-                          overflow: 'hidden',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          position: 'relative',
-                        }}
-                      >
-                        {/* Card Image Container */}
-                        <div style={{ position: 'relative', height: '170px', width: '100%', overflow: 'hidden', backgroundColor: '#0B2545' }}>
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                              transition: 'transform 0.4s ease',
-                            }}
-                          />
-                          {item.badge && (
-                            <span
-                              style={{
-                                position: 'absolute',
-                                top: '10px',
-                                right: '10px',
-                                backgroundColor: 'var(--color-coral)',
-                                color: 'white',
-                                padding: '0.25rem 0.65rem',
-                                borderRadius: 'var(--radius-full)',
-                                fontSize: '0.75rem',
-                                fontWeight: 800,
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                              }}
-                            >
-                              {item.badge}
-                            </span>
-                          )}
+                      <div key={item.id} className="order-product-card">
+                        <div className="order-product-media">
+                          <img src={item.image} alt={item.name} />
+                          {item.badge && <span className="order-badge order-badge--coral">{item.badge}</span>}
                         </div>
 
-                        {/* Card Details */}
-                        <div style={{ padding: '1.15rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
-                          <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.35rem' }}>
-                              <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-ocean-dark)' }}>
-                                {item.name}
-                              </h4>
-                              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-coral)' }}>
-                                €{item.price}
-                              </span>
-                            </div>
-
-                            <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.45 }}>
-                              {item.description}
-                            </p>
+                        <div className="order-product-body">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.4rem' }}>
+                            <h4 className="order-product-title">{item.name}</h4>
+                            <span className="order-product-price">€{item.price}</span>
                           </div>
+                          <p style={{ margin: '0 0 1rem 0', fontSize: '0.86rem', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
+                            {item.description}
+                          </p>
 
-                          {/* Card Interactive Footer */}
-                          <div style={{ borderTop: '1px solid rgba(11, 37, 69, 0.08)', paddingTop: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                            {/* In-Card Quantity Selector */}
+                          <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(10, 35, 66, 0.08)', paddingTop: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-ocean-dark)' }}>
-                                Quantità:
-                              </span>
-                              <div
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  backgroundColor: '#F1F5F9',
-                                  borderRadius: 'var(--radius-sm)',
-                                  border: '1px solid rgba(11,37,69,0.12)',
-                                  overflow: 'hidden',
-                                }}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => updateCardQty(item.id, -1)}
-                                  style={{
-                                    border: 'none',
-                                    backgroundColor: 'transparent',
-                                    padding: '0.3rem 0.65rem',
-                                    fontSize: '1rem',
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                    color: 'var(--color-ocean-dark)',
-                                  }}
-                                >
-                                  -
-                                </button>
-                                <span style={{ padding: '0 0.5rem', fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-ocean-dark)' }}>
-                                  {qty}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => updateCardQty(item.id, 1)}
-                                  style={{
-                                    border: 'none',
-                                    backgroundColor: 'transparent',
-                                    padding: '0.3rem 0.65rem',
-                                    fontSize: '1rem',
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                    color: 'var(--color-ocean-dark)',
-                                  }}
-                                >
-                                  +
-                                </button>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-ocean-dark)' }}>Quantità</span>
+                              <div className="order-qty" onClick={(e) => e.stopPropagation()}>
+                                <button type="button" onClick={() => updateCardQty(item.id, -1)} aria-label="Diminuisci">−</button>
+                                <span>{qty}</span>
+                                <button type="button" onClick={() => updateCardQty(item.id, 1)} aria-label="Aumenta">+</button>
                               </div>
                             </div>
 
-                            {/* Direct Add to Cart Button */}
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1860,17 +1441,10 @@ export const PokeBuilder: React.FC = () => {
                                 handleAddFriedCardDirectly(item);
                               }}
                               className="btn btn-coral"
-                              style={{
-                                width: '100%',
-                                padding: '0.6rem 0.85rem',
-                                fontSize: '0.875rem',
-                                fontWeight: 800,
-                                justifyContent: 'center',
-                                boxShadow: '0 4px 12px rgba(255, 107, 107, 0.25)',
-                              }}
+                              style={{ width: '100%', padding: '0.7rem 0.85rem', fontSize: '0.86rem', justifyContent: 'center' }}
                             >
                               <PlusCircle size={16} />
-                              <span>Aggiungi • €{itemTotal.toFixed(2)}</span>
+                              <span>Aggiungi · €{itemTotal.toFixed(2)}</span>
                             </button>
                           </div>
                         </div>
@@ -1881,129 +1455,50 @@ export const PokeBuilder: React.FC = () => {
               </div>
             )}
 
-            {/* TAB 3: PESCE FRESCO AL BANCO */}
             {activeTab === 'pesce' && (
-              <div
-                className="glass-panel poke-card-panel"
-                style={{
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'white',
-                  border: '1px solid rgba(11, 37, 69, 0.12)',
-                  padding: '1.75rem',
-                }}
-              >
-                {/* Header Banner */}
-                <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                      backgroundColor: 'rgba(19, 64, 116, 0.1)',
-                      color: 'var(--color-ocean-dark)',
-                      padding: '0.4rem 0.9rem',
-                      borderRadius: 'var(--radius-full)',
-                      fontSize: '0.825rem',
-                      fontWeight: 800,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.08em',
-                      marginBottom: '0.5rem',
-                      border: '1px solid rgba(19, 64, 116, 0.2)',
-                    }}
-                  >
-                    <Waves size={15} color="var(--color-sea-blue)" />
-                    <span>Banco Pescheria • Pescato Fresco del Giorno</span>
+              <div className="glass-panel poke-card-panel order-card">
+                <div className="order-catalog-intro">
+                  <span className="section-kicker" style={{ marginBottom: '0.7rem' }}>
+                    <Waves size={13} /> Banco pescheria
                   </span>
-                  <h3
-                    className="font-serif"
-                    style={{
-                      fontSize: '1.75rem',
-                      fontWeight: 800,
-                      color: 'var(--color-ocean-dark)',
-                      margin: '0.25rem 0 0.5rem 0',
-                    }}
-                  >
-                    Ordina Pesce Fresco al Banco
+                  <h3 className="order-step-title" style={{ fontSize: '1.7rem' }}>
+                    Pesce fresco del giorno
                   </h3>
-                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem', margin: 0, maxWidth: '640px', marginInline: 'auto' }}>
-                    Scegli la varietà di pesce, indica il peso desiderato e seleziona il tipo di lavorazione e pulizia su misura per la tua cucina.
+                  <p className="order-step-sub" style={{ maxWidth: '38rem', marginInline: 'auto' }}>
+                    Scegli varietà, peso e lavorazione. Pulizia e sfilettatura sono comprese.
                   </p>
                 </div>
 
-                {/* Filters & Search Bar */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '0.75rem',
-                    marginBottom: '1.5rem',
-                    padding: '0.75rem 1rem',
-                    backgroundColor: '#F8FAFC',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid rgba(11, 37, 69, 0.08)',
-                  }}
-                >
-                  {/* Origin filter chips */}
-                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <div className="order-filter-bar">
+                  <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
                     {[
-                      { id: 'all', label: 'Tutto il Pescato' },
+                      { id: 'all', label: 'Tutto il pescato' },
                       { id: 'Mar Ligure', label: 'Mar Ligure' },
                       { id: 'Medit. Occ.', label: 'Mediterraneo' },
                     ].map((filt) => (
                       <button
                         type="button"
                         key={filt.id}
-                        onClick={() => setFishOriginFilter(filt.id as any)}
-                        style={{
-                          padding: '0.4rem 0.85rem',
-                          borderRadius: 'var(--radius-full)',
-                          border: fishOriginFilter === filt.id ? '2px solid var(--color-sea-blue)' : '1px solid rgba(11, 37, 69, 0.15)',
-                          backgroundColor: fishOriginFilter === filt.id ? 'var(--color-sea-blue)' : 'white',
-                          color: fishOriginFilter === filt.id ? 'white' : 'var(--color-ocean-dark)',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                        }}
+                        onClick={() => setFishOriginFilter(filt.id as 'all' | 'Mar Ligure' | 'Medit. Occ.')}
+                        className={`order-filter-chip${fishOriginFilter === filt.id ? ' order-filter-chip--active' : ''}`}
                       >
                         {filt.label}
                       </button>
                     ))}
                   </div>
 
-                  {/* Search box */}
-                  <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 200px' }}>
-                    <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                  <div className="order-search">
+                    <Search size={16} />
                     <input
                       type="text"
                       value={fishSearchQuery}
                       onChange={(e) => setFishSearchQuery(e.target.value)}
-                      placeholder="Cerca pesce (es. Orata, Tonno...)"
-                      style={{
-                        width: '100%',
-                        padding: '0.45rem 0.75rem 0.45rem 2.2rem',
-                        borderRadius: 'var(--radius-sm)',
-                        border: '1px solid rgba(11, 37, 69, 0.18)',
-                        fontSize: '0.85rem',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                        backgroundColor: 'white',
-                      }}
+                      placeholder="Cerca (es. Orata, Tonno...)"
                     />
                   </div>
                 </div>
 
-                {/* Fresh Fish Cards Grid */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                    gap: '1.25rem',
-                    marginBottom: '2rem',
-                  }}
-                >
+                <div className="order-product-grid">
                   {FISH_CATALOG
                     .filter((item) => {
                       const matchOrigin = fishOriginFilter === 'all' ? true : item.origin === fishOriginFilter;
@@ -2016,256 +1511,110 @@ export const PokeBuilder: React.FC = () => {
                       const estPrice = ((item.pricePerKg * weight) / 1000).toFixed(2);
 
                       return (
-                        <div
-                          key={item.id}
-                          style={{
-                            borderRadius: 'var(--radius-md)',
-                            border: '1.5px solid rgba(11, 37, 69, 0.12)',
-                            backgroundColor: 'white',
-                            boxShadow: 'var(--shadow-sm)',
-                            transition: 'all 0.25s ease',
-                            overflow: 'hidden',
-                            display: 'flex',
-                            flexDirection: 'column',
-                          }}
-                        >
-                          {/* Fish Image */}
-                          <div style={{ position: 'relative', height: '160px', width: '100%', overflow: 'hidden', backgroundColor: '#0B2545' }}>
+                        <div key={item.id} className="order-product-card">
+                          <div className="order-product-media">
                             <img
                               src={item.image}
                               alt={item.name}
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                transition: 'transform 0.4s ease',
-                              }}
                               onError={(e) => {
-                                // Fallback image if specific fish photo is unavailable
                                 (e.currentTarget as HTMLImageElement).src = '/pesce/pescatrice.jpg';
                               }}
                             />
-                            {/* Origin Badge */}
-                            <span
-                              style={{
-                                position: 'absolute',
-                                top: '10px',
-                                left: '10px',
-                                backgroundColor: item.origin === 'Mar Ligure' ? 'rgba(11, 37, 69, 0.88)' : 'rgba(30, 41, 59, 0.85)',
-                                color: item.origin === 'Mar Ligure' ? '#38BDF8' : '#F1F5F9',
-                                padding: '0.25rem 0.6rem',
-                                borderRadius: 'var(--radius-full)',
-                                fontSize: '0.725rem',
-                                fontWeight: 800,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.25rem',
-                                backdropFilter: 'blur(4px)',
-                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                              }}
-                            >
+                            <span className="order-badge order-badge--origin">
                               <Anchor size={11} /> {item.origin}
                             </span>
-
                             {item.isPopular && (
-                              <span
-                                style={{
-                                  position: 'absolute',
-                                  top: '10px',
-                                  right: '10px',
-                                  backgroundColor: 'var(--color-coral)',
-                                  color: 'white',
-                                  padding: '0.25rem 0.6rem',
-                                  borderRadius: 'var(--radius-full)',
-                                  fontSize: '0.725rem',
-                                  fontWeight: 800,
-                                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                                }}
-                              >
-                                I più richiesti
-                              </span>
+                              <span className="order-badge order-badge--coral">I più richiesti</span>
                             )}
                           </div>
 
-                          {/* Fish Details & Configuration */}
-                          <div style={{ padding: '1.15rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
-                            <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.35rem' }}>
-                                <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-ocean-dark)', lineHeight: 1.3 }}>
-                                  {item.name}
-                                </h4>
-                              </div>
-
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-coral)' }}>
-                                  €{item.pricePerKg.toFixed(2)}
-                                </span>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                                  / kg
-                                </span>
-                              </div>
-
-                              {/* Weight Selection */}
-                              <div style={{ marginBottom: '0.85rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                                  <label style={{ fontSize: '0.775rem', fontWeight: 700, color: 'var(--color-ocean-dark)' }}>
-                                    Peso desiderato:
-                                  </label>
-                                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-sea-blue)' }}>
-                                    {weight >= 1000 ? `${(weight / 1000).toFixed(2)} kg` : `${weight} g`}
-                                  </span>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-                                  {[250, 500, 750, 1000, 1500, 2000].map((presetGrams) => (
-                                    <button
-                                      type="button"
-                                      key={presetGrams}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setCardFishWeightValue(item.id, presetGrams);
-                                      }}
-                                      style={{
-                                        flex: '1 1 auto',
-                                        padding: '0.25rem 0.45rem',
-                                        borderRadius: '6px',
-                                        border: weight === presetGrams ? '1.5px solid var(--color-coral)' : '1px solid rgba(11, 37, 69, 0.15)',
-                                        backgroundColor: weight === presetGrams ? 'rgba(255, 107, 107, 0.1)' : '#F8FAFC',
-                                        color: weight === presetGrams ? 'var(--color-coral)' : 'var(--color-ocean-dark)',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                      }}
-                                    >
-                                      {presetGrams >= 1000 ? `${presetGrams / 1000} kg` : `${presetGrams}g`}
-                                    </button>
-                                  ))}
-                                </div>
-
-                                <div
-                                  onClick={(e) => e.stopPropagation()}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.4rem',
-                                    backgroundColor: '#F8FAFC',
-                                    borderRadius: '8px',
-                                    border: '1px solid rgba(11, 37, 69, 0.15)',
-                                    padding: '0.35rem 0.5rem',
-                                  }}
-                                >
-                                  <button
-                                    type="button"
-                                    aria-label="Riduci peso"
-                                    onClick={() => updateCardFishWeight(item.id, -50)}
-                                    style={{
-                                      border: 'none',
-                                      background: 'white',
-                                      borderRadius: '6px',
-                                      width: '2rem',
-                                      height: '2rem',
-                                      fontWeight: 800,
-                                      cursor: 'pointer',
-                                      color: 'var(--color-ocean-dark)',
-                                      boxShadow: '0 1px 3px rgba(11, 37, 69, 0.12)',
-                                    }}
-                                  >
-                                    −
-                                  </button>
-                                  <input
-                                    type="number"
-                                    min={0.1}
-                                    max={10}
-                                    step={0.05}
-                                    value={Number((weight / 1000).toFixed(2))}
-                                    onChange={(e) => {
-                                      const kg = parseFloat(e.target.value);
-                                      if (!Number.isNaN(kg)) {
-                                        setCardFishWeightValue(item.id, Math.round(kg * 1000));
-                                      }
-                                    }}
-                                    aria-label={`Peso in kg per ${item.name}`}
-                                    style={{
-                                      flex: 1,
-                                      minWidth: 0,
-                                      border: 'none',
-                                      background: 'transparent',
-                                      textAlign: 'center',
-                                      fontSize: '0.95rem',
-                                      fontWeight: 800,
-                                      color: 'var(--color-ocean-dark)',
-                                      outline: 'none',
-                                    }}
-                                  />
-                                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text-muted)', flexShrink: 0 }}>
-                                    kg
-                                  </span>
-                                  <button
-                                    type="button"
-                                    aria-label="Aumenta peso"
-                                    onClick={() => updateCardFishWeight(item.id, 50)}
-                                    style={{
-                                      border: 'none',
-                                      background: 'white',
-                                      borderRadius: '6px',
-                                      width: '2rem',
-                                      height: '2rem',
-                                      fontWeight: 800,
-                                      cursor: 'pointer',
-                                      color: 'var(--color-ocean-dark)',
-                                      boxShadow: '0 1px 3px rgba(11, 37, 69, 0.12)',
-                                    }}
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                                <p style={{ margin: '0.35rem 0 0', fontSize: '0.7rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
-                                  Inserisci il peso libero (min. 100 g, max 10 kg) o usa i tasti rapidi.
-                                </p>
-                              </div>
-
-                              {/* Preparation / Cleaning Selection */}
-                              <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 700, color: 'var(--color-ocean-dark)', marginBottom: '0.35rem' }}>
-                                  Tipo di Lavorazione / Pulizia:
-                                </label>
-                                <select
-                                  value={prep}
-                                  onClick={(e) => e.stopPropagation()}
-                                  onChange={(e) => updateCardFishPrep(item.id, e.target.value)}
-                                  style={{
-                                    width: '100%',
-                                    padding: '0.45rem 0.65rem',
-                                    borderRadius: 'var(--radius-sm)',
-                                    border: '1px solid rgba(11, 37, 69, 0.18)',
-                                    backgroundColor: 'white',
-                                    fontSize: '0.825rem',
-                                    color: 'var(--color-ocean-dark)',
-                                    fontWeight: 600,
-                                    outline: 'none',
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  {FISH_PREPARATIONS.map((p) => (
-                                    <option key={p.id} value={p.name}>
-                                      {p.name}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
+                          <div className="order-product-body">
+                            <h4 className="order-product-title" style={{ marginBottom: '0.35rem' }}>{item.name}</h4>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem', marginBottom: '0.9rem' }}>
+                              <span className="order-product-price">€{item.pricePerKg.toFixed(2)}</span>
+                              <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>/ kg</span>
                             </div>
 
-                            {/* Card Footer Action */}
-                            <div style={{ borderTop: '1px solid rgba(11, 37, 69, 0.08)', paddingTop: '0.85rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                                  Stima per {weight >= 1000 ? `${(weight / 1000).toFixed(1)} kg` : `${weight}g`}:
+                            <div style={{ marginBottom: '0.85rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                <label className="order-label" style={{ marginBottom: 0 }}>Peso</label>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-ocean-medium)' }}>
+                                  {weight >= 1000 ? `${(weight / 1000).toFixed(2)} kg` : `${weight} g`}
                                 </span>
-                                <strong style={{ fontSize: '1.05rem', color: 'var(--color-ocean-dark)' }}>
-                                  ~€{estPrice}
-                                </strong>
                               </div>
 
+                              <div className="order-weight-presets">
+                                {[250, 500, 750, 1000, 1500, 2000].map((presetGrams) => (
+                                  <button
+                                    type="button"
+                                    key={presetGrams}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCardFishWeightValue(item.id, presetGrams);
+                                    }}
+                                    className={`order-weight-preset${weight === presetGrams ? ' order-weight-preset--on' : ''}`}
+                                  >
+                                    {presetGrams >= 1000 ? `${presetGrams / 1000} kg` : `${presetGrams}g`}
+                                  </button>
+                                ))}
+                              </div>
+
+                              <div className="order-weight-stepper" onClick={(e) => e.stopPropagation()}>
+                                <button type="button" aria-label="Riduci peso" onClick={() => updateCardFishWeight(item.id, -50)}>−</button>
+                                <input
+                                  type="number"
+                                  min={0.1}
+                                  max={10}
+                                  step={0.05}
+                                  value={Number((weight / 1000).toFixed(2))}
+                                  onChange={(e) => {
+                                    const kg = parseFloat(e.target.value);
+                                    if (!Number.isNaN(kg)) {
+                                      setCardFishWeightValue(item.id, Math.round(kg * 1000));
+                                    }
+                                  }}
+                                  aria-label={`Peso in kg per ${item.name}`}
+                                  style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    border: 'none',
+                                    background: 'transparent',
+                                    textAlign: 'center',
+                                    fontSize: '0.95rem',
+                                    fontWeight: 800,
+                                    color: 'var(--color-ocean-dark)',
+                                    outline: 'none',
+                                  }}
+                                />
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)', flexShrink: 0 }}>kg</span>
+                                <button type="button" aria-label="Aumenta peso" onClick={() => updateCardFishWeight(item.id, 50)}>+</button>
+                              </div>
+                              <p className="order-hint">Da 100 g a 10 kg. Usa i tasti rapidi o inserisci il peso.</p>
+                            </div>
+
+                            <div style={{ marginBottom: '1rem' }}>
+                              <label className="order-label">Lavorazione</label>
+                              <select
+                                className="order-select"
+                                value={prep}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => updateCardFishPrep(item.id, e.target.value)}
+                              >
+                                {FISH_PREPARATIONS.map((p) => (
+                                  <option key={p.id} value={p.name}>
+                                    {p.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(10, 35, 66, 0.08)', paddingTop: '0.85rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.55rem' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                                  Stima {weight >= 1000 ? `${(weight / 1000).toFixed(1)} kg` : `${weight}g`}
+                                </span>
+                                <strong className="order-product-price" style={{ fontSize: '1.15rem' }}>~€{estPrice}</strong>
+                              </div>
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -2273,17 +1622,10 @@ export const PokeBuilder: React.FC = () => {
                                   handleAddFishCardDirectly(item);
                                 }}
                                 className="btn btn-coral"
-                                style={{
-                                  width: '100%',
-                                  padding: '0.6rem 0.85rem',
-                                  fontSize: '0.875rem',
-                                  fontWeight: 800,
-                                  justifyContent: 'center',
-                                  boxShadow: '0 4px 12px rgba(255, 107, 107, 0.25)',
-                                }}
+                                style={{ width: '100%', padding: '0.7rem 0.85rem', fontSize: '0.86rem', justifyContent: 'center' }}
                               >
                                 <PlusCircle size={16} />
-                                <span>Aggiungi al Carrello</span>
+                                <span>Aggiungi al carrello</span>
                               </button>
                             </div>
                           </div>
@@ -2291,103 +1633,50 @@ export const PokeBuilder: React.FC = () => {
                       );
                     })}
                 </div>
-
-                {/* Additional Note & Custom Request Form Removed */}
               </div>
             )}
           </div>
 
           {/* Order Summary Sidebar / Bottom Box */}
           <div style={{ position: 'relative', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-            <div
-              className="glass-panel poke-summary-card"
-              style={{
-                borderRadius: 'var(--radius-lg)',
-                backgroundColor: 'var(--color-ocean-dark)',
-                color: 'white',
-                border: '1.5px solid rgba(141, 169, 196, 0.35)',
-                boxShadow: '0 12px 32px rgba(11, 37, 69, 0.25)',
-                width: '100%',
-                maxWidth: '100%',
-                boxSizing: 'border-box',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.12)', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div className="glass-panel poke-summary-card order-cart">
+              <div className="order-cart-head">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <ShoppingBag size={22} color="var(--color-coral)" />
-                  <h3 className="font-serif" style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>
-                    Riepilogo Ordine
+                  <ShoppingBag size={20} color="var(--color-gold-soft)" />
+                  <h3 className="font-serif" style={{ fontSize: '1.45rem', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>
+                    Il tuo ordine
                   </h3>
                 </div>
-
-                {/* Realtime Grand Total Price Badge */}
-                <div
-                  style={{
-                    backgroundColor: 'var(--color-coral)',
-                    color: 'white',
-                    padding: '0.4rem 0.9rem',
-                    borderRadius: 'var(--radius-full)',
-                    fontWeight: 800,
-                    fontSize: '1.25rem',
-                    boxShadow: '0 4px 12px rgba(255, 107, 107, 0.4)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+                <div className="order-cart-total">
                   €{(orderList.length > 0 ? grandTotal : (activeTab === 'poke' ? currentPokePrice : 0)).toFixed(2)}
                 </div>
               </div>
 
-              {/* Order Reference Info Badge */}
-              <div
-                style={{
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'rgba(56, 189, 248, 0.12)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
-                  color: '#38BDF8',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  marginBottom: '1.25rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.2rem',
-                }}
-              >
-                <div>
-                  <strong>Referente Ordine:</strong>{' '}
+              <div className="order-ref">
+                Referente:{' '}
+                <strong style={{ color: 'white' }}>
                   {orderList.length > 0
                     ? orderList[0].itemType === 'fritto'
-                      ? orderList[0].personName || pokePersonName.trim() || 'Cliente'
+                      ? orderList[0].personName || pokePersonName.trim() || 'Da inserire'
                       : orderList[0].itemType === 'pesce'
-                        ? orderList[0].personName || pokePersonName.trim() || 'Cliente'
-                        : orderList[0].pokePersonName || pokePersonName.trim() || 'Cliente'
-                    : pokePersonName.trim() || 'Cliente'}
-                </div>
+                        ? orderList[0].personName || pokePersonName.trim() || 'Da inserire'
+                        : orderList[0].pokePersonName || pokePersonName.trim() || 'Da inserire'
+                    : pokePersonName.trim() || 'Da inserire'}
+                </strong>
+                {pickupTime ? <span style={{ display: 'block', marginTop: '0.2rem', color: 'rgba(255,255,255,0.72)', fontWeight: 500 }}>{orderType} · {pickupTime}</span> : null}
               </div>
 
               {/* Order List Display (If items added) */}
               {orderList.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.5rem', maxHeight: '340px', overflowY: 'auto', paddingRight: '0.25rem' }}>
-                  <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-sea-blue)', fontWeight: 700 }}>
-                    Articoli nell'ordine ({orderList.length}):
+                <div className="order-cart-list">
+                  <div className="order-cart-kicker">
+                    Articoli ({orderList.length})
                   </div>
 
                   {orderList.map((item) => {
                     if (item.itemType === 'fritto') {
                       return (
-                        <div
-                          key={item.id}
-                          style={{
-                            padding: '0.85rem 1rem',
-                            borderRadius: 'var(--radius-sm)',
-                            backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                            border: '1px solid rgba(255, 255, 255, 0.12)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.4rem',
-                            position: 'relative',
-                          }}
-                        >
+                        <div key={item.id} className="order-cart-item">
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <strong style={{ color: '#FCD34D', fontSize: '1rem' }}>
                               {item.name} {item.quantity > 1 ? `(x${item.quantity})` : ''}
@@ -2432,22 +1721,10 @@ export const PokeBuilder: React.FC = () => {
                     if (item.itemType === 'pesce') {
                       const weightLabel = item.weightGrams >= 1000 ? `${(item.weightGrams / 1000).toFixed(1)} kg` : `${item.weightGrams}g`;
                       return (
-                        <div
-                          key={item.id}
-                          style={{
-                            padding: '0.85rem 1rem',
-                            borderRadius: 'var(--radius-sm)',
-                            backgroundColor: 'rgba(56, 189, 248, 0.08)',
-                            border: '1px solid rgba(56, 189, 248, 0.25)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.4rem',
-                            position: 'relative',
-                          }}
-                        >
+                        <div key={item.id} className="order-cart-item order-cart-item--pesce">
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <strong style={{ color: '#38BDF8', fontSize: '1rem' }}>
-                              🐟 {item.name} ({weightLabel})
+                            <strong style={{ color: 'var(--color-sea-blue)', fontSize: '0.95rem' }}>
+                              {item.name} ({weightLabel})
                             </strong>
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -2491,19 +1768,10 @@ export const PokeBuilder: React.FC = () => {
                     return (
                       <div
                         key={poke.id}
-                        style={{
-                          padding: '0.85rem 1rem',
-                          borderRadius: 'var(--radius-sm)',
-                          backgroundColor: poke.id === editingPokeId ? 'rgba(229, 186, 66, 0.15)' : 'rgba(255, 255, 255, 0.06)',
-                          border: poke.id === editingPokeId ? '1.5px solid var(--color-gold)' : '1px solid rgba(255, 255, 255, 0.12)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.4rem',
-                          position: 'relative',
-                        }}
+                        className={`order-cart-item${poke.id === editingPokeId ? ' order-cart-item--editing' : ''}`}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <strong style={{ color: 'var(--color-gold)', fontSize: '1rem', whiteSpace: 'nowrap' }}>
+                          <strong style={{ color: 'var(--color-gold-soft)', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>
                             Poke di {poke.pokePersonName}
                           </strong>
 
@@ -2567,22 +1835,20 @@ export const PokeBuilder: React.FC = () => {
                 </div>
               ) : (
                 /* Current Config Preview (Single item in progress) */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.9rem', marginBottom: '1.75rem' }}>
-                  <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-sea-blue)', fontWeight: 700 }}>
-                    Configurazione in corso:
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', fontSize: '0.9rem', marginBottom: '1.4rem' }}>
+                  <div className="order-cart-kicker">In composizione</div>
 
-                  <div style={summaryRowStyle}>
+                  <div className="order-summary-row">
                     <span style={{ color: 'var(--color-sea-blue)' }}>Cliente:</span>
                     <strong>{pokePersonName.trim() || 'Non inserito'}</strong>
                   </div>
 
-                  <div style={summaryRowStyle}>
+                  <div className="order-summary-row">
                     <span style={{ color: 'var(--color-sea-blue)' }}>Telefono:</span>
                     <strong>{customerPhone.trim() || 'Non inserito'}</strong>
                   </div>
 
-                  <div style={summaryRowStyle}>
+                  <div className="order-summary-row">
                     <span style={{ color: 'var(--color-sea-blue)' }}>Modalità & Orario:</span>
                     <strong style={{ color: 'var(--color-gold)' }}>
                       {orderType} - {pickupTime}
@@ -2591,98 +1857,81 @@ export const PokeBuilder: React.FC = () => {
 
                   {activeTab === 'poke' ? (
                     <>
-                      <div style={summaryRowStyle}>
+                      <div className="order-summary-row">
                         <span style={{ color: 'var(--color-sea-blue)' }}>Formato Poke:</span>
                         <strong>{selectedFormat.name} (€{selectedFormat.price})</strong>
                       </div>
 
-                      <div style={summaryRowStyle}>
+                      <div className="order-summary-row">
                         <span style={{ color: 'var(--color-sea-blue)' }}>Basi:</span>
                         <span>{selectedBasi.length > 0 ? selectedBasi.join(', ') : 'Nessuna selezionata'}</span>
                       </div>
 
-                      <div style={summaryRowStyle}>
+                      <div className="order-summary-row">
                         <span style={{ color: 'var(--color-sea-blue)' }}>Proteine:</span>
                         <span>{selectedProteine.length > 0 ? selectedProteine.join(', ') : 'Nessuna selezionata'}</span>
                       </div>
 
-                      <div style={summaryRowStyle}>
+                      <div className="order-summary-row">
                         <span style={{ color: 'var(--color-sea-blue)' }}>Ingredienti:</span>
                         <span>{selectedIngredienti.length > 0 ? selectedIngredienti.join(', ') : 'Nessuno selezionato'}</span>
                       </div>
 
-                      <div style={summaryRowStyle}>
+                      <div className="order-summary-row">
                         <span style={{ color: 'var(--color-sea-blue)' }}>Salse:</span>
                         <span>{selectedSalse.length > 0 ? selectedSalse.join(', ') : 'Nessuna selezionata'}</span>
                       </div>
 
-                      <div style={summaryRowStyle}>
+                      <div className="order-summary-row">
                         <span style={{ color: 'var(--color-sea-blue)' }}>Semi di Sesamo:</span>
                         <strong>{semiSesamo ? 'SI' : 'NO'}</strong>
                       </div>
                     </>
                   ) : activeTab === 'fritti' ? (
-                    <div style={{ padding: '0.85rem', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', textAlign: 'center', fontSize: '0.85rem', color: '#94A3B8' }}>
-                      Nessun cono fritto nel carrello.<br />
-                      <span style={{ color: '#FBBF24', fontWeight: 600 }}>Scegli dal menù e clicca su "Aggiungi"</span>
+                    <div className="order-empty">
+                      Nessun cono nel carrello.<br />
+                      <span style={{ color: 'var(--color-gold-soft)', fontWeight: 600 }}>Scegli dal menù e aggiungi.</span>
                     </div>
                   ) : (
-                    <div style={{ padding: '0.85rem', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', textAlign: 'center', fontSize: '0.85rem', color: '#94A3B8' }}>
+                    <div className="order-empty">
                       Nessun pescato nel carrello.<br />
-                      <span style={{ color: '#38BDF8', fontWeight: 600 }}>Scegli la varietà, indica peso e pulizia e clicca su "Aggiungi al Carrello"</span>
+                      <span style={{ color: 'var(--color-sea-blue)', fontWeight: 600 }}>Scegli varietà, peso e lavorazione, poi aggiungi.</span>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* General Order Notes Input */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.825rem', color: 'var(--color-sea-blue)', fontWeight: 700, marginBottom: '0.35rem' }}>
-                  Note generali per l'ordine (opzionale):
-                </label>
+              <div style={{ marginBottom: '1.15rem' }}>
+                <label className="order-notes-label">Note per il banco</label>
                 <textarea
+                  className="order-notes"
                   value={generalOrderNotes}
                   onChange={(e) => setGeneralOrderNotes(e.target.value)}
-                  placeholder="Es. citofonare Rossi al 2° piano, o richieste per la consegna..."
+                  placeholder="Citofono, piano, allergie o richieste per la consegna..."
                   rows={2}
-                  style={{
-                    width: '100%',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: 'var(--radius-sm)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    fontSize: '0.875rem',
-                    fontFamily: 'inherit',
-                    resize: 'vertical',
-                    boxSizing: 'border-box',
-                    outline: 'none',
-                  }}
                 />
               </div>
 
-              {/* Validation Warning Alert */}
               {validationError && (
                 <div
                   style={{
-                    padding: '0.85rem 1rem',
-                    borderRadius: 'var(--radius-sm)',
-                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                    border: '1px solid rgba(239, 68, 68, 0.5)',
+                    padding: '0.75rem 0.9rem',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.16)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
                     color: '#FCA5A5',
-                    fontSize: '0.85rem',
-                    marginBottom: '1.25rem',
+                    fontSize: '0.82rem',
+                    marginBottom: '1.1rem',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
                   }}
                 >
-                  <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
                   <span>{validationError}</span>
                 </div>
               )}
 
-              {/* Direct KDS Order Submit Button */}
               <button
                 type="button"
                 onClick={handleDirectOrderSubmit}
@@ -2690,55 +1939,36 @@ export const PokeBuilder: React.FC = () => {
                 className="btn btn-coral"
                 style={{
                   width: '100%',
-                  maxWidth: '100%',
                   padding: '1rem 0.75rem',
-                  fontSize: '1rem',
-                  fontWeight: 800,
+                  fontSize: '0.95rem',
                   justifyContent: 'center',
                   textAlign: 'center',
                   lineHeight: 1.35,
-                  boxSizing: 'border-box',
-                  boxShadow: '0 4px 20px rgba(255, 107, 107, 0.4)',
                   cursor: isSubmitting ? 'not-allowed' : 'pointer',
                   opacity: isSubmitting ? 0.7 : 1,
                 }}
               >
-                <Sparkles size={20} />
+                <Sparkles size={18} />
                 <span>
                   {isSubmitting
-                    ? 'Invio Ordine al Banco in corso...'
+                    ? 'Invio in corso...'
                     : orderList.length > 1
-                      ? `Conferma e Invia ${orderList.length} Articoli al Banco`
-                      : 'Conferma e Invia Ordine al Banco'}
+                      ? `Invia ${orderList.length} articoli al banco`
+                      : 'Invia ordine al banco'}
                 </span>
               </button>
 
-              {/* Box Assistenza Ordini WhatsApp */}
-              <div
-                style={{
-                  marginTop: '1.25rem',
-                  padding: '0.85rem 1rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'rgba(37, 211, 102, 0.12)',
-                  border: '1px solid rgba(37, 211, 102, 0.3)',
-                  color: '#DCFCE7',
-                  fontSize: '0.825rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.65rem',
-                  lineHeight: 1.4,
-                }}
-              >
-                <MessageCircle size={22} color="#25D366" style={{ flexShrink: 0 }} />
+              <div className="order-help">
+                <MessageCircle size={20} color="#25D366" style={{ flexShrink: 0 }} />
                 <div>
-                  <strong>Serve aiuto o modifiche?</strong>
+                  <strong>Serve una mano?</strong>
                   <div style={{ opacity: 0.9, marginTop: '0.15rem' }}>
-                    Se ci sono problemi con l'ordine, contatta la Pescheria su WhatsApp al{' '}
+                    WhatsApp Pescheria:{' '}
                     <a
                       href="https://wa.me/393459485857"
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: '#4ADE80', fontWeight: 800, textDecoration: 'underline' }}
+                      style={{ color: '#4ADE80', fontWeight: 800 }}
                     >
                       345 9485857
                     </a>
@@ -2746,16 +1976,9 @@ export const PokeBuilder: React.FC = () => {
                 </div>
               </div>
 
-              <div
-                style={{
-                  fontSize: '0.75rem',
-                  color: 'rgba(255, 255, 255, 0.6)',
-                  textAlign: 'center',
-                  marginTop: '0.85rem',
-                }}
-              >
-                L'ordine verrà inviato al banco e potrai seguirne la preparazione in tempo reale.
-              </div>
+              <p className="order-fineprint">
+                Paghi al ritiro o in consegna. Dopo l'invio puoi seguire la preparazione in tempo reale.
+              </p>
 
             </div>
           </div>
@@ -2766,42 +1989,22 @@ export const PokeBuilder: React.FC = () => {
 
       {/* Floating Checkout Bar for Mobile/Desktop */}
       {orderList.length > 0 && (
-        <div
-          className="floating-checkout-bar"
-          style={{
-            position: 'fixed',
-            bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 'calc(100% - 2rem)',
-            maxWidth: '520px',
-            backgroundColor: '#0B2545',
-            borderRadius: '16px',
-            padding: '0.85rem 1.15rem',
-            boxShadow: '0 12px 30px rgba(11, 37, 69, 0.45)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            zIndex: 9999,
-            border: '1.5px solid rgba(255, 255, 255, 0.2)',
-            boxSizing: 'border-box',
-          }}
-        >
-          <div style={{ color: 'white', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-            <span style={{ fontSize: '0.75rem', color: '#8DA9C4', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Totale Ordine
+        <div className="floating-checkout-bar">
+          <div style={{ color: 'white', display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--color-gold-soft)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              Totale
             </span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FBBF24' }}>
+            <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'white', letterSpacing: '-0.02em' }}>
               €{grandTotal.toFixed(2)}{' '}
-              <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#CBD5E1' }}>
-                ({orderList.length} {orderList.length === 1 ? 'Articolo' : 'Articoli'})
+              <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'rgba(203,213,225,0.8)' }}>
+                · {orderList.length} {orderList.length === 1 ? 'articolo' : 'articoli'}
               </span>
             </span>
           </div>
 
           <button
             type="button"
+            className="btn btn-coral"
             disabled={isSubmitting}
             onClick={() => {
               if (!customerPhone.trim()) {
@@ -2816,88 +2019,19 @@ export const PokeBuilder: React.FC = () => {
               }
             }}
             style={{
-              backgroundColor: '#FF6B6B',
-              color: 'white',
-              border: 'none',
-              padding: '0.75rem 1.25rem',
-              borderRadius: '10px',
-              fontWeight: 800,
-              fontSize: '0.95rem',
-              cursor: isSubmitting ? 'not-allowed' : 'pointer',
-              boxShadow: '0 4px 14px rgba(255, 107, 107, 0.4)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.45rem',
-              minWidth: '140px',
+              padding: '0.72rem 1.15rem',
+              fontSize: '0.88rem',
+              minWidth: '132px',
               flexShrink: 0,
-              whiteSpace: 'nowrap',
-              WebkitTapHighlightColor: 'transparent',
-              touchAction: 'manipulation',
-              transition: 'background-color 0.2s, opacity 0.2s',
               opacity: isSubmitting ? 0.7 : 1,
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
             }}
           >
-            <Sparkles size={16} style={{ flexShrink: 0 }} />
-            <span style={{ display: 'inline-block', minWidth: '85px', textAlign: 'center' }}>
-              {isSubmitting ? 'Invio...' : 'Invia Ordine'}
-            </span>
+            <Sparkles size={15} />
+            <span>{isSubmitting ? 'Invio...' : 'Invia'}</span>
           </button>
         </div>
       )}
     </section>
   );
-};
-
-// FIX: aggiunto flex-basis + maxWidth così anche le chip (Basi, Proteine,
-// Ingredienti, Salse) si dispongono correttamente nel container flex e le
-// righe incomplete restano centrate su mobile.
-const chipLabelStyle = (isChecked: boolean, isDisabled: boolean): React.CSSProperties => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.65rem',
-  flex: '1 1 140px',
-  maxWidth: '100%',
-  boxSizing: 'border-box',
-  padding: '0.75rem 0.9rem',
-  borderRadius: 'var(--radius-sm)',
-  border: isChecked
-    ? '1.5px solid var(--color-coral)'
-    : '1px solid rgba(11, 37, 69, 0.12)',
-  backgroundColor: isChecked
-    ? 'rgba(255, 107, 107, 0.08)'
-    : isDisabled
-      ? '#F8FAFC'
-      : 'white',
-  cursor: isDisabled ? 'not-allowed' : 'pointer',
-  opacity: isDisabled ? 0.6 : 1,
-  transition: 'all 0.2s ease',
-  userSelect: 'none',
-  wordBreak: 'break-word',
-});
-
-const customCheckboxStyle = (isChecked: boolean, isDisabled: boolean): React.CSSProperties => ({
-  width: '18px',
-  height: '18px',
-  borderRadius: '4px',
-  border: isChecked
-    ? 'none'
-    : isDisabled
-      ? '1.5px solid #CBD5E1'
-      : '1.5px solid rgba(11, 37, 69, 0.3)',
-  backgroundColor: isChecked ? 'var(--color-coral)' : 'transparent',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-});
-
-const summaryRowStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.2rem',
-  paddingBottom: '0.6rem',
-  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-  wordBreak: 'break-word',
-  maxWidth: '100%',
 };

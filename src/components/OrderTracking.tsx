@@ -12,12 +12,10 @@ import {
   Phone,
   Receipt,
   User,
-  MessageCircle,
-  Bell
+  MessageCircle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getLocalOrderById, subscribeToLocalOrders } from '../utils/orderStore';
-import { subscribeToOrderPush } from '../lib/onesignal';
 
 export interface OrderItem {
   id?: string;
@@ -60,85 +58,18 @@ export const OrderTracking: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isProntoAlertOpen, setIsProntoAlertOpen] = useState<boolean>(false);
-  const [isPushSubscribed, setIsPushSubscribed] = useState<boolean>(false);
-  const [pushToastMsg, setPushToastMsg] = useState<string | null>(null);
-
-  // Check saved push notification subscription state or global browser permission
-  useEffect(() => {
-    const orderIdToUse = order?.id || id;
-    if (!orderIdToUse || typeof window === 'undefined') return;
-
-    // Clean up any legacy push_global_granted if browser permission is not actually granted
-    const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-    if (!isGranted) {
-      localStorage.removeItem('push_global_granted');
-    }
-
-    const savedOrder = localStorage.getItem(`push_sub_${orderIdToUse}`) === 'true';
-
-    if (isGranted || savedOrder) {
-      setIsPushSubscribed(true);
-      subscribeToOrderPush(String(orderIdToUse)).catch((err) => {
-        console.warn('Auto order push tag error:', err);
-      });
-    } else {
-      setIsPushSubscribed(false);
-    }
-  }, [order?.id, id]);
-
-  const handleActivatePush = async () => {
-    const orderIdToUse = order?.id || id;
-    if (!orderIdToUse) return;
-
-    setPushToastMsg('🔔 Attivazione notifiche in corso...');
-
-    try {
-      await subscribeToOrderPush(String(orderIdToUse));
-      const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-      if (isGranted) {
-        setIsPushSubscribed(true);
-        setPushToastMsg('🔔 Notifiche attivate con successo per questo ordine!');
-      } else {
-        setPushToastMsg('🔔 Per favore accetta il permesso delle notifiche nel browser.');
-      }
-    } catch (err) {
-      console.warn('Push subscription background error:', err);
-      setPushToastMsg('🔔 Notifiche attivate per questo ordine.');
-    }
-
-    setTimeout(() => {
-      setPushToastMsg(null);
-    }, 4000);
-  };
 
   // Trigger sound, vibration & native notification for 'PRONTO' status
   const triggerProntoAlert = useCallback(() => {
     setIsProntoAlertOpen(true);
 
-    // Native System Push Notification (Fired on Desktop/Mobile via Service Worker)
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
       try {
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.ready.then((reg) => {
-            reg.showNotification('🎉 La tua Poke è Pronta!', {
-              body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
-              icon: '/pesce/tonno_pinna_gialla.jpg',
-              tag: 'poke_pronta_notification',
-            });
-          }).catch(() => {
-            new Notification('🎉 La tua Poke è Pronta!', {
-              body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
-              icon: '/pesce/tonno_pinna_gialla.jpg',
-              tag: 'poke_pronta_notification',
-            });
-          });
-        } else {
-          new Notification('🎉 La tua Poke è Pronta!', {
-            body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
-            icon: '/pesce/tonno_pinna_gialla.jpg',
-            tag: 'poke_pronta_notification',
-          });
-        }
+        new Notification('🎉 La tua Poke è Pronta!', {
+          body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
+          icon: '/pesce/tonno_pinna_gialla.jpg',
+          tag: 'poke_pronta_notification',
+        });
       } catch (e) {
         console.warn('Native Notification trigger error:', e);
       }
@@ -588,30 +519,8 @@ export const OrderTracking: React.FC = () => {
         {!loading && !error && order && (
           <div className="tracker-grid-layout">
             
-            {/* LEFT COLUMN: REALTIME STATUS, PRONTO ALERT, PUSH & ASSISTANCE */}
+            {/* LEFT COLUMN: REALTIME STATUS, PRONTO ALERT & ASSISTANCE */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-              
-              {/* SUCCESS TOAST MESSAGE */}
-              {pushToastMsg && (
-                <div
-                  style={{
-                    padding: '0.75rem 1rem',
-                    borderRadius: '0.65rem',
-                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                    border: '1.5px solid #10B981',
-                    color: '#A7F3D0',
-                    fontWeight: 700,
-                    fontSize: '0.875rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.2)',
-                  }}
-                >
-                  <CheckCircle2 size={18} color="#10B981" style={{ flexShrink: 0 }} />
-                  <span>{pushToastMsg}</span>
-                </div>
-              )}
 
               {/* COMPACT & MODERN PRONTO TRIGGER BANNER */}
               {(order.status === 'PRONTO' || isProntoAlertOpen) && (
@@ -806,63 +715,6 @@ export const OrderTracking: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              {/* PUSH NOTIFICATION SUBSCRIPTION BANNER */}
-              {!isPushSubscribed && (
-                <div
-                  style={{
-                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                    border: '1px solid rgba(56, 189, 248, 0.35)',
-                    borderRadius: '0.85rem',
-                    padding: '0.9rem 1.1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '0.75rem',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: '180px' }}>
-                    <div
-                      style={{
-                        width: '34px',
-                        height: '34px',
-                        borderRadius: '50%',
-                        backgroundColor: '#0284C7',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Bell size={17} color="white" />
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'white' }}>
-                        Notifica quando pronto?
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.8)', lineHeight: 1.3 }}>
-                        Ricevi un avviso push sul tuo dispositivo.
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleActivatePush}
-                    className="btn btn-coral"
-                    style={{
-                      padding: '0.45rem 0.9rem',
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                      whiteSpace: 'nowrap',
-                      borderRadius: '0.5rem',
-                    }}
-                  >
-                    Attiva Notifiche
-                  </button>
-                </div>
-              )}
 
               {/* NEED HELP / WHATSAPP STORE CONTACT */}
               <div

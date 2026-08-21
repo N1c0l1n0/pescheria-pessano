@@ -35,7 +35,6 @@ import {
   formatOrderDateTime,
   HISTORY_PAGE_SIZE,
 } from '../utils/orderMappers';
-import { sendOrderStatusNotification } from '../lib/onesignal';
 
 export type { KdsOrder, KdsOrderItem };
 
@@ -405,20 +404,6 @@ export const KdsBoard: React.FC = () => {
 
   // Update order status handler
   const handleUpdateStatus = async (orderId: string, newStatus: 'IN_PREPARAZIONE' | 'PRONTO' | 'COMPLETATO') => {
-    const targetOrder = orders.find((o) => o.id === orderId);
-    const customerName = targetOrder?.customer_name || 'Cliente';
-
-    // Send Web Push Notification to subscriber of order
-    sendOrderStatusNotification({
-      orderId,
-      customerName,
-      newStatus,
-    }).then((sent) => {
-      console.log(`[KDS] Esito notifica push per ordine #${orderId} (${newStatus}):`, sent);
-    }).catch((err) => {
-      console.warn(`[KDS] Errore notifica push per ordine #${orderId}:`, err);
-    });
-
     if (newStatus === 'COMPLETATO') {
       clearFocus();
       setCheckedIngredients((prev) => {
