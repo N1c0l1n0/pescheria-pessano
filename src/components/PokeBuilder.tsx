@@ -889,8 +889,8 @@ export const PokeBuilder: React.FC = () => {
     <section
       id="poke"
       style={{
-        padding: '5rem 0',
-        backgroundColor: 'white',
+        padding: '4.5rem 0 5.5rem',
+        backgroundColor: 'var(--color-sand)',
       }}
     >
       {/* Floating Sticky Top Validation Error Banner (Visible Immediately!) */}

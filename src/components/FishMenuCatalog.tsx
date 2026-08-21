@@ -176,42 +176,16 @@ export const FishMenuCatalog: React.FC = () => {
       <div className="container">
 
         {/* Section Header */}
-        <div style={{ textAlign: 'center', maxWidth: '780px', margin: '0 auto 3.5rem auto' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              fontSize: '0.825rem',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '0.14em',
-              color: 'var(--color-ocean-medium)',
-              backgroundColor: 'rgba(19, 64, 116, 0.08)',
-              padding: '0.4rem 0.9rem',
-              borderRadius: 'var(--radius-full)',
-              marginBottom: '1rem',
-              border: '1px solid rgba(19, 64, 116, 0.15)',
-            }}
-          >
-            <Waves size={16} color="var(--color-ocean-medium)" />
-            <span>Selezione Artigianale Pessano • Finale Ligure</span>
+        <div className="section-header">
+          <div className="section-kicker">
+            <Waves size={15} color="var(--color-ocean-medium)" />
+            <span>Selezione Artigianale Pessano · Finale Ligure</span>
           </div>
-
-          <h2
-            className="font-serif heading-dark-gradient"
-            style={{
-              fontSize: 'clamp(2.2rem, 3.5vw, 3.2rem)',
-              fontWeight: 800,
-              color: 'var(--color-ocean-dark)',
-              marginBottom: '1rem',
-              lineHeight: 1.2,
-            }}
-          >
+          <div className="hairline-gold" />
+          <h2 className="section-title">
             Banco del Pesce Fresco del Giorno
           </h2>
-
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '1.08rem', lineHeight: 1.6 }}>
+          <p className="section-lede">
             Pescato locale selezionato ogni mattina dai nostri pescatori di fiducia nel Mar Ligure e nel Mediterraneo.
             Qualità artigianale, pulizia gratuita al banco e freschezza garantita.
           </p>
@@ -451,7 +425,8 @@ export const FishMenuCatalog: React.FC = () => {
             marginTop: '3.5rem',
             padding: '1.5rem 2rem',
             borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--color-ocean-dark)',
+            background:
+              'radial-gradient(ellipse 80% 120% at 100% 0%, rgba(143, 182, 204, 0.18), transparent 50%), var(--color-ocean-dark)',
             color: 'white',
             display: 'flex',
             alignItems: 'center',
@@ -459,6 +434,7 @@ export const FishMenuCatalog: React.FC = () => {
             flexWrap: 'wrap',
             gap: '1.25rem',
             boxShadow: 'var(--shadow-md)',
+            border: '1px solid rgba(201, 162, 39, 0.22)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

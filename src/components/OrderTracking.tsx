@@ -417,21 +417,20 @@ export const OrderTracking: React.FC = () => {
 
   return (
     <div
+      className="tracker-page"
       style={{
         minHeight: '100vh',
-        backgroundColor: '#071527',
         color: 'white',
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
       {/* TOP BAR BRAND HEADER */}
       <header
         style={{
-          backgroundColor: 'rgba(11, 37, 69, 0.9)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(141, 169, 196, 0.2)',
+          backgroundColor: 'rgba(4, 18, 33, 0.88)',
+          backdropFilter: 'blur(16px)',
+          borderBottom: '1px solid rgba(201, 162, 39, 0.2)',
           padding: '0.85rem 1.5rem',
           position: 'sticky',
           top: 0,
@@ -479,7 +478,7 @@ export const OrderTracking: React.FC = () => {
               <div style={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                 Pescheria Pessano
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#8DA9C4' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-gold-soft)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
                 Finale Ligure (SV)
               </div>
             </div>
@@ -491,10 +490,11 @@ export const OrderTracking: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              backgroundColor: 'rgba(56, 189, 248, 0.15)',
+              background:
+                'linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(201, 162, 39, 0.12) 100%)',
               padding: '0.45rem 0.9rem',
               borderRadius: '999px',
-              border: '1px solid rgba(56, 189, 248, 0.35)',
+              border: '1px solid rgba(201, 162, 39, 0.32)',
             }}
           >
             <Receipt size={16} color="#38BDF8" />

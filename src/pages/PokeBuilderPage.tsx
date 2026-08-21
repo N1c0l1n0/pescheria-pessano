@@ -11,27 +11,20 @@ export const PokeBuilderPage: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--color-surface-alt)', width: '100%', overflowX: 'hidden' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--color-sand)', width: '100%', overflowX: 'hidden' }}>
       <Header />
 
       <main style={{ flex: 1, width: '100%', overflowX: 'hidden' }}>
         {/* Top Banner / Breadcrumb */}
-        <div
-          style={{
-            backgroundColor: 'var(--color-ocean-dark)',
-            color: 'white',
-            padding: '6.5rem 0 2.25rem 0',
-            borderBottom: '1px solid rgba(141, 169, 196, 0.2)',
-          }}
-        >
-          <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <div className="page-banner">
+          <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
             <Link
               to="/"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.4rem',
-                color: '#8DA9C4',
+                color: 'var(--color-gold-soft)',
                 textDecoration: 'none',
                 fontSize: '0.875rem',
                 fontWeight: 600,
@@ -48,30 +41,33 @@ export const PokeBuilderPage: React.FC = () => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.35rem',
-                  backgroundColor: 'rgba(255, 107, 107, 0.2)',
-                  color: '#FF6B6B',
+                  backgroundColor: 'rgba(232, 93, 82, 0.16)',
+                  color: '#F8A9A3',
                   padding: '0.35rem 0.85rem',
                   borderRadius: '999px',
-                  fontSize: '0.8rem',
+                  fontSize: '0.78rem',
                   fontWeight: 700,
-                  border: '1px solid rgba(255, 107, 107, 0.4)',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  border: '1px solid rgba(232, 93, 82, 0.35)',
                 }}
               >
                 <Sparkles size={14} /> Pesce Fresco del Giorno
               </span>
               <h1
+                className="font-serif"
                 style={{
-                  fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
-                  fontWeight: 800,
+                  fontSize: 'clamp(1.85rem, 4vw, 2.75rem)',
+                  fontWeight: 700,
                   margin: 0,
-                  fontFamily: "'Playfair Display', serif",
-                  lineHeight: 1.2,
+                  lineHeight: 1.15,
+                  letterSpacing: '-0.03em',
                 }}
               >
                 Ordina d'Asporto Online
               </h1>
             </div>
-            <p style={{ color: '#CBD5E1', margin: '0.5rem 0 0 0', fontSize: '0.95rem', maxWidth: '700px' }}>
+            <p style={{ color: 'rgba(203, 213, 225, 0.92)', margin: '0.7rem 0 0 0', fontSize: '1rem', maxWidth: '700px', lineHeight: 1.65 }}>
               Ordina online per l'asporto: componi la tua Poke su misura, ordina i coni di fritto espresso caldi e croccanti, oppure prenota il pesce fresco del giorno con pulizia e sfilettatura dedicata. Segui la preparazione in tempo reale!
             </p>
           </div>

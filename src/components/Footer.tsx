@@ -9,11 +9,10 @@ export const Footer: React.FC = () => {
 
   return (
     <footer
+      className="footer-site"
       style={{
-        backgroundColor: 'var(--color-ocean-dark)',
         color: 'white',
-        padding: '3rem 0 2rem 0',
-        borderTop: '1px solid rgba(141, 169, 196, 0.2)',
+        padding: '3.25rem 0 2rem 0',
       }}
     >
       <div className="container">
@@ -42,7 +41,7 @@ export const Footer: React.FC = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 overflow: 'hidden',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                boxShadow: '0 0 0 1.5px rgba(201, 162, 39, 0.5), 0 6px 14px rgba(0, 0, 0, 0.25)',
               }}
             >
               <img
@@ -59,7 +58,7 @@ export const Footer: React.FC = () => {
               <div className="font-serif" style={{ fontSize: '1.2rem', fontWeight: 800 }}>
                 Pescheria Pessano
               </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-sea-blue)' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-gold-soft)', letterSpacing: '0.04em' }}>
                 Via Avvocato Emanuele Rossi, 17 - Finale Ligure (SV)
               </div>
             </div>
@@ -90,7 +89,7 @@ export const Footer: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              color: 'var(--color-sea-blue)',
+              color: 'var(--color-gold-soft)',
               textDecoration: 'none',
               fontWeight: 700,
               fontSize: '0.95rem',

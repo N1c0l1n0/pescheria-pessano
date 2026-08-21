@@ -18,37 +18,18 @@ export const TrustSection: React.FC = () => {
       id="recensioni"
       className="section-wave-top"
       style={{
-        padding: '5rem 0',
-        backgroundColor: 'white',
+        padding: '5.5rem 0 5rem',
+        backgroundColor: 'var(--color-cream)',
       }}
     >
       <div className="container">
-        <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto 3rem auto' }}>
-          <div
-            style={{
-              fontSize: '0.85rem',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              color: 'var(--color-ocean-medium)',
-              marginBottom: '0.5rem',
-            }}
-          >
-            Tradizione & Fiducia
-          </div>
-
-          <h2
-            className="font-serif heading-dark-gradient"
-            style={{
-              fontSize: 'clamp(2rem, 3.5vw, 2.8rem)',
-              fontWeight: 800,
-              marginBottom: '1rem',
-            }}
-          >
+        <div className="section-header">
+          <div className="section-kicker">Tradizione & Fiducia</div>
+          <div className="hairline-gold" />
+          <h2 className="section-title">
             Pescheria di quartiere, qualità del mare
           </h2>
-
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>
+          <p className="section-lede">
             Da generazioni al banco di Finale Ligure: pescato selezionato ogni mattina, gastronomia preparata in laboratorio
             e un servizio che conosce i clienti per nome.
           </p>
@@ -94,16 +75,17 @@ export const TrustSection: React.FC = () => {
           ))}
 
           <div
-            className="trust-quote-card"
+            className="trust-quote-card trust-score-card"
             style={{
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
               alignItems: 'center',
               textAlign: 'center',
-              background: 'linear-gradient(145deg, var(--color-ocean-dark) 0%, var(--color-ocean-medium) 100%)',
+              background: 'linear-gradient(160deg, #041221 0%, #0A2342 55%, #164A7C 100%)',
               color: 'white',
-              border: 'none',
+              border: '1px solid rgba(201, 162, 39, 0.22)',
+              boxShadow: 'var(--shadow-md)',
             }}
           >
             <div style={{ fontSize: '2.75rem', fontWeight: 800, color: 'var(--color-gold)', lineHeight: 1 }}>
