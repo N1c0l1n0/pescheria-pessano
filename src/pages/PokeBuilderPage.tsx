@@ -56,6 +56,11 @@ export const PokeBuilderPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  const scrollToOrderSection = (sectionId: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--color-sand)', width: '100%', overflowX: 'hidden' }}>
       <Header />
@@ -90,7 +95,11 @@ export const PokeBuilderPage: React.FC = () => {
             </p>
 
             <div className="order-process">
-              <div className="order-process-step">
+              <a
+                href="#ordine-dati"
+                className="order-process-step"
+                onClick={scrollToOrderSection('ordine-dati')}
+              >
                 <div className="order-process-icon">
                   <ProcessDatiIcon />
                 </div>
@@ -98,8 +107,12 @@ export const PokeBuilderPage: React.FC = () => {
                   <strong>I tuoi dati</strong>
                   <span>Nome, telefono e orario di ritiro o consegna.</span>
                 </div>
-              </div>
-              <div className="order-process-step">
+              </a>
+              <a
+                href="#ordine-componi"
+                className="order-process-step"
+                onClick={scrollToOrderSection('ordine-componi')}
+              >
                 <div className="order-process-icon">
                   <ProcessPokeIcon />
                 </div>
@@ -107,8 +120,12 @@ export const PokeBuilderPage: React.FC = () => {
                   <strong>Componi l'ordine</strong>
                   <span>Poke su misura, coni fritti o pesce fresco.</span>
                 </div>
-              </div>
-              <div className="order-process-step">
+              </a>
+              <a
+                href="#ordine-invia"
+                className="order-process-step"
+                onClick={scrollToOrderSection('ordine-invia')}
+              >
                 <div className="order-process-icon">
                   <ProcessTrackIcon />
                 </div>
@@ -116,7 +133,7 @@ export const PokeBuilderPage: React.FC = () => {
                   <strong>Invia e segui</strong>
                   <span>Il banco riceve l'ordine. Tu lo tracci dal vivo.</span>
                 </div>
-              </div>
+              </a>
             </div>
           </div>
         </div>

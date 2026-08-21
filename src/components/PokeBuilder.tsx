@@ -962,7 +962,7 @@ export const PokeBuilder: React.FC = () => {
               </div>
             )}
 
-            <div className="glass-panel poke-card-panel order-card">
+            <div id="ordine-dati" className="glass-panel poke-card-panel order-card">
               <OrderStepHeader
                 step={1}
                 title="I tuoi dati"
@@ -1085,7 +1085,7 @@ export const PokeBuilder: React.FC = () => {
             </div>
 
             {/* TAB NAVIGATION: POKE VS FRITTI ESPRESSO VS PESCE FRESCO */}
-            <div className="poke-category-tabs" role="tablist" aria-label="Categorie ordine">
+            <div id="ordine-componi" className="poke-category-tabs" role="tablist" aria-label="Categorie ordine">
               <button
                 type="button"
                 role="tab"
@@ -1639,7 +1639,7 @@ export const PokeBuilder: React.FC = () => {
 
           {/* Order Summary Sidebar / Bottom Box */}
           <div style={{ position: 'relative', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-            <div className="glass-panel poke-summary-card order-cart">
+            <div id="ordine-invia" className="glass-panel poke-summary-card order-cart">
               <div className="order-cart-head">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                   <ShoppingBag size={20} color="var(--color-gold-soft)" />

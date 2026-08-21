@@ -12,15 +12,19 @@ import {
   Phone,
   Receipt,
   User,
-  MessageCircle
+  MessageCircle,
+  Calendar,
+  Zap,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getLocalOrderById, subscribeToLocalOrders } from '../utils/orderStore';
+import { mapKdsOrderItem } from '../utils/orderMappers';
 
 export interface OrderItem {
   id?: string;
   order_id?: string;
   item_name?: string;
+  item_type?: 'poke' | 'fritto' | 'pesce' | string;
   size?: string;
   bases?: string[];
   proteins?: string[];
@@ -51,6 +55,48 @@ export interface Order {
   order_items?: OrderItem[];
   items?: OrderItem[];
 }
+
+interface TrackerSchedule {
+  clockHours: string | null;
+  clockMinutes: string | null;
+  dayLabel: 'Oggi' | 'Domani' | null;
+  isAsap: boolean;
+  hasTime: boolean;
+  remainingNotes: string;
+  rawTime: string;
+}
+
+const parseTrackerSchedule = (notes?: string): TrackerSchedule => {
+  const raw = (notes || '').trim();
+  const match = raw.match(/Orario:\s*([^—\n]+)/i);
+  const timeText = match?.[1]?.trim() || '';
+  const hasTime = Boolean(timeText);
+
+  const remainingNotes = raw
+    .replace(/Orario:\s*[^—\n]+/i, '')
+    .replace(/^\s*—\s*/, '')
+    .replace(/^Note generali:\s*/i, '')
+    .trim();
+
+  const isAsap = hasTime && /asap|prima possibile/i.test(timeText);
+  const dayMatch = timeText.match(/\((Oggi|Domani)\)/i);
+  const dayRaw = dayMatch?.[1];
+  const dayLabel: TrackerSchedule['dayLabel'] = dayRaw
+    ? (dayRaw.charAt(0).toUpperCase() + dayRaw.slice(1).toLowerCase()) as 'Oggi' | 'Domani'
+    : null;
+
+  const clockMatch = timeText.match(/(\d{1,2})[:.](\d{2})/);
+
+  return {
+    clockHours: clockMatch ? clockMatch[1].padStart(2, '0') : null,
+    clockMinutes: clockMatch ? clockMatch[2] : null,
+    dayLabel,
+    isAsap,
+    hasTime,
+    remainingNotes,
+    rawTime: timeText.replace(/\s*\((Oggi|Domani)\)/gi, '').trim(),
+  };
+};
 
 export const OrderTracking: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -136,33 +182,7 @@ export const OrderTracking: React.FC = () => {
       if (!fetchErr && data) {
         const raw = data as any;
         const items = Array.isArray(raw.order_items)
-          ? raw.order_items.map((item: any) => {
-              let dt: any = {};
-              if (typeof item.details === 'string') {
-                try { dt = JSON.parse(item.details); } catch (e) { dt = {}; }
-              } else if (typeof item.details === 'object' && item.details !== null) {
-                dt = item.details;
-              }
-
-              const bases = Array.isArray(dt.bases) ? dt.bases : (Array.isArray(item.bases) ? item.bases : (Array.isArray(dt.basi) ? dt.basi : (Array.isArray(item.basi) ? item.basi : [])));
-              const proteins = Array.isArray(dt.proteins) ? dt.proteins : (Array.isArray(item.proteins) ? item.proteins : (Array.isArray(dt.proteine) ? dt.proteine : (Array.isArray(item.proteine) ? item.proteine : [])));
-              const toppings = Array.isArray(dt.toppings) ? dt.toppings : (Array.isArray(item.toppings) ? item.toppings : (Array.isArray(dt.ingredienti) ? dt.ingredienti : (Array.isArray(item.ingredienti) ? item.ingredienti : [])));
-              const sauces = Array.isArray(dt.sauces) ? dt.sauces : (Array.isArray(item.sauces) ? item.sauces : (Array.isArray(dt.salse) ? dt.salse : (Array.isArray(item.salse) ? item.salse : [])));
-
-              return {
-                id: String(item.id),
-                item_name: item.name || item.item_name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
-                size: dt.size || item.size || '',
-                bases,
-                proteins,
-                toppings,
-                sauces,
-                has_sesame: dt.has_sesame ?? item.has_sesame ?? true,
-                notes: dt.notes || item.notes || '',
-                price: Number(item.unit_price || item.price || 0),
-                quantity: Number(item.quantity || 1),
-              };
-            })
+          ? raw.order_items.map((item: Record<string, unknown>) => mapKdsOrderItem(item))
           : [];
 
         const normalizedOrder: Order = {
@@ -191,33 +211,9 @@ export const OrderTracking: React.FC = () => {
       // Local store fallback
       const local = getLocalOrderById(id);
       if (local) {
-        const normalizedLocalItems = (local.order_items || (local as any).items || []).map((item: any) => {
-          let dt: any = {};
-          if (typeof item.details === 'string') {
-            try { dt = JSON.parse(item.details); } catch (e) { dt = {}; }
-          } else if (typeof item.details === 'object' && item.details !== null) {
-            dt = item.details;
-          }
-
-          const bases = Array.isArray(item.bases) ? item.bases : (Array.isArray(dt.bases) ? dt.bases : (Array.isArray(item.basi) ? item.basi : (Array.isArray(dt.basi) ? dt.basi : [])));
-          const proteins = Array.isArray(item.proteins) ? item.proteins : (Array.isArray(dt.proteins) ? dt.proteins : (Array.isArray(item.proteine) ? item.proteine : (Array.isArray(dt.proteine) ? dt.proteine : [])));
-          const toppings = Array.isArray(item.toppings) ? item.toppings : (Array.isArray(dt.toppings) ? dt.toppings : (Array.isArray(item.ingredienti) ? item.ingredienti : (Array.isArray(dt.ingredienti) ? dt.ingredienti : [])));
-          const sauces = Array.isArray(item.sauces) ? item.sauces : (Array.isArray(dt.sauces) ? dt.sauces : (Array.isArray(item.salse) ? item.salse : (Array.isArray(dt.salse) ? dt.salse : [])));
-
-          return {
-            id: String(item.id || Math.random()),
-            item_name: item.item_name || item.name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
-            size: item.size || dt.size || '',
-            bases,
-            proteins,
-            toppings,
-            sauces,
-            has_sesame: item.has_sesame ?? dt.has_sesame ?? true,
-            notes: item.notes || dt.notes || '',
-            price: Number(item.price || item.unit_price || 0),
-            quantity: Number(item.quantity || 1),
-          };
-        });
+        const normalizedLocalItems = (local.order_items || (local as any).items || []).map((item: Record<string, unknown>) =>
+          mapKdsOrderItem(item)
+        );
 
         const normalizedLocal: Order = {
           ...local,
@@ -269,7 +265,17 @@ export const OrderTracking: React.FC = () => {
       console.error('Error fetching order:', err);
       const local = getLocalOrderById(id);
       if (local) {
-        setOrder(local as Order);
+        setOrder({
+          ...local,
+          id: String(local.id),
+          display_id: local.display_id || `#${String(local.id).slice(-4).toUpperCase()}`,
+          customer_name: local.customer_name || 'Cliente',
+          phone: (local as any).customer_phone || local.phone || '',
+          total_price: Number((local as any).total_amount || local.total_price || 0),
+          order_items: (local.order_items || []).map((item) =>
+            mapKdsOrderItem(item as unknown as Record<string, unknown>)
+          ),
+        } as Order);
       } else {
         setError(err.message || 'Impossibile recuperare i dettagli dell\'ordine.');
       }
@@ -342,7 +348,9 @@ export const OrderTracking: React.FC = () => {
   };
 
   const currentStep = getStepIndex(order?.status);
-
+  const schedule = parseTrackerSchedule(order?.notes);
+  const isDelivery = (order?.order_type || '').toLowerCase().includes('consegna');
+  const hasScheduledTime = schedule.hasTime;
 
   const displayId = order?.display_id || (order?.id ? `#${String(order.id).slice(-4).toUpperCase()}` : (id ? `#${String(id).slice(-4).toUpperCase()}` : '#0000'));
 
@@ -716,6 +724,50 @@ export const OrderTracking: React.FC = () => {
                 </div>
               </div>
 
+              {/* PICKUP / DELIVERY TIME — dedicated schedule card, not a note */}
+              {hasScheduledTime && (
+                <div className={`tracker-schedule ${schedule.isAsap ? 'tracker-schedule--asap' : 'tracker-schedule--timed'}`}>
+                  <div className="tracker-schedule-icon" aria-hidden="true">
+                    {schedule.isAsap ? <Zap size={24} /> : <Clock size={24} />}
+                  </div>
+                  <div className="tracker-schedule-body">
+                    <div className="tracker-schedule-kicker">
+                      <span>
+                        {isDelivery ? 'Orario di consegna' : 'Orario di ritiro'}
+                      </span>
+                      {schedule.dayLabel && (
+                        <span className={`tracker-schedule-day tracker-schedule-day--${schedule.dayLabel.toLowerCase()}`}>
+                          <Calendar size={11} />
+                          {schedule.dayLabel}
+                        </span>
+                      )}
+                    </div>
+
+                    {schedule.isAsap ? (
+                      <div className="tracker-schedule-asap-label">Prima possibile</div>
+                    ) : schedule.clockHours && schedule.clockMinutes ? (
+                      <div className="tracker-schedule-clock" aria-label={`${schedule.clockHours}:${schedule.clockMinutes}`}>
+                        <span>{schedule.clockHours}</span>
+                        <span className="tracker-schedule-colon">:</span>
+                        <span>{schedule.clockMinutes}</span>
+                      </div>
+                    ) : (
+                      <div className="tracker-schedule-asap-label">{schedule.rawTime}</div>
+                    )}
+
+                    <div className="tracker-schedule-hint">
+                      {schedule.isAsap
+                        ? (isDelivery
+                          ? 'Partiamo appena l\'ordine è pronto'
+                          : 'Passa al banco appena ricevi l\'avviso')
+                        : (isDelivery
+                          ? 'Consegna prevista a quest\'ora'
+                          : 'Presentati al banco a quest\'ora')}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* NEED HELP / WHATSAPP STORE CONTACT */}
               <div
                 style={{
@@ -827,8 +879,8 @@ export const OrderTracking: React.FC = () => {
                 </div>
               </div>
 
-              {/* Order Notes Banner if present */}
-              {order.notes && (
+              {/* Order notes — only real customer notes, never the pickup time */}
+              {schedule.remainingNotes && (
                 <div
                   style={{
                     padding: '0.6rem 0.8rem',
@@ -845,7 +897,7 @@ export const OrderTracking: React.FC = () => {
                   }}
                 >
                   <Receipt size={15} style={{ flexShrink: 0 }} />
-                  <span>Nota: {order.notes}</span>
+                  <span>Nota: {schedule.remainingNotes}</span>
                 </div>
               )}
 
@@ -853,13 +905,12 @@ export const OrderTracking: React.FC = () => {
               <div style={{ marginBottom: '1.15rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '0.2rem' }}>
                 {(order.order_items || order.items || []).map((item, idx) => {
                   const isFried =
-                    (item as any).item_type === 'fritto' ||
+                    item.item_type === 'fritto' ||
                     (item.item_name || '').toLowerCase().includes('cono') ||
                     (item.item_name || '').toLowerCase().includes('fritt');
 
                   const isFish =
-                    (item as any).item_type === 'pesce' ||
-                    (item as any).details?.item_type === 'pesce' ||
+                    item.item_type === 'pesce' ||
                     (item.item_name || '').startsWith('🐟') ||
                     (item.item_name || '').toLowerCase().includes('kg');
 
@@ -929,7 +980,7 @@ export const OrderTracking: React.FC = () => {
                           </div>
                         )}
 
-                        {item.has_sesame !== undefined && (
+                        {!isFried && !isFish && item.has_sesame !== undefined && (
                           <div>
                             <span style={{ color: '#8DA9C4', fontWeight: 600 }}>Sesamo:</span>{' '}
                             <span style={{ color: item.has_sesame ? '#34D399' : '#F87171', fontWeight: 700 }}>

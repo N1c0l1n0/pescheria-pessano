@@ -903,6 +903,193 @@ textarea:focus {
   }
 }
 
+/* ==========================================================================
+   TRACKER SCHEDULE CARD — pickup / delivery time (not a note)
+   ========================================================================== */
+.tracker-schedule {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.05rem 1.15rem;
+  border-radius: 1.1rem;
+  isolation: isolate;
+}
+
+.tracker-schedule::before {
+  content: '';
+  position: absolute;
+  inset: -40% auto auto -18%;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tracker-schedule--timed {
+  background:
+    linear-gradient(135deg, rgba(19, 64, 116, 0.55) 0%, rgba(10, 35, 66, 0.88) 52%, rgba(201, 162, 39, 0.16) 100%);
+  border: 1px solid rgba(201, 162, 39, 0.42);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.tracker-schedule--timed::before {
+  background: radial-gradient(circle, rgba(201, 162, 39, 0.28) 0%, transparent 70%);
+}
+
+.tracker-schedule--asap {
+  background:
+    linear-gradient(135deg, rgba(232, 93, 82, 0.18) 0%, rgba(10, 35, 66, 0.9) 48%, rgba(56, 189, 248, 0.12) 100%);
+  border: 1px solid rgba(232, 93, 82, 0.42);
+  box-shadow:
+    0 10px 28px rgba(232, 93, 82, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.tracker-schedule--asap::before {
+  background: radial-gradient(circle, rgba(232, 93, 82, 0.28) 0%, transparent 70%);
+}
+
+.tracker-schedule-icon {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tracker-schedule--timed .tracker-schedule-icon {
+  background: linear-gradient(160deg, rgba(201, 162, 39, 0.28) 0%, rgba(19, 64, 116, 0.7) 100%);
+  border: 1px solid rgba(232, 212, 154, 0.45);
+  color: #E8D49A;
+  box-shadow: 0 0 18px rgba(201, 162, 39, 0.25);
+}
+
+.tracker-schedule--asap .tracker-schedule-icon {
+  background: linear-gradient(160deg, rgba(232, 93, 82, 0.35) 0%, rgba(19, 64, 116, 0.7) 100%);
+  border: 1px solid rgba(252, 165, 165, 0.45);
+  color: #FECACA;
+  box-shadow: 0 0 18px rgba(232, 93, 82, 0.28);
+}
+
+.tracker-schedule-body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.tracker-schedule-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tracker-schedule-kicker span:first-child {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8DA9C4;
+}
+
+.tracker-schedule-day {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tracker-schedule-day--oggi {
+  background: rgba(201, 162, 39, 0.18);
+  color: #E8D49A;
+  border: 1px solid rgba(201, 162, 39, 0.4);
+}
+
+.tracker-schedule-day--domani {
+  background: rgba(56, 189, 248, 0.14);
+  color: #7DD3FC;
+  border: 1px solid rgba(56, 189, 248, 0.38);
+}
+
+.tracker-schedule-clock {
+  display: flex;
+  align-items: baseline;
+  gap: 0.08rem;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 2.35rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: #FFF8E7;
+  text-shadow: 0 0 24px rgba(201, 162, 39, 0.35);
+}
+
+.tracker-schedule-clock .tracker-schedule-colon {
+  animation: trackerColonPulse 1.2s ease-in-out infinite;
+  color: var(--color-gold);
+  padding: 0 0.04rem;
+}
+
+.tracker-schedule-asap-label {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 1.55rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: #FFF1F0;
+}
+
+.tracker-schedule-hint {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #A8C0D6;
+}
+
+@keyframes trackerColonPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.28; }
+}
+
+@media (max-width: 480px) {
+  .tracker-schedule {
+    padding: 0.95rem 1rem;
+    gap: 0.85rem;
+  }
+
+  .tracker-schedule-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+
+  .tracker-schedule-clock {
+    font-size: 1.95rem;
+  }
+
+  .tracker-schedule-asap-label {
+    font-size: 1.3rem;
+  }
+}
+
 /* Category tab navigation — Poke Builder */
 .poke-category-tabs {
   display: flex;
@@ -1249,6 +1436,31 @@ textarea:focus {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(232, 212, 154, 0.16);
   backdrop-filter: blur(10px);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.order-process-step:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(232, 212, 154, 0.4);
+  transform: translateY(-1px);
+}
+
+.order-process-step:focus-visible {
+  outline: 2px solid var(--color-gold-soft);
+  outline-offset: 3px;
+}
+
+.order-process-step:active {
+  transform: translateY(0);
+}
+
+#ordine-dati,
+#ordine-componi,
+#ordine-invia {
+  scroll-margin-top: calc(var(--header-height) + 18px);
 }
 
 .order-process-icon {

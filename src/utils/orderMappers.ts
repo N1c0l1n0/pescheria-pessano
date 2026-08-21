@@ -31,7 +31,7 @@ export interface KdsOrder {
   order_items: KdsOrderItem[];
 }
 
-const resolveKdsItemType = (
+export const resolveKdsItemType = (
   item: Record<string, unknown>,
   dt: Record<string, unknown>,
   itemName: string
