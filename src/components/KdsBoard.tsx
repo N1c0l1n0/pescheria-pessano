@@ -90,26 +90,63 @@ const normalizePhoneForWhatsApp = (phone: string): string | null => {
 
   if (digits.startsWith('00')) digits = digits.slice(2);
 
-  if (digits.length === 10 && digits.startsWith('3')) {
-    digits = `39${digits}`;
-  } else if (digits.startsWith('0')) {
-    digits = `39${digits.slice(1)}`;
+  if (digits.startsWith('39')) {
+    let national = digits.slice(2);
+    if (national.startsWith('0')) national = national.slice(1);
+    if (national.length >= 8 && national.length <= 11) return `39${national}`;
+    return digits.length >= 11 ? digits : null;
   }
 
+  if (digits.startsWith('0')) digits = digits.slice(1);
+
+  if (digits.length >= 8 && digits.length <= 11) return `39${digits}`;
+
   return digits.length >= 9 ? digits : null;
+};
+
+const buildOrderReadyWhatsAppMessage = (order: KdsOrder): string => {
+  const displayId = order.display_id || `#${order.id}`;
+  const isDelivery = order.order_type?.toLowerCase().includes('consegna');
+  return isDelivery
+    ? `Ciao ${order.customer_name}, il tuo ordine ${displayId} è pronto! Stiamo preparando la consegna. — Pescheria Pessano`
+    : `Ciao ${order.customer_name}, il tuo ordine ${displayId} è pronto! Puoi passare a ritirarlo. — Pescheria Pessano`;
 };
 
 const buildOrderReadyWhatsAppUrl = (order: KdsOrder): string | null => {
   const phone = normalizePhoneForWhatsApp(order.phone || '');
   if (!phone) return null;
 
-  const displayId = order.display_id || `#${order.id}`;
-  const isDelivery = order.order_type?.toLowerCase().includes('consegna');
-  const message = isDelivery
-    ? `Ciao ${order.customer_name}, il tuo ordine ${displayId} è pronto! Stiamo preparando la consegna. — Pescheria Pessano`
-    : `Ciao ${order.customer_name}, il tuo ordine ${displayId} è pronto! Puoi passare a ritirarlo. — Pescheria Pessano`;
-
+  const message = buildOrderReadyWhatsAppMessage(order);
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+};
+
+const openOrderReadyWhatsApp = (order: KdsOrder) => {
+  const url = buildOrderReadyWhatsAppUrl(order);
+  if (!url) return;
+
+  // Esci dal fullscreen nello stesso gesto, senza attendere: window.open
+  // dopo una Promise viene spesso bloccato come popup.
+  if (document.fullscreenElement && document.exitFullscreen) {
+    document.exitFullscreen().catch(() => undefined);
+  }
+
+  const popup = window.open(url, '_blank');
+  if (popup) {
+    try {
+      popup.opener = null;
+    } catch {
+      // ignore: some browsers block touching opener across origins
+    }
+    return;
+  }
+
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.target = '_blank';
+  anchor.rel = 'noopener noreferrer';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
 };
 
 const WhatsAppIcon: React.FC<{ size?: number }> = ({ size = 24 }) => (
@@ -257,14 +294,18 @@ export const KdsBoard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, []);
+
   // Fullscreen toggle handler
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(console.warn);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().then(() => setIsFullscreen(false)).catch(console.warn);
-      }
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(console.warn);
     }
   };
 
@@ -1825,7 +1866,11 @@ export const KdsBoard: React.FC = () => {
                   </div>
 
                   {/* FOOTER CARD - GIANT TOUCH ACTION BUTTONS */}
-                  <div style={{ padding: '0.85rem 1.15rem 1.15rem 1.15rem', borderTop: '1px solid rgba(148, 163, 184, 0.12)', backgroundColor: '#0F172A' }}>
+                  <div
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ padding: '0.85rem 1.15rem 1.15rem 1.15rem', borderTop: '1px solid rgba(148, 163, 184, 0.12)', backgroundColor: '#0F172A' }}
+                  >
                     {ord.status === 'RICEVUTO' && (
                       <button
                         type="button"
@@ -1919,15 +1964,18 @@ export const KdsBoard: React.FC = () => {
                             ARCHIVIA
                           </button>
 
-                          <a
-                            href={whatsappUrl || undefined}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            type="button"
+                            disabled={!whatsappUrl}
                             title={whatsappUrl ? 'Avvisa il cliente su WhatsApp che l\'ordine è pronto' : 'Numero di telefono non disponibile'}
                             aria-label={whatsappUrl ? 'Avvisa il cliente su WhatsApp' : 'WhatsApp non disponibile: numero mancante'}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
                             onClick={(e) => {
+                              e.preventDefault();
                               e.stopPropagation();
-                              if (!whatsappUrl) e.preventDefault();
+                              if (!whatsappUrl) return;
+                              openOrderReadyWhatsApp(ord);
                             }}
                             style={{
                               flexShrink: 0,
@@ -1943,10 +1991,10 @@ export const KdsBoard: React.FC = () => {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              textDecoration: 'none',
                               boxShadow: whatsappUrl ? '0 4px 15px rgba(37, 211, 102, 0.45)' : 'none',
                               transition: 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease',
                               opacity: whatsappUrl ? 1 : 0.55,
+                              touchAction: 'manipulation',
                             }}
                             onMouseEnter={(e) => {
                               if (!whatsappUrl) return;
@@ -1960,7 +2008,7 @@ export const KdsBoard: React.FC = () => {
                             }}
                           >
                             <WhatsAppIcon size={26} />
-                          </a>
+                          </button>
                         </div>
                       );
                     })()}
