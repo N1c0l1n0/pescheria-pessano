@@ -211,7 +211,7 @@ export const OrderTracking: React.FC = () => {
       // Local store fallback
       const local = getLocalOrderById(id);
       if (local) {
-        const normalizedLocalItems = (local.order_items || (local as any).items || []).map((item: Record<string, unknown>) =>
+        const normalizedLocalItems = (local.order_items || (local as any).items || []).map((item) =>
           mapKdsOrderItem(item)
         );
 
@@ -272,9 +272,7 @@ export const OrderTracking: React.FC = () => {
           customer_name: local.customer_name || 'Cliente',
           phone: (local as any).customer_phone || local.phone || '',
           total_price: Number((local as any).total_amount || local.total_price || 0),
-          order_items: (local.order_items || []).map((item) =>
-            mapKdsOrderItem(item as unknown as Record<string, unknown>)
-          ),
+          order_items: (local.order_items || []).map((item) => mapKdsOrderItem(item)),
         } as Order);
       } else {
         setError(err.message || 'Impossibile recuperare i dettagli dell\'ordine.');

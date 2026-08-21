@@ -47,79 +47,80 @@ export const resolveKdsItemType = (
   return 'poke';
 };
 
-export const mapKdsOrderItem = (item: Record<string, unknown>): KdsOrderItem => {
+export const mapKdsOrderItem = (item: object): KdsOrderItem => {
+  const rec = item as Record<string, unknown>;
   let dt: Record<string, unknown> = {};
-  if (typeof item.details === 'string') {
+  if (typeof rec.details === 'string') {
     try {
-      dt = JSON.parse(item.details);
+      dt = JSON.parse(rec.details);
     } catch {
       dt = {};
     }
-  } else if (typeof item.details === 'object' && item.details !== null) {
-    dt = item.details as Record<string, unknown>;
+  } else if (typeof rec.details === 'object' && rec.details !== null) {
+    dt = rec.details as Record<string, unknown>;
   }
 
-  const itemName = String(item.name || item.item_name || (dt.size ? `Poke ${dt.size}` : 'Poke'));
-  const itemType = resolveKdsItemType(item, dt, itemName);
+  const itemName = String(rec.name || rec.item_name || (dt.size ? `Poke ${dt.size}` : 'Poke'));
+  const itemType = resolveKdsItemType(rec, dt, itemName);
 
-  const bases = Array.isArray(item.bases)
-    ? (item.bases as string[])
+  const bases = Array.isArray(rec.bases)
+    ? (rec.bases as string[])
     : Array.isArray(dt.bases)
       ? (dt.bases as string[])
-      : Array.isArray(item.basi)
-        ? (item.basi as string[])
+      : Array.isArray(rec.basi)
+        ? (rec.basi as string[])
         : Array.isArray(dt.basi)
           ? (dt.basi as string[])
           : [];
 
-  const proteins = Array.isArray(item.proteins)
-    ? (item.proteins as string[])
+  const proteins = Array.isArray(rec.proteins)
+    ? (rec.proteins as string[])
     : Array.isArray(dt.proteins)
       ? (dt.proteins as string[])
-      : Array.isArray(item.proteine)
-        ? (item.proteine as string[])
+      : Array.isArray(rec.proteine)
+        ? (rec.proteine as string[])
         : Array.isArray(dt.proteine)
           ? (dt.proteine as string[])
           : [];
 
-  const toppings = Array.isArray(item.toppings)
-    ? (item.toppings as string[])
+  const toppings = Array.isArray(rec.toppings)
+    ? (rec.toppings as string[])
     : Array.isArray(dt.toppings)
       ? (dt.toppings as string[])
-      : Array.isArray(item.ingredienti)
-        ? (item.ingredienti as string[])
+      : Array.isArray(rec.ingredienti)
+        ? (rec.ingredienti as string[])
         : Array.isArray(dt.ingredienti)
           ? (dt.ingredienti as string[])
           : [];
 
-  const sauces = Array.isArray(item.sauces)
-    ? (item.sauces as string[])
+  const sauces = Array.isArray(rec.sauces)
+    ? (rec.sauces as string[])
     : Array.isArray(dt.sauces)
       ? (dt.sauces as string[])
-      : Array.isArray(item.salse)
-        ? (item.salse as string[])
+      : Array.isArray(rec.salse)
+        ? (rec.salse as string[])
         : Array.isArray(dt.salse)
           ? (dt.salse as string[])
           : [];
 
   const hasSesame =
     itemType === 'poke'
-      ? Boolean(dt.has_sesame ?? item.has_sesame ?? true)
+      ? Boolean(dt.has_sesame ?? rec.has_sesame ?? true)
       : undefined;
 
   return {
-    id: String(item.id || Math.random()),
+    id: String(rec.id || Math.random()),
     item_name: itemName,
     item_type: itemType,
-    size: String(item.size || dt.size || ''),
+    size: String(rec.size || dt.size || ''),
     bases,
     proteins,
     toppings,
     sauces,
     has_sesame: hasSesame,
-    notes: String(item.notes || dt.notes || ''),
-    price: Number(item.unit_price || item.price || 0),
-    quantity: Number(item.quantity || 1),
+    notes: String(rec.notes || dt.notes || ''),
+    price: Number(rec.unit_price || rec.price || 0),
+    quantity: Number(rec.quantity || 1),
     preparation: itemType === 'pesce' ? String(dt.preparation || '') : undefined,
     weight_grams:
       itemType === 'pesce' && typeof dt.weight_grams === 'number'
@@ -159,9 +160,7 @@ export const mapLocalOrderToKdsOrder = (o: LocalOrder): KdsOrder => ({
   total_price: Number((o as LocalOrder & { total_amount?: number }).total_amount || o.total_price || 0),
   created_at: o.created_at || new Date().toISOString(),
   notes: o.notes,
-  order_items: (o.order_items || []).map((item) =>
-    mapKdsOrderItem(item as unknown as Record<string, unknown>)
-  ),
+  order_items: (o.order_items || []).map((item) => mapKdsOrderItem(item)),
 });
 
 export type HistoryPeriod = 'today' | '7days' | '30days';
