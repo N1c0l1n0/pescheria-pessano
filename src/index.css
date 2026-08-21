@@ -710,3 +710,221 @@ textarea {
   background-color: var(--color-coral-hover);
   border-color: rgba(255, 255, 255, 0.45);
 }
+
+/* ── KDS Focus / Spotlight ── */
+@keyframes kds-focus-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.35),
+      0 0 28px rgba(251, 191, 36, 0.35),
+      0 0 64px rgba(245, 158, 11, 0.18),
+      0 22px 48px rgba(0, 0, 0, 0.55);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(253, 224, 71, 0.55),
+      0 0 42px rgba(251, 191, 36, 0.55),
+      0 0 90px rgba(245, 158, 11, 0.28),
+      0 26px 56px rgba(0, 0, 0, 0.6);
+  }
+}
+
+@keyframes kds-focus-shimmer {
+  0% {
+    background-position: 200% center;
+  }
+
+  100% {
+    background-position: -200% center;
+  }
+}
+
+@keyframes kds-focus-badge-glow {
+  0%,
+  100% {
+    box-shadow: 0 2px 14px rgba(251, 191, 36, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+
+  50% {
+    box-shadow: 0 4px 22px rgba(251, 191, 36, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  }
+}
+
+@keyframes kds-focus-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(15, 23, 42, 0.4);
+  }
+
+  50% {
+    opacity: 0.55;
+    transform: scale(0.82);
+    box-shadow: 0 0 0 4px rgba(15, 23, 42, 0);
+  }
+}
+
+[data-kds-order-card] {
+  transition:
+    transform 0.38s cubic-bezier(0.34, 1.35, 0.64, 1),
+    opacity 0.32s ease,
+    filter 0.32s ease,
+    box-shadow 0.38s ease,
+    border-color 0.32s ease;
+}
+
+.kds-order-card--focused {
+  z-index: 20;
+  transform: scale(1.028) translateY(-3px);
+  border-color: transparent !important;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(251, 191, 36, 0.16) 0%, transparent 58%),
+    #0B1220 !important;
+  animation: kds-focus-glow 2.8s ease-in-out infinite;
+}
+
+.kds-order-card--focused::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(
+    115deg,
+    #B45309 0%,
+    #FBBF24 18%,
+    #FDE68A 36%,
+    #F59E0B 54%,
+    #FDE68A 72%,
+    #FBBF24 88%,
+    #B45309 100%
+  );
+  background-size: 220% 100%;
+  animation: kds-focus-shimmer 4s linear infinite;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.kds-order-card--focused::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 3px;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(90deg, transparent, #FDE68A, #FBBF24, #FDE68A, transparent);
+  filter: blur(0.2px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.kds-order-card--dimmed {
+  opacity: 0.68;
+  filter: saturate(0.72) brightness(0.9);
+  transform: scale(0.985);
+}
+
+.kds-order-card__inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.kds-order-header--focused {
+  background:
+    linear-gradient(135deg, rgba(251, 191, 36, 0.18) 0%, rgba(251, 191, 36, 0.04) 42%, transparent 72%),
+    #152033 !important;
+  border-bottom: 1px solid rgba(251, 191, 36, 0.42) !important;
+  box-shadow: inset 0 1px 0 rgba(253, 224, 71, 0.12);
+}
+
+.kds-order-id--focused {
+  color: #FEF3C7 !important;
+  text-shadow: 0 0 24px rgba(251, 191, 36, 0.55), 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+
+.kds-focus-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #0F172A;
+  background: linear-gradient(135deg, #FEF9C3 0%, #FBBF24 45%, #F59E0B 100%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  animation: kds-focus-badge-glow 2.2s ease-in-out infinite;
+}
+
+.kds-focus-badge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #0F172A;
+  flex-shrink: 0;
+  animation: kds-focus-dot 1.4s ease-in-out infinite;
+}
+
+.kds-focus-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748B;
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  opacity: 0.85;
+  transition: opacity 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+[data-kds-order-card]:hover .kds-focus-hint {
+  opacity: 1;
+  color: #94A3B8;
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kds-order-card--focused {
+    animation: none;
+  }
+
+  .kds-order-card--focused::before {
+    animation: none;
+    background-size: 100% 100%;
+  }
+
+  .kds-focus-badge {
+    animation: none;
+  }
+
+  .kds-focus-badge__dot {
+    animation: none;
+  }
+
+  [data-kds-order-card] {
+    transition: opacity 0.2s ease, filter 0.2s ease;
+  }
+}

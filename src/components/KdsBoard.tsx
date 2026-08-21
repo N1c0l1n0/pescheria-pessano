@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Clock,
   CheckCircle2,
@@ -14,39 +14,30 @@ import {
   Phone,
   RefreshCw,
   Sparkles,
-  ChefHat
+  Focus,
+  History,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getLocalOrders, updateLocalOrderStatus, subscribeToLocalOrders } from '../utils/orderStore';
+import {
+  type KdsOrder,
+  type KdsOrderItem,
+  type HistoryPeriod,
+  mapSupabaseOrderToKdsOrder,
+  mapLocalOrderToKdsOrder,
+  getHistoryDateRange,
+  formatOrderDateTime,
+  HISTORY_PAGE_SIZE,
+} from '../utils/orderMappers';
 import { sendOrderStatusNotification } from '../lib/onesignal';
 
-export interface KdsOrderItem {
-  id?: string;
-  item_name?: string;
-  size?: string;
-  bases?: string[];
-  proteins?: string[];
-  toppings?: string[];
-  sauces?: string[];
-  has_sesame?: boolean;
-  notes?: string;
-  price?: number;
-  quantity?: number;
-}
-
-export interface KdsOrder {
-  id: string;
-  display_id?: string;
-  status: 'RICEVUTO' | 'IN_PREPARAZIONE' | 'PRONTO' | 'COMPLETATO' | string;
-  customer_name: string;
-  phone?: string;
-  order_type: 'Ritiro' | 'Consegna' | string;
-  delivery_address?: string;
-  total_price: number;
-  created_at: string;
-  notes?: string;
-  order_items: KdsOrderItem[];
-}
+export type { KdsOrder, KdsOrderItem };
 
 // Helper to extract customer's requested time from order notes
 export const extractRequestedTimeInfo = (notes?: string): { timeText: string; isAsap: boolean } => {
@@ -92,14 +83,78 @@ export const getOrderTargetMs = (o: KdsOrder): number => {
   return createdMs;
 };
 
+const normalizePhoneForWhatsApp = (phone: string): string | null => {
+  if (!phone?.trim()) return null;
+
+  let digits = phone.replace(/\D/g, '');
+  if (!digits) return null;
+
+  if (digits.startsWith('00')) digits = digits.slice(2);
+
+  if (digits.length === 10 && digits.startsWith('3')) {
+    digits = `39${digits}`;
+  } else if (digits.startsWith('0')) {
+    digits = `39${digits.slice(1)}`;
+  }
+
+  return digits.length >= 9 ? digits : null;
+};
+
+const buildOrderReadyWhatsAppUrl = (order: KdsOrder): string | null => {
+  const phone = normalizePhoneForWhatsApp(order.phone || '');
+  if (!phone) return null;
+
+  const displayId = order.display_id || `#${order.id}`;
+  const isDelivery = order.order_type?.toLowerCase().includes('consegna');
+  const message = isDelivery
+    ? `Ciao ${order.customer_name}, il tuo ordine ${displayId} è pronto! Stiamo preparando la consegna. — Pescheria Pessano`
+    : `Ciao ${order.customer_name}, il tuo ordine ${displayId} è pronto! Puoi passare a ritirarlo. — Pescheria Pessano`;
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+};
+
+const WhatsAppIcon: React.FC<{ size?: number }> = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.884 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+  </svg>
+);
+
 export const KdsBoard: React.FC = () => {
   const [orders, setOrders] = useState<KdsOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [boardView, setBoardView] = useState<'active' | 'history'>('active');
   const [activeFilter, setActiveFilter] = useState<'TUTTI' | 'RITIRO' | 'CONSEGNA'>('TUTTI');
+  const [historyOrders, setHistoryOrders] = useState<KdsOrder[]>([]);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(false);
+  const [historyPage, setHistoryPage] = useState<number>(0);
+  const [historyHasMore, setHistoryHasMore] = useState<boolean>(false);
+  const [historyPeriod, setHistoryPeriod] = useState<HistoryPeriod>('7days');
+  const [historySearch, setHistorySearch] = useState<string>('');
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState<Record<string, boolean>>({});
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<string>('');
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  
+  const [focusedOrderId, setFocusedOrderId] = useState<string | null>(null);
+  const orderCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const mainRef = useRef<HTMLElement | null>(null);
+
+  const focusOrder = useCallback((orderId: string | null) => {
+    setFocusedOrderId(orderId);
+    if (orderId) {
+      requestAnimationFrame(() => {
+        const card = orderCardRefs.current[orderId];
+        const main = mainRef.current;
+        if (!card || !main) return;
+
+        const cardRect = card.getBoundingClientRect();
+        const mainRect = main.getBoundingClientRect();
+        const targetTop = cardRect.top - mainRect.top + main.scrollTop - 16;
+        main.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+      });
+    }
+  }, []);
+
+  const clearFocus = useCallback(() => setFocusedOrderId(null), []);
+
   // Track checked ingredients per order and item (key: `${orderId}_${itemIdx}_${ingCategory}_${ingName}`)
   const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
 
@@ -229,95 +284,13 @@ export const KdsBoard: React.FC = () => {
         .order('created_at', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        remoteOrders = data.map((o: any) => {
-          const items: KdsOrderItem[] = Array.isArray(o.order_items)
-            ? o.order_items.map((item: any) => {
-                let dt: any = {};
-                if (typeof item.details === 'string') {
-                  try { dt = JSON.parse(item.details); } catch (e) { dt = {}; }
-                } else if (typeof item.details === 'object' && item.details !== null) {
-                  dt = item.details;
-                }
-
-                const bases = Array.isArray(dt.bases) ? dt.bases : (Array.isArray(item.bases) ? item.bases : (Array.isArray(dt.basi) ? dt.basi : (Array.isArray(item.basi) ? item.basi : [])));
-                const proteins = Array.isArray(dt.proteins) ? dt.proteins : (Array.isArray(item.proteins) ? item.proteins : (Array.isArray(dt.proteine) ? dt.proteine : (Array.isArray(item.proteine) ? item.proteine : [])));
-                const toppings = Array.isArray(dt.toppings) ? dt.toppings : (Array.isArray(item.toppings) ? item.toppings : (Array.isArray(dt.ingredienti) ? dt.ingredienti : (Array.isArray(item.ingredienti) ? item.ingredienti : [])));
-                const sauces = Array.isArray(dt.sauces) ? dt.sauces : (Array.isArray(item.sauces) ? item.sauces : (Array.isArray(dt.salse) ? dt.salse : (Array.isArray(item.salse) ? item.salse : [])));
-
-                return {
-                  id: String(item.id),
-                  item_name: item.name || item.item_name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
-                  size: dt.size || item.size || '',
-                  bases,
-                  proteins,
-                  toppings,
-                  sauces,
-                  has_sesame: dt.has_sesame ?? item.has_sesame ?? true,
-                  notes: dt.notes || item.notes || '',
-                  price: Number(item.unit_price || item.price || 0),
-                  quantity: Number(item.quantity || 1),
-                };
-              })
-            : [];
-
-          return {
-            id: String(o.id),
-            display_id: o.friendly_id || `#${String(o.id).slice(-4).toUpperCase()}`,
-            status: o.status || 'RICEVUTO',
-            customer_name: o.customer_name || 'Cliente',
-            phone: o.customer_phone || o.phone || '',
-            order_type: o.order_type || 'Ritiro',
-            delivery_address: o.delivery_address || undefined,
-            total_price: Number(o.total_amount || o.total_price || 0),
-            created_at: o.created_at || new Date().toISOString(),
-            notes: o.notes || '',
-            order_items: items,
-          };
-        });
+        remoteOrders = data.map((o) => mapSupabaseOrderToKdsOrder(o as Record<string, unknown>));
       }
 
       // Combine with local orders (for instant offline / dev persistence)
       const localList = getLocalOrders()
         .filter((o) => o.status !== 'COMPLETATO')
-        .map((o) => ({
-          id: String(o.id),
-          display_id: o.display_id || `#${String(o.id).slice(-4).toUpperCase()}`,
-          status: o.status || 'RICEVUTO',
-          customer_name: o.customer_name || 'Cliente',
-          phone: (o as any).customer_phone || o.phone || '',
-          order_type: o.order_type || 'Ritiro',
-          delivery_address: o.delivery_address,
-          total_price: Number((o as any).total_amount || o.total_price || 0),
-          created_at: o.created_at || new Date().toISOString(),
-          notes: o.notes,
-          order_items: (o.order_items || []).map((item: any) => {
-            let dt: any = {};
-            if (typeof item.details === 'string') {
-              try { dt = JSON.parse(item.details); } catch (e) { dt = {}; }
-            } else if (typeof item.details === 'object' && item.details !== null) {
-              dt = item.details;
-            }
-
-            const bases = Array.isArray(item.bases) ? item.bases : (Array.isArray(dt.bases) ? dt.bases : (Array.isArray(item.basi) ? item.basi : (Array.isArray(dt.basi) ? dt.basi : [])));
-            const proteins = Array.isArray(item.proteins) ? item.proteins : (Array.isArray(dt.proteins) ? dt.proteins : (Array.isArray(item.proteine) ? item.proteine : (Array.isArray(dt.proteine) ? dt.proteine : [])));
-            const toppings = Array.isArray(item.toppings) ? item.toppings : (Array.isArray(dt.toppings) ? dt.toppings : (Array.isArray(item.ingredienti) ? item.ingredienti : (Array.isArray(dt.ingredienti) ? dt.ingredienti : [])));
-            const sauces = Array.isArray(item.sauces) ? item.sauces : (Array.isArray(dt.sauces) ? dt.sauces : (Array.isArray(item.salse) ? item.salse : (Array.isArray(dt.salse) ? dt.salse : [])));
-
-            return {
-              id: String(item.id || Math.random()),
-              item_name: item.item_name || item.name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
-              size: item.size || dt.size || '',
-              bases,
-              proteins,
-              toppings,
-              sauces,
-              has_sesame: item.has_sesame ?? dt.has_sesame ?? true,
-              notes: item.notes || dt.notes || '',
-              price: Number(item.price || item.unit_price || 0),
-              quantity: Number(item.quantity || 1),
-            };
-          }),
-        }));
+        .map((o) => mapLocalOrderToKdsOrder(o));
 
       const orderMap = new Map<string, KdsOrder>();
       remoteOrders.forEach((o) => orderMap.set(o.id, o));
@@ -343,8 +316,56 @@ export const KdsBoard: React.FC = () => {
     }
   }, []);
 
-  // Supabase Realtime & Local Store Subscription
+  const fetchHistoryOrders = useCallback(async (page = 0, append = false) => {
+    try {
+      setHistoryLoading(true);
+      const { start, end } = getHistoryDateRange(historyPeriod);
+      const from = page * HISTORY_PAGE_SIZE;
+      const to = from + HISTORY_PAGE_SIZE - 1;
+
+      let query = supabase
+        .from('orders')
+        .select('*, order_items(*)', { count: 'exact' })
+        .eq('status', 'COMPLETATO')
+        .gte('created_at', start)
+        .lte('created_at', end)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      const search = historySearch.trim();
+      if (search) {
+        const pattern = `%${search}%`;
+        query = query.or(
+          `customer_name.ilike.${pattern},customer_phone.ilike.${pattern},friendly_id.ilike.${pattern}`
+        );
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        console.warn('History fetch failed:', error.message);
+        if (!append) setHistoryOrders([]);
+        setHistoryHasMore(false);
+        return;
+      }
+
+      const mapped = (data || []).map((o) => mapSupabaseOrderToKdsOrder(o as Record<string, unknown>));
+      setHistoryOrders((prev) => (append ? [...prev, ...mapped] : mapped));
+      setHistoryHasMore(count !== null ? from + mapped.length < count : mapped.length === HISTORY_PAGE_SIZE);
+      setHistoryPage(page);
+    } catch (e) {
+      console.warn('History fetch exception:', e);
+      if (!append) setHistoryOrders([]);
+      setHistoryHasMore(false);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [historyPeriod, historySearch]);
+
+  // Supabase Realtime & Local Store Subscription (active board only)
   useEffect(() => {
+    if (boardView !== 'active') return;
+
     fetchOrders(false);
 
     const unsubLocal = subscribeToLocalOrders(() => {
@@ -358,7 +379,7 @@ export const KdsBoard: React.FC = () => {
         { event: '*', schema: 'public', table: 'orders' },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const newOrder = payload.new as any;
+            const newOrder = payload.new as { status?: string };
             if (newOrder.status === 'RICEVUTO') {
               playAudioBeep();
             }
@@ -374,7 +395,13 @@ export const KdsBoard: React.FC = () => {
       unsubLocal();
       supabase.removeChannel(channel);
     };
-  }, [fetchOrders, playAudioBeep]);
+  }, [fetchOrders, playAudioBeep, boardView]);
+
+  // Load history on-demand when switching to history tab or changing filters
+  useEffect(() => {
+    if (boardView !== 'history') return;
+    fetchHistoryOrders(0, false);
+  }, [boardView, historyPeriod, historySearch, fetchHistoryOrders]);
 
   // Update order status handler
   const handleUpdateStatus = async (orderId: string, newStatus: 'IN_PREPARAZIONE' | 'PRONTO' | 'COMPLETATO') => {
@@ -391,6 +418,16 @@ export const KdsBoard: React.FC = () => {
     }).catch((err) => {
       console.warn(`[KDS] Errore notifica push per ordine #${orderId}:`, err);
     });
+
+    if (newStatus === 'COMPLETATO') {
+      clearFocus();
+      setCheckedIngredients((prev) => {
+        const prefix = `${orderId}_`;
+        return Object.fromEntries(Object.entries(prev).filter(([key]) => !key.startsWith(prefix)));
+      });
+    } else if (newStatus === 'IN_PREPARAZIONE') {
+      focusOrder(orderId);
+    }
 
     // Optimistic UI update
     setOrders((prev) => {
@@ -514,8 +551,9 @@ export const KdsBoard: React.FC = () => {
     };
   };
 
-  // Toggle ingredient checklist item
-  const toggleIngredient = (key: string) => {
+  // Toggle ingredient checklist item (switches focus to that order if needed)
+  const toggleIngredient = (orderId: string, key: string) => {
+    if (focusedOrderId !== orderId) focusOrder(orderId);
     setCheckedIngredients((prev) => ({
       ...prev,
       [key]: !prev[key]
@@ -529,6 +567,54 @@ export const KdsBoard: React.FC = () => {
     return true;
   });
 
+  const filteredHistoryOrders = historyOrders.filter((o) => {
+    if (activeFilter === 'RITIRO') return o.order_type.toLowerCase().includes('ritiro');
+    if (activeFilter === 'CONSEGNA') return o.order_type.toLowerCase().includes('consegna');
+    return true;
+  });
+
+  const toggleHistoryExpanded = (orderId: string) => {
+    setExpandedHistoryIds((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
+  };
+
+  const switchBoardView = (view: 'active' | 'history') => {
+    setBoardView(view);
+    if (view === 'active') {
+      setExpandedHistoryIds({});
+    } else {
+      clearFocus();
+    }
+  };
+
+  // Drop focus when the order disappears or is hidden by the active filter
+  useEffect(() => {
+    if (!focusedOrderId) return;
+    const stillVisible = filteredOrders.some((o) => o.id === focusedOrderId);
+    if (!stillVisible) setFocusedOrderId(null);
+  }, [filteredOrders, focusedOrderId]);
+
+  // Escape or click outside cards to clear focus
+  useEffect(() => {
+    if (!focusedOrderId) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') clearFocus();
+    };
+
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-kds-order-card]')) return;
+      clearFocus();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [focusedOrderId, clearFocus]);
+
   // Counters
   const countRicevuto = orders.filter((o) => o.status === 'RICEVUTO').length;
   const countInPrep = orders.filter((o) => o.status === 'IN_PREPARAZIONE').length;
@@ -537,7 +623,9 @@ export const KdsBoard: React.FC = () => {
   return (
     <div
       style={{
+        height: '100vh',
         minHeight: '100vh',
+        overflow: 'hidden',
         backgroundColor: '#0F172A',
         color: '#F8FAFC',
         fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -552,123 +640,184 @@ export const KdsBoard: React.FC = () => {
           borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
           padding: '0.85rem 1.25rem',
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          flexShrink: 0,
           position: 'sticky',
           top: 0,
           zIndex: 50,
         }}
       >
-        {/* Title & Live Clock */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        {/* Row 1: branding + utilities (fixed, never wraps away from each other) */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            minWidth: 0,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  backgroundColor: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
+                  flexShrink: 0,
+                  overflow: 'hidden',
+                  border: '2px solid rgba(255, 255, 255, 0.8)',
+                }}
+              >
+                <img
+                  src="/logo_pescheria.png"
+                  alt="Pescheria Pessano Logo"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '50%',
+                  }}
+                />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h1 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '0.02em', color: 'white' }}>
+                  PESCHERIA PESSANO
+                </h1>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Kitchen Display System (KDS)
+                </span>
+              </div>
+            </div>
+
             <div
               style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '12px',
-                backgroundColor: '#FF6B6B',
+                backgroundColor: '#1E293B',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                padding: '0.4rem 0.85rem',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: '#38BDF8',
+                fontWeight: 800,
+                fontSize: '1rem',
+                letterSpacing: '0.05em',
+                flexShrink: 0,
+              }}
+            >
+              <Clock size={18} />
+              <span>{currentTime || '00:00:00'}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => {
+                unlockAudio();
+                playAudioBeep();
+              }}
+              title={audioUnlocked ? 'Suono Abilitato (Clicca per Test Audio)' : 'Audio in attesa di sblocco dal browser. Clicca per sbloccare!'}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                backgroundColor: audioUnlocked ? '#1E293B' : '#7F1D1D',
+                border: audioUnlocked ? '1px solid rgba(148, 163, 184, 0.2)' : '1px solid #EF4444',
+                color: audioUnlocked ? '#FACC15' : '#FCA5A5',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                boxShadow: audioUnlocked ? 'none' : '0 0 10px rgba(239, 68, 68, 0.35)',
+                transition: 'all 0.2s',
+              }}
+            >
+              <Volume2 size={18} />
+              <span>{audioUnlocked ? 'Audio Attivo' : 'Attiva Audio'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '8px',
+                backgroundColor: '#1E293B',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                color: 'white',
+                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 0 15px rgba(255, 107, 107, 0.4)',
               }}
             >
-              <ChefHat size={24} color="white" />
-            </div>
-            <div>
-              <h1 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '0.02em', color: 'white' }}>
-                PESCHERIA PESSANO
-              </h1>
-              <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Kitchen Display System (KDS)
-              </span>
-            </div>
-          </div>
-
-          {/* Digital Clock */}
-          <div
-            style={{
-              backgroundColor: '#1E293B',
-              border: '1px solid rgba(148, 163, 184, 0.2)',
-              padding: '0.4rem 0.85rem',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              color: '#38BDF8',
-              fontWeight: 800,
-              fontSize: '1rem',
-              letterSpacing: '0.05em',
-            }}
-          >
-            <Clock size={18} />
-            <span>{currentTime || '00:00:00'}</span>
+              {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </button>
           </div>
         </div>
 
-        {/* Status Counters */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-          <div
-            style={{
-              backgroundColor: 'rgba(234, 179, 8, 0.15)',
-              border: '1px solid rgba(234, 179, 8, 0.4)',
-              color: '#FACC15',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-            }}
-          >
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FACC15' }} />
-            {countRicevuto} In Attesa
+        {/* Row 2: toolbar — view toggle, filters, counters/history (always together) */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.65rem',
+            flexWrap: 'wrap',
+            rowGap: '0.65rem',
+          }}
+        >
+          <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => switchBoardView('active')}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: boardView === 'active' ? '#3B82F6' : 'transparent',
+                color: boardView === 'active' ? 'white' : '#94A3B8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}
+            >
+              Attivi
+            </button>
+            <button
+              type="button"
+              onClick={() => switchBoardView('history')}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: boardView === 'history' ? '#8B5CF6' : 'transparent',
+                color: boardView === 'history' ? 'white' : '#94A3B8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}
+            >
+              <History size={14} />
+              Storico
+            </button>
           </div>
 
-          <div
-            style={{
-              backgroundColor: 'rgba(59, 130, 246, 0.15)',
-              border: '1px solid rgba(59, 130, 246, 0.4)',
-              color: '#60A5FA',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-            }}
-          >
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#60A5FA' }} />
-            {countInPrep} In Prep
-          </div>
-
-          <div
-            style={{
-              backgroundColor: 'rgba(34, 197, 94, 0.15)',
-              border: '1px solid rgba(34, 197, 94, 0.4)',
-              color: '#4ADE80',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-            }}
-          >
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4ADE80' }} />
-            {countPronto} Pronti
-          </div>
-        </div>
-
-        {/* Quick Filter Tabs & Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)' }}>
+          <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => setActiveFilter('TUTTI')}
@@ -681,10 +830,9 @@ export const KdsBoard: React.FC = () => {
                 fontWeight: 700,
                 fontSize: '0.8rem',
                 cursor: 'pointer',
-                transition: 'all 0.2s',
               }}
             >
-              Tutti ({orders.length})
+              Tutti ({boardView === 'active' ? orders.length : filteredHistoryOrders.length})
             </button>
             <button
               type="button"
@@ -698,7 +846,6 @@ export const KdsBoard: React.FC = () => {
                 fontWeight: 700,
                 fontSize: '0.8rem',
                 cursor: 'pointer',
-                transition: 'all 0.2s',
               }}
             >
               Solo Ritiro
@@ -715,67 +862,397 @@ export const KdsBoard: React.FC = () => {
                 fontWeight: 700,
                 fontSize: '0.8rem',
                 cursor: 'pointer',
-                transition: 'all 0.2s',
               }}
             >
               Solo Consegne
             </button>
           </div>
 
-          {/* Test Beep Sound Button / Audio Unlock Button */}
-          <button
-            type="button"
-            onClick={() => {
-              unlockAudio();
-              playAudioBeep();
-            }}
-            title={audioUnlocked ? "Suono Abilitato (Clicca per Test Audio)" : "Audio in attesa di sblocco dal browser. Clicca per sbloccare!"}
-            style={{
-              padding: '0.45rem 0.85rem',
-              borderRadius: '8px',
-              backgroundColor: audioUnlocked ? '#1E293B' : '#7F1D1D',
-              border: audioUnlocked ? '1px solid rgba(148, 163, 184, 0.2)' : '1px solid #EF4444',
-              color: audioUnlocked ? '#FACC15' : '#FCA5A5',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              boxShadow: audioUnlocked ? 'none' : '0 0 10px rgba(239, 68, 68, 0.35)',
-              transition: 'all 0.2s',
-            }}
-          >
-            <Volume2 size={18} />
-            <span>{audioUnlocked ? "Audio Attivo" : "Attiva Audio"}</span>
-          </button>
-
-
-
-          {/* Fullscreen Toggle Button */}
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            style={{
-              padding: '0.5rem',
-              borderRadius: '8px',
-              backgroundColor: '#1E293B',
-              border: '1px solid rgba(148, 163, 184, 0.2)',
-              color: 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-          </button>
+          {boardView === 'active' ? (
+            <>
+              <div
+                style={{
+                  backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                  border: '1px solid rgba(234, 179, 8, 0.4)',
+                  color: '#FACC15',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FACC15' }} />
+                {countRicevuto} In Attesa
+              </div>
+              <div
+                style={{
+                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  color: '#60A5FA',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#60A5FA' }} />
+                {countInPrep} In Prep
+              </div>
+              <div
+                style={{
+                  backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                  border: '1px solid rgba(34, 197, 94, 0.4)',
+                  color: '#4ADE80',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4ADE80' }} />
+                {countPronto} Pronti
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)', flexShrink: 0 }}>
+                {(['today', '7days', '30days'] as HistoryPeriod[]).map((period) => {
+                  const labels: Record<HistoryPeriod, string> = { today: 'Oggi', '7days': '7 giorni', '30days': '30 giorni' };
+                  return (
+                    <button
+                      key={period}
+                      type="button"
+                      onClick={() => setHistoryPeriod(period)}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '6px',
+                        border: 'none',
+                        backgroundColor: historyPeriod === period ? '#8B5CF6' : 'transparent',
+                        color: historyPeriod === period ? 'white' : '#94A3B8',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {labels[period]}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1 1 200px', minWidth: '180px', maxWidth: '320px' }}>
+                <Search size={16} color="#64748B" style={{ position: 'absolute', left: '0.65rem', pointerEvents: 'none' }} />
+                <input
+                  type="search"
+                  placeholder="Cerca cliente, telefono, ID..."
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.4rem 0.75rem 0.4rem 2rem',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    backgroundColor: '#1E293B',
+                    color: 'white',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                  }}
+                />
+              </div>
+            </>
+          )}
         </div>
       </header>
 
       {/* KDS MAIN MONITOR CONTENT */}
-      <main style={{ flex: 1, padding: '1.25rem', overflowY: 'auto' }}>
-        {loading ? (
+      <main ref={mainRef} style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', minHeight: 0 }}>
+        {boardView === 'history' ? (
+          historyLoading && historyOrders.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '1rem' }}>
+              <RefreshCw size={36} className="animate-spin" color="#A78BFA" />
+              <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#94A3B8' }}>Caricamento storico ordini...</span>
+            </div>
+          ) : filteredHistoryOrders.length === 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '400px',
+                backgroundColor: '#1E293B',
+                borderRadius: '16px',
+                border: '2px dashed rgba(148, 163, 184, 0.2)',
+                padding: '2rem',
+                textAlign: 'center',
+              }}
+            >
+              <History size={56} color="#8B5CF6" style={{ marginBottom: '1rem' }} />
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>
+                Nessun ordine completato
+              </h2>
+              <p style={{ color: '#94A3B8', maxWidth: '500px', margin: 0, fontSize: '0.95rem' }}>
+                Non ci sono ordini archiviati nel periodo selezionato{historySearch.trim() ? ' per la ricerca inserita' : ''}.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {filteredHistoryOrders.map((ord) => {
+                  const isExpanded = !!expandedHistoryIds[ord.id];
+                  const isDelivery = ord.order_type.toLowerCase().includes('consegna');
+                  const itemSummary = ord.order_items
+                    .map((item) => `${item.quantity && item.quantity > 1 ? `${item.quantity}x ` : ''}${item.item_name}`)
+                    .join(' · ');
+
+                  return (
+                    <div
+                      key={ord.id}
+                      style={{
+                        backgroundColor: '#1E293B',
+                        borderRadius: '14px',
+                        border: '1px solid rgba(148, 163, 184, 0.2)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleHistoryExpanded(ord.id)}
+                        style={{
+                          width: '100%',
+                          padding: '1rem 1.15rem',
+                          backgroundColor: '#0F172A',
+                          border: 'none',
+                          color: 'white',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '1rem',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: '240px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
+                            <span style={{ fontSize: '1.2rem', fontWeight: 900 }}>{ord.display_id || `#${ord.id}`}</span>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                padding: '0.15rem 0.5rem',
+                                borderRadius: '6px',
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                backgroundColor: isDelivery ? 'rgba(6, 182, 212, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                                color: isDelivery ? '#38BDF8' : '#FBBF24',
+                              }}
+                            >
+                              {isDelivery ? <Truck size={11} /> : <ShoppingBag size={11} />}
+                              {ord.order_type}
+                            </span>
+                            <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 600 }}>
+                              {formatOrderDateTime(ord.created_at)}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', fontSize: '0.95rem' }}>
+                            <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <User size={14} color="#94A3B8" />
+                              {ord.customer_name}
+                            </span>
+                            {ord.phone && (
+                              <span style={{ color: '#38BDF8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <Phone size={13} />
+                                {ord.phone}
+                              </span>
+                            )}
+                            <span style={{ color: '#4ADE80', fontWeight: 800 }}>
+                              €{ord.total_price.toFixed(2)}
+                            </span>
+                          </div>
+                          {!isExpanded && itemSummary && (
+                            <p style={{ margin: '0.45rem 0 0', color: '#94A3B8', fontSize: '0.85rem', lineHeight: 1.4 }}>
+                              {itemSummary}
+                            </p>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                          <a
+                            href={`/ordine/${ord.display_id || ord.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Apri tracking ordine"
+                            style={{
+                              padding: '0.4rem 0.65rem',
+                              borderRadius: '8px',
+                              backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                              border: '1px solid rgba(59, 130, 246, 0.35)',
+                              color: '#60A5FA',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <ExternalLink size={14} />
+                            Tracking
+                          </a>
+                          {isExpanded ? <ChevronUp size={20} color="#94A3B8" /> : <ChevronDown size={20} color="#94A3B8" />}
+                        </div>
+                      </button>
+
+                      {isExpanded && (
+                        <div style={{ padding: '0.85rem 1.15rem 1.15rem', borderTop: '1px solid rgba(148, 163, 184, 0.12)' }}>
+                          {(ord.delivery_address || ord.notes) && (
+                            <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', color: '#CBD5E1', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                              {ord.delivery_address && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#38BDF8' }}>
+                                  <Truck size={13} />
+                                  {ord.delivery_address}
+                                </div>
+                              )}
+                              {ord.notes && <div style={{ color: '#FACC15', fontStyle: 'italic' }}>{ord.notes}</div>}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {ord.order_items.map((item, idx) => (
+                              <div
+                                key={item.id || idx}
+                                style={{
+                                  padding: '0.65rem 0.85rem',
+                                  borderRadius: '8px',
+                                  backgroundColor: '#0F172A',
+                                  border: '1px solid rgba(148, 163, 184, 0.12)',
+                                  fontSize: '0.9rem',
+                                }}
+                              >
+                                <div style={{ fontWeight: 800, color: '#F1F5F9', marginBottom: '0.25rem' }}>
+                                  {item.quantity && item.quantity > 1 ? `${item.quantity}x ` : ''}
+                                  {item.item_name}
+                                  {item.price ? ` — €${(item.price * (item.quantity || 1)).toFixed(2)}` : ''}
+                                </div>
+                                {item.item_type === 'poke' && (
+                                  <div style={{ color: '#94A3B8', fontSize: '0.8rem', lineHeight: 1.5 }}>
+                                    {[item.bases?.length ? `Basi: ${item.bases.join(', ')}` : null,
+                                      item.proteins?.length ? `Proteine: ${item.proteins.join(', ')}` : null,
+                                      item.toppings?.length ? `Topping: ${item.toppings.join(', ')}` : null,
+                                      item.sauces?.length ? `Salse: ${item.sauces.join(', ')}` : null]
+                                      .filter(Boolean)
+                                      .join(' · ')}
+                                  </div>
+                                )}
+                                {item.item_type === 'pesce' && (item.preparation || item.weight_grams) && (
+                                  <div style={{ color: '#94A3B8', fontSize: '0.8rem' }}>
+                                    {[item.preparation, item.weight_grams ? `${item.weight_grams}g` : null].filter(Boolean).join(' · ')}
+                                  </div>
+                                )}
+                                {item.notes && (
+                                  <div style={{ marginTop: '0.25rem', color: '#FACC15', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                    {item.notes}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  marginTop: '1.25rem',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <button
+                  type="button"
+                  disabled={historyPage === 0 || historyLoading}
+                  onClick={() => fetchHistoryOrders(historyPage - 1, false)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    backgroundColor: historyPage === 0 ? 'rgba(30, 41, 59, 0.5)' : '#1E293B',
+                    color: historyPage === 0 ? '#64748B' : 'white',
+                    fontWeight: 700,
+                    cursor: historyPage === 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}
+                >
+                  <ChevronLeft size={18} />
+                  Precedente
+                </button>
+                <span style={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.9rem' }}>
+                  Pagina {historyPage + 1}
+                </span>
+                {historyHasMore && (
+                  <button
+                    type="button"
+                    disabled={historyLoading}
+                    onClick={() => fetchHistoryOrders(historyPage + 1, false)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(148, 163, 184, 0.25)',
+                      backgroundColor: '#1E293B',
+                      color: 'white',
+                      fontWeight: 700,
+                      cursor: historyLoading ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                    }}
+                  >
+                    Successiva
+                    <ChevronRight size={18} />
+                  </button>
+                )}
+                {historyHasMore && (
+                  <button
+                    type="button"
+                    disabled={historyLoading}
+                    onClick={() => fetchHistoryOrders(historyPage + 1, true)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: '#8B5CF6',
+                      color: 'white',
+                      fontWeight: 700,
+                      cursor: historyLoading ? 'wait' : 'pointer',
+                    }}
+                  >
+                    Carica altri
+                  </button>
+                )}
+              </div>
+            </>
+          )
+        ) : loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '1rem' }}>
             <RefreshCw size={36} className="animate-spin" color="#38BDF8" />
             <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#94A3B8' }}>Caricamento monitor ordini in corso...</span>
@@ -816,79 +1293,100 @@ export const KdsBoard: React.FC = () => {
               const { timeText, isAsap } = extractRequestedTimeInfo(ord.notes);
               const timerInfo = calculateOrderTimer(ord.created_at, timeText, isAsap);
               const isDelivery = ord.order_type.toLowerCase().includes('consegna');
-              const isSelected = selectedOrderId === ord.id;
+              const isFocused = focusedOrderId === ord.id;
+              const hasOtherFocus = focusedOrderId !== null && !isFocused;
+
+              const statusBorder =
+                timerInfo.isUrgent
+                  ? '2px solid #EF4444'
+                  : ord.status === 'IN_PREPARAZIONE'
+                  ? '2px solid #3B82F6'
+                  : ord.status === 'PRONTO'
+                  ? '2px solid #10B981'
+                  : '1px solid rgba(148, 163, 184, 0.2)';
 
               return (
                 <div
                   key={ord.id}
-                  onClick={() => setSelectedOrderId(isSelected ? null : ord.id)}
+                  ref={(el) => { orderCardRefs.current[ord.id] = el; }}
+                  data-kds-order-card
+                  data-focused={isFocused ? 'true' : 'false'}
+                  className={[
+                    isFocused ? 'kds-order-card--focused' : '',
+                    hasOtherFocus ? 'kds-order-card--dimmed' : '',
+                  ].filter(Boolean).join(' ')}
+                  onClick={() => {
+                    if (!isFocused) focusOrder(ord.id);
+                  }}
                   style={{
-                    backgroundColor: isSelected ? '#0F172A' : '#1E293B',
+                    backgroundColor: '#1E293B',
                     borderRadius: '16px',
-                    border: isSelected
-                      ? '3px solid #FBBF24'
-                      : timerInfo.isUrgent
-                      ? '2px solid #EF4444'
-                      : ord.status === 'IN_PREPARAZIONE'
-                      ? '2px solid #3B82F6'
-                      : ord.status === 'PRONTO'
-                      ? '2px solid #10B981'
-                      : '1px solid rgba(148, 163, 184, 0.2)',
-                    boxShadow: isSelected
-                      ? '0 0 35px rgba(251, 191, 36, 0.75), 0 12px 35px rgba(0, 0, 0, 0.6)'
-                      : timerInfo.isUrgent
+                    border: statusBorder,
+                    boxShadow: timerInfo.isUrgent
                       ? '0 0 20px rgba(239, 68, 68, 0.35)'
                       : '0 8px 24px rgba(0, 0, 0, 0.3)',
-                    transform: isSelected ? 'scale(1.025)' : 'scale(1)',
-                    opacity: selectedOrderId && !isSelected ? 0.65 : 1,
-                    zIndex: isSelected ? 20 : 1,
+                    zIndex: isFocused ? 20 : 1,
+                    position: 'relative',
                     display: 'flex',
                     flexDirection: 'column',
                     overflow: 'hidden',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    cursor: isFocused ? 'default' : 'pointer',
                   }}
                 >
-                  {/* CARD HEADER */}
+                  <div className="kds-order-card__inner">
+                  {/* CARD HEADER — tap here to focus/unfocus */}
                   <div
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isFocused}
+                    aria-label={isFocused ? `Ordine ${ord.display_id || ord.id} in lettura. Premi per uscire.` : `Metti ordine ${ord.display_id || ord.id} in lettura`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isFocused) clearFocus();
+                      else focusOrder(ord.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (isFocused) clearFocus();
+                        else focusOrder(ord.id);
+                      }
+                    }}
+                    className={isFocused ? 'kds-order-header--focused' : undefined}
                     style={{
                       padding: '1rem 1.15rem',
-                      backgroundColor: isSelected ? '#1E293B' : '#0F172A',
-                      borderBottom: isSelected ? '1px solid rgba(251, 191, 36, 0.3)' : '1px solid rgba(148, 163, 184, 0.15)',
+                      backgroundColor: '#0F172A',
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       gap: '0.5rem',
+                      cursor: 'pointer',
+                      userSelect: 'none',
                     }}
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white', letterSpacing: '0.02em' }}>
+                        <span
+                          className={isFocused ? 'kds-order-id--focused' : undefined}
+                          style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white', letterSpacing: '0.02em' }}
+                        >
                           {ord.display_id || `#${ord.id}`}
                         </span>
 
-                        {/* Selected Highlighting Badge */}
-                        {isSelected && (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.3rem',
-                              padding: '0.2rem 0.6rem',
-                              borderRadius: '6px',
-                              fontSize: '0.75rem',
-                              fontWeight: 900,
-                              backgroundColor: '#FBBF24',
-                              color: '#0F172A',
-                              boxShadow: '0 2px 8px rgba(251, 191, 36, 0.6)',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
+                        {/* Focus badge or hint */}
+                        {isFocused ? (
+                          <span className="kds-focus-badge">
+                            <span className="kds-focus-badge__dot" aria-hidden="true" />
                             <Sparkles size={13} color="#0F172A" />
-                            IN LETTURA
+                            In lettura
                           </span>
-                        )}
+                        ) : !focusedOrderId ? (
+                          <span className="kds-focus-hint" title="Tocca per mettere in lettura">
+                            <Focus size={11} />
+                            Focus
+                          </span>
+                        ) : null}
                         
                         {/* Delivery Type Badge */}
                         <span
@@ -1009,16 +1507,9 @@ export const KdsBoard: React.FC = () => {
                   {/* CARD BODY - INTERACTIVE CHECKLIST */}
                   <div style={{ padding: '1rem 1.15rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                     {ord.order_items.map((item, itemIdx) => {
-                      const isFriedItem =
-                        (item as any).item_type === 'fritto' ||
-                        (item.item_name || '').toLowerCase().includes('cono') ||
-                        (item.item_name || '').toLowerCase().includes('fritt');
-
-                      const isFishItem =
-                        (item as any).item_type === 'pesce' ||
-                        (item as any).details?.item_type === 'pesce' ||
-                        (item.item_name || '').startsWith('🐟') ||
-                        (item.item_name || '').toLowerCase().includes('kg');
+                      const isFriedItem = item.item_type === 'fritto';
+                      const isFishItem = item.item_type === 'pesce';
+                      const isPokeItem = item.item_type === 'poke';
 
                       return (
                         <div
@@ -1051,8 +1542,8 @@ export const KdsBoard: React.FC = () => {
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                                   {/* Preparation chip */}
                                   {(() => {
-                                    const rawName = item.item_name || (item as any).name || '';
-                                    const prepName = (item as any).details?.preparation || (rawName.includes('-') ? rawName.split('-')[1]?.replace(']', '').replace(')', '').trim() : 'Eviscerato e desquamato');
+                                    const rawName = item.item_name || '';
+                                    const prepName = item.preparation || (rawName.includes('-') ? rawName.split('-')[1]?.replace(']', '').replace(')', '').trim() : 'Eviscerato e desquamato');
                                     const key = `${ord.id}_${itemIdx}_prep_${prepName}`;
                                     const isChecked = !!checkedIngredients[key];
                                     return (
@@ -1060,7 +1551,7 @@ export const KdsBoard: React.FC = () => {
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleIngredient(key);
+                                          toggleIngredient(ord.id, key);
                                         }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
@@ -1086,7 +1577,7 @@ export const KdsBoard: React.FC = () => {
 
                                   {/* Weight chip */}
                                   {(() => {
-                                    const weightG = (item as any).details?.weight_grams;
+                                    const weightG = item.weight_grams;
                                     const weightLabel = weightG ? (weightG >= 1000 ? `${(weightG / 1000).toFixed(1)} kg` : `${weightG}g`) : null;
                                     if (!weightLabel) return null;
                                     const key = `${ord.id}_${itemIdx}_weight_${weightLabel}`;
@@ -1096,7 +1587,7 @@ export const KdsBoard: React.FC = () => {
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleIngredient(key);
+                                          toggleIngredient(ord.id, key);
                                         }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
@@ -1124,7 +1615,7 @@ export const KdsBoard: React.FC = () => {
                             )}
 
                             {/* BASI */}
-                            {item.bases && item.bases.length > 0 && (
+                            {isPokeItem && item.bases && item.bases.length > 0 && (
                               <div>
                                 <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
                                   Basi
@@ -1139,7 +1630,7 @@ export const KdsBoard: React.FC = () => {
                                         key={base}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleIngredient(key);
+                                          toggleIngredient(ord.id, key);
                                         }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
@@ -1168,7 +1659,7 @@ export const KdsBoard: React.FC = () => {
                             )}
 
                             {/* PROTEINE */}
-                            {item.proteins && item.proteins.length > 0 && (
+                            {isPokeItem && item.proteins && item.proteins.length > 0 && (
                               <div style={{ marginTop: '0.2rem' }}>
                                 <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
                                   Proteine
@@ -1183,7 +1674,7 @@ export const KdsBoard: React.FC = () => {
                                         key={prot}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleIngredient(key);
+                                          toggleIngredient(ord.id, key);
                                         }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
@@ -1212,7 +1703,7 @@ export const KdsBoard: React.FC = () => {
                             )}
 
                             {/* TOPPING / INGREDIENTI */}
-                            {item.toppings && item.toppings.length > 0 && (
+                            {isPokeItem && item.toppings && item.toppings.length > 0 && (
                               <div style={{ marginTop: '0.2rem' }}>
                                 <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
                                   Topping / Ingredienti
@@ -1227,7 +1718,7 @@ export const KdsBoard: React.FC = () => {
                                         key={top}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleIngredient(key);
+                                          toggleIngredient(ord.id, key);
                                         }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
@@ -1256,7 +1747,7 @@ export const KdsBoard: React.FC = () => {
                             )}
 
                             {/* SALSE */}
-                            {item.sauces && item.sauces.length > 0 && (
+                            {isPokeItem && item.sauces && item.sauces.length > 0 && (
                               <div style={{ marginTop: '0.2rem' }}>
                                 <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
                                   Salse
@@ -1271,7 +1762,7 @@ export const KdsBoard: React.FC = () => {
                                         key={sauce}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleIngredient(key);
+                                          toggleIngredient(ord.id, key);
                                         }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
@@ -1299,8 +1790,8 @@ export const KdsBoard: React.FC = () => {
                               </div>
                             )}
 
-                            {/* SESAMO */}
-                            {item.has_sesame !== undefined && (
+                            {/* SESAMO — solo per poke */}
+                            {isPokeItem && item.has_sesame !== undefined && (
                               <div style={{ marginTop: '0.2rem' }}>
                                 {(() => {
                                   const key = `${ord.id}_${itemIdx}_sesame`;
@@ -1310,7 +1801,7 @@ export const KdsBoard: React.FC = () => {
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        toggleIngredient(key);
+                                        toggleIngredient(ord.id, key);
                                       }}
                                       style={{
                                         padding: '0.25rem 0.5rem',
@@ -1410,35 +1901,85 @@ export const KdsBoard: React.FC = () => {
                       </button>
                     )}
 
-                    {ord.status === 'PRONTO' && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUpdateStatus(ord.id, 'COMPLETATO');
-                        }}
-                        style={{
-                          width: '100%',
-                          minHeight: '54px',
-                          borderRadius: '12px',
-                          backgroundColor: '#8B5CF6',
-                          color: 'white',
-                          border: 'none',
-                          fontSize: '1.05rem',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.5rem',
-                          boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        <PackageCheck size={22} />
-                        COMPLETA / ARCHIVIA
-                      </button>
-                    )}
+                    {ord.status === 'PRONTO' && (() => {
+                      const whatsappUrl = buildOrderReadyWhatsAppUrl(ord);
+
+                      return (
+                        <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'stretch' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUpdateStatus(ord.id, 'COMPLETATO');
+                            }}
+                            style={{
+                              flex: 1,
+                              minHeight: '54px',
+                              borderRadius: '12px',
+                              backgroundColor: '#8B5CF6',
+                              color: 'white',
+                              border: 'none',
+                              fontSize: '1.05rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.5rem',
+                              boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)',
+                              transition: 'all 0.2s',
+                            }}
+                          >
+                            <PackageCheck size={22} />
+                            ARCHIVIA
+                          </button>
+
+                          <a
+                            href={whatsappUrl || undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={whatsappUrl ? 'Avvisa il cliente su WhatsApp che l\'ordine è pronto' : 'Numero di telefono non disponibile'}
+                            aria-label={whatsappUrl ? 'Avvisa il cliente su WhatsApp' : 'WhatsApp non disponibile: numero mancante'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!whatsappUrl) e.preventDefault();
+                            }}
+                            style={{
+                              flexShrink: 0,
+                              width: '54px',
+                              minHeight: '54px',
+                              borderRadius: '12px',
+                              background: whatsappUrl
+                                ? 'linear-gradient(145deg, #25D366 0%, #128C7E 100%)'
+                                : 'rgba(148, 163, 184, 0.15)',
+                              color: whatsappUrl ? 'white' : '#64748B',
+                              border: whatsappUrl ? 'none' : '1px solid rgba(148, 163, 184, 0.25)',
+                              cursor: whatsappUrl ? 'pointer' : 'not-allowed',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              textDecoration: 'none',
+                              boxShadow: whatsappUrl ? '0 4px 15px rgba(37, 211, 102, 0.45)' : 'none',
+                              transition: 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease',
+                              opacity: whatsappUrl ? 1 : 0.55,
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!whatsappUrl) return;
+                              e.currentTarget.style.transform = 'scale(1.04)';
+                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(37, 211, 102, 0.55)';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!whatsappUrl) return;
+                              e.currentTarget.style.transform = 'scale(1)';
+                              e.currentTarget.style.boxShadow = '0 4px 15px rgba(37, 211, 102, 0.45)';
+                            }}
+                          >
+                            <WhatsAppIcon size={26} />
+                          </a>
+                        </div>
+                      );
+                    })()}
+                  </div>
                   </div>
                 </div>
               );
