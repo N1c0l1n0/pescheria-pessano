@@ -237,7 +237,7 @@ export const InfoSection: React.FC = () => {
                 lineHeight: 1.25,
               }}
             >
-              Ordini Online & Asporto
+              Ordini Online e Asporto
             </h3>
 
             <p

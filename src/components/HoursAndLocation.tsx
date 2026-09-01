@@ -21,7 +21,7 @@ export const HoursAndLocation: React.FC = () => {
           <div className="section-kicker">Vienici a Trovare</div>
           <div className="hairline-gold" />
           <h2 className="section-title">
-            Orari di Apertura & Dove Siamo
+            Orari di Apertura e Dove Siamo
           </h2>
           <p className="section-lede">
             Ci trovi nel cuore di Finale Ligure. Consulta gli orari di apertura aggiornati o contattaci telefonicamente.
@@ -195,7 +195,7 @@ export const HoursAndLocation: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-serif" style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0, color: 'var(--color-ocean-dark)' }}>
-                    Contatti & Posizione
+                    Contatti e Posizione
                   </h3>
                   <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
                     Finale Ligure (SV)
