@@ -11,6 +11,7 @@ import { getQuickTimeOptionsForDate } from '../utils/openingHours';
 import {
   MAX_POKE_PER_SLOT,
   localDateKey,
+  mergeCapacityOrders,
   occupancyBySlot,
   resolvePokeSubmitSlot,
   type CapacityOrder,
@@ -360,10 +361,13 @@ export const PokeBuilder: React.FC = () => {
 
   const loadOccupancy = useCallback(async (): Promise<Record<string, number>> => {
     let remote: CapacityOrder[] = [];
+    const oldestOccupancyDate = new Date();
+    oldestOccupancyDate.setHours(0, 0, 0, 0);
+    oldestOccupancyDate.setDate(oldestOccupancyDate.getDate() - 2);
     const { data, error } = await supabase
       .from('orders')
       .select('*, order_items(*)')
-      .neq('status', 'COMPLETATO');
+      .gte('created_at', oldestOccupancyDate.toISOString());
 
     if (!error && data) {
       remote = data.map((order) =>
@@ -372,13 +376,9 @@ export const PokeBuilder: React.FC = () => {
     }
 
     const local = getLocalOrders()
-      .filter((order) => order.status !== 'COMPLETATO')
       .map((order) => mapLocalOrderToKdsOrder(order));
-    const orderMap = new Map<string, CapacityOrder>();
-    remote.forEach((order) => orderMap.set(order.id, order));
-    local.forEach((order) => orderMap.set(order.id, order));
 
-    const occupancy = occupancyBySlot(Array.from(orderMap.values()));
+    const occupancy = occupancyBySlot(mergeCapacityOrders(remote, local));
     setSlotOccupancy(occupancy);
     return occupancy;
   }, []);

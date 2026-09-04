@@ -19,6 +19,18 @@ export interface CapacityOrder {
   order_items: CapacityOrderItem[];
 }
 
+export function mergeCapacityOrders(
+  remote: CapacityOrder[],
+  local: CapacityOrder[]
+): CapacityOrder[] {
+  const orders = new Map<string, CapacityOrder>();
+  remote.forEach((order) => orders.set(order.id, order));
+  local.forEach((order) => {
+    if (!orders.has(order.id)) orders.set(order.id, order);
+  });
+  return Array.from(orders.values()).filter((order) => order.status !== 'COMPLETATO');
+}
+
 const ASAP_ERROR =
   'Non ci sono più fasce con abbastanza posti per le poke. Scegli un altro orario o riduci il numero di poke.';
 

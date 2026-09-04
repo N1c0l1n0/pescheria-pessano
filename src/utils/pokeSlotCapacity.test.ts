@@ -3,6 +3,7 @@ import {
   MAX_POKE_PER_SLOT,
   containingSlotStart,
   countPokeInOrder,
+  mergeCapacityOrders,
   occupancyBySlot,
   resolvePokeSubmitSlot,
   slotAvailability,
@@ -25,6 +26,33 @@ const pokeOrder = (
     quantity: 1,
     id: `${id}-${i}`,
   })),
+});
+
+describe('mergeCapacityOrders', () => {
+  it('drops a remotely completed order even when the local copy is stale and active', () => {
+    const remote = [
+      pokeOrder('shared', 'Orario: 12:20 (Oggi)', 3, 'COMPLETATO'),
+    ];
+    const local = [pokeOrder('shared', 'Orario: 12:20 (Oggi)', 3)];
+
+    const merged = mergeCapacityOrders(remote, local);
+
+    expect(merged).toEqual([]);
+    expect(occupancyBySlot(merged)).toEqual({});
+  });
+
+  it('keeps a local-only active poke order', () => {
+    const localOrder = pokeOrder('local', 'Orario: 12:20 (Oggi)', 2);
+
+    expect(mergeCapacityOrders([], [localOrder])).toEqual([localOrder]);
+  });
+
+  it('keeps remote fields when a stale local order has the same id', () => {
+    const remoteOrder = pokeOrder('shared', 'Orario: 12:40 (Oggi)', 2);
+    const localOrder = pokeOrder('shared', 'Orario: 12:20 (Oggi)', 8);
+
+    expect(mergeCapacityOrders([remoteOrder], [localOrder])).toEqual([remoteOrder]);
+  });
 });
 
 describe('countPokeInOrder', () => {
