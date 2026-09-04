@@ -35,6 +35,13 @@ import {
   formatOrderDateTime,
   HISTORY_PAGE_SIZE,
 } from '../utils/orderMappers';
+import {
+  emptyStatusListCopy,
+  matchesFulfillmentFilter,
+  matchesStatusFilter,
+  nextStatusFilter,
+  type StatusFilter,
+} from '../utils/kdsFilters';
 
 export type { KdsOrder, KdsOrderItem };
 
@@ -160,6 +167,7 @@ export const KdsBoard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [boardView, setBoardView] = useState<'active' | 'history'>('active');
   const [activeFilter, setActiveFilter] = useState<'TUTTI' | 'RITIRO' | 'CONSEGNA'>('TUTTI');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [historyOrders, setHistoryOrders] = useState<KdsOrder[]>([]);
   const [historyLoading, setHistoryLoading] = useState<boolean>(false);
   const [historyPage, setHistoryPage] = useState<number>(0);
@@ -588,16 +596,13 @@ export const KdsBoard: React.FC = () => {
 
   // Filter active orders
   const filteredOrders = orders.filter((o) => {
-    if (activeFilter === 'RITIRO') return o.order_type.toLowerCase().includes('ritiro');
-    if (activeFilter === 'CONSEGNA') return o.order_type.toLowerCase().includes('consegna');
-    return true;
+    if (!matchesFulfillmentFilter(o.order_type, activeFilter)) return false;
+    return matchesStatusFilter(o.status, statusFilter);
   });
 
-  const filteredHistoryOrders = historyOrders.filter((o) => {
-    if (activeFilter === 'RITIRO') return o.order_type.toLowerCase().includes('ritiro');
-    if (activeFilter === 'CONSEGNA') return o.order_type.toLowerCase().includes('consegna');
-    return true;
-  });
+  const filteredHistoryOrders = historyOrders.filter((o) =>
+    matchesFulfillmentFilter(o.order_type, activeFilter)
+  );
 
   const toggleHistoryExpanded = (orderId: string) => {
     setExpandedHistoryIds((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
@@ -645,6 +650,7 @@ export const KdsBoard: React.FC = () => {
   const countRicevuto = orders.filter((o) => o.status === 'RICEVUTO').length;
   const countInPrep = orders.filter((o) => o.status === 'IN_PREPARAZIONE').length;
   const countPronto = orders.filter((o) => o.status === 'PRONTO').length;
+  const emptyCopy = emptyStatusListCopy(statusFilter);
 
   return (
     <div
@@ -896,10 +902,13 @@ export const KdsBoard: React.FC = () => {
 
           {boardView === 'active' ? (
             <>
-              <div
+              <button
+                type="button"
+                onClick={() => setStatusFilter((current) => nextStatusFilter(current, 'RICEVUTO'))}
+                aria-pressed={statusFilter === 'RICEVUTO'}
                 style={{
-                  backgroundColor: 'rgba(234, 179, 8, 0.15)',
-                  border: '1px solid rgba(234, 179, 8, 0.4)',
+                  backgroundColor: statusFilter === 'RICEVUTO' ? 'rgba(234, 179, 8, 0.35)' : 'rgba(234, 179, 8, 0.15)',
+                  border: statusFilter === 'RICEVUTO' ? '1px solid #FACC15' : '1px solid rgba(234, 179, 8, 0.4)',
                   color: '#FACC15',
                   padding: '0.35rem 0.75rem',
                   borderRadius: '8px',
@@ -909,15 +918,20 @@ export const KdsBoard: React.FC = () => {
                   alignItems: 'center',
                   gap: '0.4rem',
                   flexShrink: 0,
+                  cursor: 'pointer',
+                  boxShadow: statusFilter === 'RICEVUTO' ? '0 0 0 1px #FACC15' : 'none',
                 }}
               >
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FACC15' }} />
                 {countRicevuto} In Attesa
-              </div>
-              <div
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter((current) => nextStatusFilter(current, 'IN_PREPARAZIONE'))}
+                aria-pressed={statusFilter === 'IN_PREPARAZIONE'}
                 style={{
-                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  backgroundColor: statusFilter === 'IN_PREPARAZIONE' ? 'rgba(59, 130, 246, 0.35)' : 'rgba(59, 130, 246, 0.15)',
+                  border: statusFilter === 'IN_PREPARAZIONE' ? '1px solid #60A5FA' : '1px solid rgba(59, 130, 246, 0.4)',
                   color: '#60A5FA',
                   padding: '0.35rem 0.75rem',
                   borderRadius: '8px',
@@ -927,15 +941,20 @@ export const KdsBoard: React.FC = () => {
                   alignItems: 'center',
                   gap: '0.4rem',
                   flexShrink: 0,
+                  cursor: 'pointer',
+                  boxShadow: statusFilter === 'IN_PREPARAZIONE' ? '0 0 0 1px #60A5FA' : 'none',
                 }}
               >
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#60A5FA' }} />
                 {countInPrep} In Prep
-              </div>
-              <div
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter((current) => nextStatusFilter(current, 'PRONTO'))}
+                aria-pressed={statusFilter === 'PRONTO'}
                 style={{
-                  backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                  border: '1px solid rgba(34, 197, 94, 0.4)',
+                  backgroundColor: statusFilter === 'PRONTO' ? 'rgba(34, 197, 94, 0.35)' : 'rgba(34, 197, 94, 0.15)',
+                  border: statusFilter === 'PRONTO' ? '1px solid #4ADE80' : '1px solid rgba(34, 197, 94, 0.4)',
                   color: '#4ADE80',
                   padding: '0.35rem 0.75rem',
                   borderRadius: '8px',
@@ -945,11 +964,13 @@ export const KdsBoard: React.FC = () => {
                   alignItems: 'center',
                   gap: '0.4rem',
                   flexShrink: 0,
+                  cursor: 'pointer',
+                  boxShadow: statusFilter === 'PRONTO' ? '0 0 0 1px #4ADE80' : 'none',
                 }}
               >
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4ADE80' }} />
                 {countPronto} Pronti
-              </div>
+              </button>
             </>
           ) : (
             <>
@@ -1300,10 +1321,10 @@ export const KdsBoard: React.FC = () => {
           >
             <CheckCircle2 size={56} color="#10B981" style={{ marginBottom: '1rem' }} />
             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>
-              Nessun Ordine Attivo al Momento!
+              {emptyCopy.title}
             </h2>
             <p style={{ color: '#94A3B8', maxWidth: '500px', margin: '0', fontSize: '0.95rem' }}>
-              Tutti gli ordini in coda sono stati preparati e completati. In attesa di nuovi ordini in arrivo dai clienti.
+              {emptyCopy.body}
             </p>
           </div>
         ) : (
