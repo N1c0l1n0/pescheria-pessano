@@ -26,7 +26,23 @@ export function mergeCapacityOrders(
   const orders = new Map<string, CapacityOrder>();
   remote.forEach((order) => orders.set(order.id, order));
   local.forEach((order) => {
-    if (!orders.has(order.id)) orders.set(order.id, order);
+    const remoteOrder = orders.get(order.id);
+    if (!remoteOrder) {
+      orders.set(order.id, order);
+      return;
+    }
+
+    orders.set(order.id, {
+      ...remoteOrder,
+      notes:
+        parseClockAndDay(remoteOrder.notes) || !parseClockAndDay(order.notes)
+          ? remoteOrder.notes
+          : order.notes,
+      order_items:
+        remoteOrder.order_items?.length > 0
+          ? remoteOrder.order_items
+          : order.order_items,
+    });
   });
   return Array.from(orders.values()).filter((order) => order.status !== 'COMPLETATO');
 }

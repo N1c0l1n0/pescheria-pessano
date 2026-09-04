@@ -47,11 +47,41 @@ describe('mergeCapacityOrders', () => {
     expect(mergeCapacityOrders([], [localOrder])).toEqual([localOrder]);
   });
 
-  it('keeps remote fields when a stale local order has the same id', () => {
-    const remoteOrder = pokeOrder('shared', 'Orario: 12:40 (Oggi)', 2);
-    const localOrder = pokeOrder('shared', 'Orario: 12:20 (Oggi)', 8);
+  it('keeps local poke items when the remote duplicate has no items', () => {
+    const remoteOrder = {
+      ...pokeOrder('shared', 'Orario: 12:20 (Oggi)', 2),
+      order_items: [],
+    };
+    const localOrder = pokeOrder('shared', 'Orario: 12:20 (Oggi)', 2);
 
-    expect(mergeCapacityOrders([remoteOrder], [localOrder])).toEqual([remoteOrder]);
+    const occupancy = occupancyBySlot(
+      mergeCapacityOrders([remoteOrder], [localOrder])
+    );
+    const key = Object.keys(occupancy).find((entry) => entry.endsWith('|12:20'));
+
+    expect(occupancy[key!]).toBe(2);
+  });
+
+  it('uses remote poke items when the remote duplicate has items', () => {
+    const remoteOrder = pokeOrder('shared', 'Orario: 12:20 (Oggi)', 3);
+    const localOrder = pokeOrder('shared', 'Orario: 12:20 (Oggi)', 2);
+
+    const occupancy = occupancyBySlot(
+      mergeCapacityOrders([remoteOrder], [localOrder])
+    );
+    const key = Object.keys(occupancy).find((entry) => entry.endsWith('|12:20'));
+
+    expect(occupancy[key!]).toBe(3);
+  });
+
+  it('keeps local pickup notes when remote notes have no parseable time', () => {
+    const remoteOrder = pokeOrder('shared', 'Consegna al banco', 3);
+    const localOrder = pokeOrder('shared', 'Orario: 12:20 (Oggi)', 2);
+
+    const [merged] = mergeCapacityOrders([remoteOrder], [localOrder]);
+
+    expect(merged.notes).toBe(localOrder.notes);
+    expect(merged.order_items).toBe(remoteOrder.order_items);
   });
 });
 
