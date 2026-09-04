@@ -208,6 +208,129 @@ function SlotGroupHeader({
   );
 }
 
+function ReadyStrip({
+  orders,
+  onArchive,
+  onWhatsApp,
+}: {
+  orders: KdsOrder[];
+  onArchive: (orderId: string) => void;
+  onWhatsApp: (order: KdsOrder) => void;
+}) {
+  return (
+    <div
+      style={{
+        flexShrink: 0,
+        borderTop: '1px solid rgba(148, 163, 184, 0.25)',
+        backgroundColor: '#0B1220',
+        padding: '0.65rem 1rem',
+        minHeight: '80px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+      }}
+    >
+      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94A3B8', letterSpacing: '0.06em' }}>
+        PRONTI PER RITIRO ({orders.length})
+      </div>
+
+      {orders.length === 0 ? (
+        <div style={{ fontSize: '0.85rem', color: '#64748B' }}>Nessun ordine pronto</div>
+      ) : (
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.65rem',
+            overflowX: 'auto',
+            paddingBottom: '0.15rem',
+          }}
+        >
+          {orders.map((ord) => {
+            const slotKey = resolveOrderSlotKey(ord);
+            const slotLabel = slotKey ? slotKey.split('|')[1] : extractRequestedTimeInfo(ord.notes).timeText;
+            const isDelivery = ord.order_type.toLowerCase().includes('consegna');
+            const whatsAppUrl = buildOrderReadyWhatsAppUrl(ord);
+
+            return (
+              <div
+                key={ord.id}
+                style={{
+                  flex: '0 0 220px',
+                  minHeight: '72px',
+                  backgroundColor: '#1E293B',
+                  border: '1px solid rgba(34, 197, 94, 0.35)',
+                  borderRadius: '12px',
+                  padding: '0.55rem 0.65rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.35rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.35rem' }}>
+                  <span style={{ fontWeight: 800, color: 'white', fontSize: '0.9rem' }}>
+                    {ord.display_id || `#${ord.id}`} · {ord.customer_name}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      color: isDelivery ? '#38BDF8' : '#FBBF24',
+                    }}
+                  >
+                    {isDelivery ? 'Consegna' : 'Ritiro'}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#94A3B8' }}>Slot {slotLabel}</div>
+                <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto' }}>
+                  <button
+                    type="button"
+                    onClick={() => onArchive(ord.id)}
+                    style={{
+                      flex: 1,
+                      padding: '0.3rem 0.45rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: '#10B981',
+                      color: 'white',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.25rem',
+                    }}
+                  >
+                    <Check size={14} />
+                    Archivia
+                  </button>
+                  {whatsAppUrl && (
+                    <button
+                      type="button"
+                      onClick={() => onWhatsApp(ord)}
+                      aria-label="Invia WhatsApp"
+                      style={{
+                        padding: '0.3rem 0.45rem',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(148, 163, 184, 0.3)',
+                        backgroundColor: '#0F172A',
+                        color: '#4ADE80',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <ExternalLink size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const KdsBoard: React.FC = () => {
   const [orders, setOrders] = useState<KdsOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -661,10 +784,6 @@ export const KdsBoard: React.FC = () => {
   const groupedWork = groupActiveOrders(workOrders);
   const workIsEmpty =
     groupedWork.slotGroups.length === 0 && groupedWork.generalQueue.length === 0;
-
-  // readyOrders consumed by ReadyStrip (Task 4)
-  void readyOrders;
-  void openOrderReadyWhatsApp;
 
   const filteredHistoryOrders = historyOrders.filter((o) =>
     matchesFulfillmentFilter(o.order_type, activeFilter)
@@ -2081,7 +2200,13 @@ export const KdsBoard: React.FC = () => {
           </div>
         )}
             </div>
-            {/* Ready strip added in Task 4 */}
+            {boardView === 'active' && (
+              <ReadyStrip
+                orders={readyOrders}
+                onArchive={(orderId) => handleUpdateStatus(orderId, 'COMPLETATO')}
+                onWhatsApp={openOrderReadyWhatsApp}
+              />
+            )}
           </div>
         )}
       </main>
