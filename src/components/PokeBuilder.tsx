@@ -1,8 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, Check, AlertCircle, Sparkles, MessageCircle, Info, Trash2, PlusCircle, Edit3, RotateCcw, Waves, Anchor, Search, User, Phone, MapPin, Store, Bike, X, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { saveLocalOrder } from '../utils/orderStore';
+import { getLocalOrders, saveLocalOrder } from '../utils/orderStore';
+import {
+  mapLocalOrderToKdsOrder,
+  mapSupabaseOrderToKdsOrder,
+} from '../utils/orderMappers';
+import { getQuickTimeOptionsForDate } from '../utils/openingHours';
+import {
+  MAX_POKE_PER_SLOT,
+  localDateKey,
+  occupancyBySlot,
+  resolvePokeSubmitSlot,
+  type CapacityOrder,
+} from '../utils/pokeSlotCapacity';
 import { AlarmTimePicker } from './AlarmTimePicker';
 import { FISH_CATALOG, FishItem } from './FishMenuCatalog';
 
@@ -328,12 +340,52 @@ export const PokeBuilder: React.FC = () => {
 
   // List of added items (Pokes, Fritti & Pesce) for multi-item ordering
   const [orderList, setOrderList] = useState<OrderCartItem[]>([]);
+  const [slotOccupancy, setSlotOccupancy] = useState<Record<string, number>>({});
+  const cartPokeCount = orderList.filter((item) => item.itemType === 'poke').length;
+
+  const occupancyDate = selectedDay === 'oggi'
+    ? new Date()
+    : (() => {
+        const date = new Date();
+        date.setDate(date.getDate() + 1);
+        return date;
+      })();
+  const occupancyDateKey = localDateKey(occupancyDate);
 
   // State for editing an existing poke
   const [editingPokeId, setEditingPokeId] = useState<string | null>(null);
 
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const loadOccupancy = useCallback(async (): Promise<Record<string, number>> => {
+    let remote: CapacityOrder[] = [];
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .neq('status', 'COMPLETATO');
+
+    if (!error && data) {
+      remote = data.map((order) =>
+        mapSupabaseOrderToKdsOrder(order as Record<string, unknown>)
+      );
+    }
+
+    const local = getLocalOrders()
+      .filter((order) => order.status !== 'COMPLETATO')
+      .map((order) => mapLocalOrderToKdsOrder(order));
+    const orderMap = new Map<string, CapacityOrder>();
+    remote.forEach((order) => orderMap.set(order.id, order));
+    local.forEach((order) => orderMap.set(order.id, order));
+
+    const occupancy = occupancyBySlot(Array.from(orderMap.values()));
+    setSlotOccupancy(occupancy);
+    return occupancy;
+  }, []);
+
+  useEffect(() => {
+    void loadOccupancy();
+  }, [loadOccupancy, selectedDay]);
 
   const updateCardQty = (id: string, delta: number) => {
     setCardQuantities((prev) => {
@@ -503,6 +555,13 @@ export const PokeBuilder: React.FC = () => {
     }
     if (selectedProteine.length === 0) {
       triggerValidationError(`Seleziona almeno 1 Proteina per la Poke di "${trimmedName}"!`, 'stepProteine');
+      return;
+    }
+    if (!editingPokeId && cartPokeCount >= MAX_POKE_PER_SLOT) {
+      triggerValidationError(
+        'Massimo 10 poke per fascia di 20 minuti. Scegli un altro orario o invia questo ordine prima.',
+        'ordine-invia'
+      );
       return;
     }
 
@@ -685,7 +744,28 @@ export const PokeBuilder: React.FC = () => {
       return acc + item.price;
     }, 0);
 
-    const effectiveTime = pickupTime || 'Prima possibile';
+    const pokeCount = finalItems.filter((item) => item.itemType === 'poke').length;
+    const latestOccupancy = await loadOccupancy();
+    const slotStarts = getQuickTimeOptionsForDate(occupancyDate);
+    let effectiveTime = pickupTime || 'Prima possibile';
+    if (pokeCount > 0) {
+      const resolved = resolvePokeSubmitSlot({
+        pickupTime: effectiveTime,
+        selectedDay,
+        slotStarts,
+        occupancy: latestOccupancy,
+        dateKey: occupancyDateKey,
+        cartPokeCount: pokeCount,
+      });
+      if ('error' in resolved) {
+        setIsSubmitting(false);
+        triggerValidationError(resolved.error, 'ordine-dati');
+        return;
+      }
+      const formattedDay = selectedDay === 'oggi' ? 'Oggi' : 'Domani';
+      effectiveTime = `${resolved.time} (${formattedDay})`;
+      setPickupTime(effectiveTime);
+    }
 
     const firstItem = finalItems[0];
     let clientName = 'Cliente';
@@ -1069,6 +1149,9 @@ export const PokeBuilder: React.FC = () => {
                   orderType={orderType}
                   selectedTime={pickupTime}
                   selectedDay={selectedDay}
+                  slotOccupancy={slotOccupancy}
+                  cartPokeCount={cartPokeCount}
+                  dateKey={occupancyDateKey}
                   onTimeChange={(timeStr, day) => {
                     setSelectedDay(day);
                     const clean = (timeStr || '').replace(/\s*\((Oggi|Domani|oggi|domani)\)/gi, '').trim();

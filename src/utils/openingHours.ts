@@ -255,10 +255,15 @@ export function getValidMinutesForHour(hour: number, date: Date = new Date(), st
  * Get quick selectable time slot strings (e.g., ["12:30", "13:00", ...]) for a date.
  * Automatically filters out any slots earlier than the current time when date is Today.
  */
-export function getQuickTimeOptionsForDate(date: Date = new Date()): string[] {
+export function getQuickTimeOptionsForDate(
+  date: Date = new Date(),
+  options: { includePast?: boolean; stepMinutes?: number } = {}
+): string[] {
   const schedule = getDaySchedule(date);
   if (schedule.isClosedAllDay || !schedule.slots.length) return [];
 
+  const stepMinutes = options.stepMinutes ?? 20;
+  const includePast = options.includePast ?? false;
   const now = new Date();
   const isToday = isSameDay(date, now);
   const currentTotalMin = now.getHours() * 60 + now.getMinutes();
@@ -268,11 +273,9 @@ export function getQuickTimeOptionsForDate(date: Date = new Date()): string[] {
     const openMin = timeToMinutes(slot.open);
     const closeMin = timeToMinutes(slot.close);
 
-    // Round openMin up to nearest 15/30 min
-    const startMin = Math.ceil(openMin / 30) * 30;
-    for (let m = startMin; m <= closeMin; m += 30) {
+    for (let m = openMin; m <= closeMin; m += stepMinutes) {
       // Hide past slots if date is Today
-      if (isToday && m < currentTotalMin) {
+      if (!includePast && isToday && m < currentTotalMin) {
         continue;
       }
       const hh = Math.floor(m / 60).toString().padStart(2, '0');
