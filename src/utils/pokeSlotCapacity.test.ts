@@ -5,7 +5,9 @@ import {
   countPokeInOrder,
   mergeCapacityOrders,
   occupancyBySlot,
+  parseClockAndDay,
   resolvePokeSubmitSlot,
+  slotDateKeyForOrder,
   slotAvailability,
   type CapacityOrder,
 } from './pokeSlotCapacity';
@@ -57,7 +59,7 @@ describe('mergeCapacityOrders', () => {
     const occupancy = occupancyBySlot(
       mergeCapacityOrders([remoteOrder], [localOrder])
     );
-    const key = Object.keys(occupancy).find((entry) => entry.endsWith('|12:20'));
+    const key = Object.keys(occupancy).find((entry) => entry.endsWith('|12:10'));
 
     expect(occupancy[key!]).toBe(2);
   });
@@ -69,7 +71,7 @@ describe('mergeCapacityOrders', () => {
     const occupancy = occupancyBySlot(
       mergeCapacityOrders([remoteOrder], [localOrder])
     );
-    const key = Object.keys(occupancy).find((entry) => entry.endsWith('|12:20'));
+    const key = Object.keys(occupancy).find((entry) => entry.endsWith('|12:10'));
 
     expect(occupancy[key!]).toBe(3);
   });
@@ -103,15 +105,25 @@ describe('countPokeInOrder', () => {
 });
 
 describe('occupancyBySlot', () => {
-  it('sums poke into the notes slot and skips completed orders', () => {
+  it('sums poke into the canonical slot and skips completed orders', () => {
     const map = occupancyBySlot([
       pokeOrder('a', 'Orario: 12:20 (Oggi)', 6),
       pokeOrder('b', 'Orario: 12:20 (Oggi)', 3),
       pokeOrder('c', 'Orario: 12:20 (Oggi)', 4, 'COMPLETATO'),
     ]);
-    const key = Object.keys(map).find((k) => k.endsWith('|12:20'));
+    const key = Object.keys(map).find((k) => k.endsWith('|12:10'));
     expect(key).toBeTruthy();
     expect(map[key!]).toBe(9);
+  });
+
+  it('stores only the canonical slot start', () => {
+    const map = occupancyBySlot([
+      pokeOrder('a', 'Orario: 12:07 (Oggi)', 2),
+    ]);
+    const dateKey = Object.keys(map)[0]?.split('|')[0];
+
+    expect(map[`${dateKey}|11:50`]).toBe(2);
+    expect(map[`${dateKey}|12:07`]).toBeUndefined();
   });
 });
 
@@ -145,6 +157,29 @@ describe('containingSlotStart', () => {
   it('maps 12:07 into 11:50 on an 08:30 grid', () => {
     const starts = ['11:50', '12:10', '12:30'];
     expect(containingSlotStart('12:07', starts)).toBe('11:50');
+  });
+
+  it('returns null between opening blocks', () => {
+    const starts = ['11:50', '12:10', '18:30', '18:50'];
+    expect(containingSlotStart('15:00', starts)).toBeNull();
+  });
+});
+
+describe('order note parsing', () => {
+  it('advances Domani one calendar day from the local created_at date', () => {
+    const order = pokeOrder(
+      'tomorrow',
+      'Orario: 12:20 (Domani)',
+      1,
+      'RICEVUTO',
+      '2030-09-03T23:30:00'
+    );
+
+    expect(slotDateKeyForOrder(order)).toBe('2030-09-04');
+  });
+
+  it('does not parse Prima possibile as a clock', () => {
+    expect(parseClockAndDay('Orario: Prima possibile (Oggi)')).toBeNull();
   });
 });
 
@@ -195,6 +230,21 @@ describe('resolvePokeSubmitSlot', () => {
     expect(result).toEqual({
       error:
         'Non ci sono più fasce con abbastanza posti per le poke. Scegli un altro orario o riduci il numero di poke.',
+    });
+  });
+
+  it('returns the closed-day error when no slots are available', () => {
+    const result = resolvePokeSubmitSlot({
+      pickupTime: 'Prima possibile (Oggi)',
+      selectedDay: 'oggi',
+      slotStarts: [],
+      occupancy: {},
+      dateKey,
+      cartPokeCount: 1,
+    });
+
+    expect(result).toEqual({
+      error: 'La pescheria è chiusa in questo giorno. Scegli un altro giorno.',
     });
   });
 });

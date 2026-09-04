@@ -8,11 +8,21 @@ import {
 
 describe('friedArrivalMessage', () => {
   it('uses pickup copy for ritiro', () => {
-    expect(friedArrivalMessage('Ritiro')).toBe(FRIED_ON_ARRIVAL_PICKUP);
+    expect(FRIED_ON_ARRIVAL_PICKUP).toBe(
+      'I coni fritti si preparano all\'arrivo: presentati al banco e li friggiamo al momento, caldi.'
+    );
+    expect(friedArrivalMessage('Ritiro')).toBe(
+      'I coni fritti si preparano all\'arrivo: presentati al banco e li friggiamo al momento, caldi.'
+    );
   });
 
   it('uses departure copy for consegna', () => {
-    expect(friedArrivalMessage('Consegna')).toBe(FRIED_ON_ARRIVAL_DELIVERY);
+    expect(FRIED_ON_ARRIVAL_DELIVERY).toBe(
+      'I coni fritti si friggono al momento della partenza, così arrivano caldi.'
+    );
+    expect(friedArrivalMessage('Consegna')).toBe(
+      'I coni fritti si friggono al momento della partenza, così arrivano caldi.'
+    );
   });
 });
 

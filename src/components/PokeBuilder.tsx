@@ -360,6 +360,7 @@ export const PokeBuilder: React.FC = () => {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Client-side best effort: concurrent submits can still overbook; durable enforcement needs a server check.
   const loadOccupancy = useCallback(async (): Promise<Record<string, number>> => {
     let remote: CapacityOrder[] = [];
     const oldestOccupancyDate = new Date();
@@ -367,8 +368,9 @@ export const PokeBuilder: React.FC = () => {
     oldestOccupancyDate.setDate(oldestOccupancyDate.getDate() - 2);
     const { data, error } = await supabase
       .from('orders')
-      .select('*, order_items(*)')
-      .gte('created_at', oldestOccupancyDate.toISOString());
+      .select('id, status, created_at, notes, order_items(item_type, quantity)')
+      .gte('created_at', oldestOccupancyDate.toISOString())
+      .limit(500);
 
     if (!error && data) {
       remote = data.map((order) =>

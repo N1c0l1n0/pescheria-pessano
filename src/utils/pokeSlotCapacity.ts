@@ -49,6 +49,8 @@ export function mergeCapacityOrders(
 
 const ASAP_ERROR =
   'Non ci sono più fasce con abbastanza posti per le poke. Scegli un altro orario o riduci il numero di poke.';
+const CLOSED_DAY_ERROR =
+  'La pescheria è chiusa in questo giorno. Scegli un altro giorno.';
 
 function timeToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(':').map(Number);
@@ -129,10 +131,6 @@ export function occupancyBySlot(orders: CapacityOrder[]): Record<string, number>
     const start = containingSlotStart(parsed.time, allStarts) || parsed.time;
     const key = occupancyKey(dateKey, start);
     map[key] = (map[key] || 0) + poke;
-    if (start !== parsed.time) {
-      const notesKey = occupancyKey(dateKey, parsed.time);
-      map[notesKey] = (map[notesKey] || 0) + poke;
-    }
   }
   return map;
 }
@@ -169,6 +167,9 @@ export function resolvePokeSubmitSlot(args: {
   }
   if (args.cartPokeCount > MAX_POKE_PER_SLOT) {
     return { error: ASAP_ERROR };
+  }
+  if (args.slotStarts.length === 0) {
+    return { error: CLOSED_DAY_ERROR };
   }
 
   const raw = args.pickupTime;

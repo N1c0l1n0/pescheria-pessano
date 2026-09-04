@@ -99,6 +99,11 @@ const parseTrackerSchedule = (notes?: string): TrackerSchedule => {
   };
 };
 
+const isFriedOrderItem = (item: OrderItem): boolean => {
+  const itemName = (item.item_name || item.name || '').toLowerCase();
+  return item.item_type === 'fritto' || itemName.includes('cono') || itemName.includes('fritt');
+};
+
 export const OrderTracking: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<Order | null>(null);
@@ -350,10 +355,7 @@ export const OrderTracking: React.FC = () => {
   const schedule = parseTrackerSchedule(order?.notes);
   const isDelivery = (order?.order_type || '').toLowerCase().includes('consegna');
   const hasScheduledTime = schedule.hasTime;
-  const hasFried = (order?.order_items || order?.items || []).some((item) => {
-    const itemName = (item.item_name || item.name || '').toLowerCase();
-    return item.item_type === 'fritto' || itemName.includes('cono') || itemName.includes('fritt');
-  });
+  const hasFried = (order?.order_items || order?.items || []).some(isFriedOrderItem);
 
   const displayId = order?.display_id || (order?.id ? `#${String(order.id).slice(-4).toUpperCase()}` : (id ? `#${String(id).slice(-4).toUpperCase()}` : '#0000'));
 
@@ -924,10 +926,7 @@ export const OrderTracking: React.FC = () => {
               {/* INGREDIENTS / ITEMS LIST */}
               <div style={{ marginBottom: '1.15rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '0.2rem' }}>
                 {(order.order_items || order.items || []).map((item, idx) => {
-                  const isFried =
-                    item.item_type === 'fritto' ||
-                    (item.item_name || '').toLowerCase().includes('cono') ||
-                    (item.item_name || '').toLowerCase().includes('fritt');
+                  const isFried = isFriedOrderItem(item);
 
                   const isFish =
                     item.item_type === 'pesce' ||
