@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   Play,
   Check,
-  PackageCheck,
   Maximize2,
   Minimize2,
   Volume2,
@@ -36,13 +35,8 @@ import {
   formatOrderDateTime,
   HISTORY_PAGE_SIZE,
 } from '../utils/orderMappers';
-import {
-  emptyStatusListCopy,
-  matchesFulfillmentFilter,
-  matchesStatusFilter,
-  nextStatusFilter,
-  type StatusFilter,
-} from '../utils/kdsFilters';
+import { emptyWorkAreaCopy, matchesFulfillmentFilter } from '../utils/kdsFilters';
+import { groupActiveOrders, resolveOrderSlotKey, type SlotGroup } from '../utils/kdsSlotGroups';
 
 export type { KdsOrder, KdsOrderItem };
 
@@ -157,18 +151,68 @@ const openOrderReadyWhatsApp = (order: KdsOrder) => {
   anchor.remove();
 };
 
-const WhatsAppIcon: React.FC<{ size?: number }> = ({ size = 24 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.884 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-  </svg>
-);
+function SlotGroupHeader({
+  group,
+  calculateOrderTimer,
+}: {
+  group: SlotGroup;
+  calculateOrderTimer: (
+    createdAtStr: string,
+    requestedTimeText: string,
+    isAsap: boolean
+  ) => {
+    timerLabel: string;
+    subLabel: string;
+    timerBg: string;
+    timerText: string;
+    timerBorder: string;
+    isUrgent: boolean;
+  };
+}) {
+  const timerInfo = calculateOrderTimer('', group.slotTime, false);
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '0.75rem',
+        padding: '0.5rem 0.75rem',
+        borderRadius: '10px',
+        backgroundColor: timerInfo.isUrgent ? 'rgba(239, 68, 68, 0.12)' : '#1E293B',
+        border: timerInfo.isUrgent
+          ? '1px solid rgba(239, 68, 68, 0.45)'
+          : '1px solid rgba(148, 163, 184, 0.2)',
+      }}
+    >
+      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'white' }}>
+        Slot {group.slotTime} · {group.pokeCount} poke · {group.orderCount}{' '}
+        {group.orderCount === 1 ? 'ordine' : 'ordini'}
+      </h3>
+      <span
+        style={{
+          fontSize: '0.85rem',
+          fontWeight: 700,
+          color: timerInfo.timerText,
+          backgroundColor: timerInfo.timerBg,
+          border: `1px solid ${timerInfo.timerBorder}`,
+          borderRadius: '999px',
+          padding: '0.2rem 0.65rem',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {timerInfo.timerLabel}
+      </span>
+    </div>
+  );
+}
 
 export const KdsBoard: React.FC = () => {
   const [orders, setOrders] = useState<KdsOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [boardView, setBoardView] = useState<'active' | 'history'>('active');
   const [activeFilter, setActiveFilter] = useState<'TUTTI' | 'RITIRO' | 'CONSEGNA'>('TUTTI');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [historyOrders, setHistoryOrders] = useState<KdsOrder[]>([]);
   const [historyLoading, setHistoryLoading] = useState<boolean>(false);
   const [historyPage, setHistoryPage] = useState<number>(0);
@@ -180,7 +224,7 @@ export const KdsBoard: React.FC = () => {
   const [currentTime, setCurrentTime] = useState<string>('');
   const [focusedOrderId, setFocusedOrderId] = useState<string | null>(null);
   const orderCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const mainRef = useRef<HTMLElement | null>(null);
+  const mainRef = useRef<HTMLDivElement | null>(null);
 
   const focusOrder = useCallback((orderId: string | null) => {
     setFocusedOrderId(orderId);
@@ -462,6 +506,8 @@ export const KdsBoard: React.FC = () => {
       });
     } else if (newStatus === 'IN_PREPARAZIONE') {
       focusOrder(orderId);
+    } else if (newStatus === 'PRONTO') {
+      clearFocus();
     }
 
     // Optimistic UI update
@@ -595,11 +641,30 @@ export const KdsBoard: React.FC = () => {
     }));
   };
 
-  // Filter active orders
-  const filteredOrders = orders.filter((o) => {
-    if (!matchesFulfillmentFilter(o.order_type, activeFilter)) return false;
-    return matchesStatusFilter(o.status, statusFilter);
-  });
+  const fulfillmentFiltered = orders.filter((o) =>
+    matchesFulfillmentFilter(o.order_type, activeFilter)
+  );
+
+  const workOrders = fulfillmentFiltered.filter(
+    (o) => o.status === 'RICEVUTO' || o.status === 'IN_PREPARAZIONE'
+  );
+
+  const readyOrders = fulfillmentFiltered
+    .filter((o) => o.status === 'PRONTO')
+    .sort((a, b) => {
+      const slotA = resolveOrderSlotKey(a) ?? '';
+      const slotB = resolveOrderSlotKey(b) ?? '';
+      if (slotA !== slotB) return slotA.localeCompare(slotB);
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
+
+  const groupedWork = groupActiveOrders(workOrders);
+  const workIsEmpty =
+    groupedWork.slotGroups.length === 0 && groupedWork.generalQueue.length === 0;
+
+  // readyOrders consumed by ReadyStrip (Task 4)
+  void readyOrders;
+  void openOrderReadyWhatsApp;
 
   const filteredHistoryOrders = historyOrders.filter((o) =>
     matchesFulfillmentFilter(o.order_type, activeFilter)
@@ -621,9 +686,9 @@ export const KdsBoard: React.FC = () => {
   // Drop focus when the order disappears or is hidden by the active filter
   useEffect(() => {
     if (!focusedOrderId) return;
-    const stillVisible = filteredOrders.some((o) => o.id === focusedOrderId);
+    const stillVisible = workOrders.some((o) => o.id === focusedOrderId);
     if (!stillVisible) setFocusedOrderId(null);
-  }, [filteredOrders, focusedOrderId]);
+  }, [workOrders, focusedOrderId]);
 
   // Escape or click outside cards to clear focus
   useEffect(() => {
@@ -651,710 +716,10 @@ export const KdsBoard: React.FC = () => {
   const countRicevuto = orders.filter((o) => o.status === 'RICEVUTO').length;
   const countInPrep = orders.filter((o) => o.status === 'IN_PREPARAZIONE').length;
   const countPronto = orders.filter((o) => o.status === 'PRONTO').length;
-  const emptyCopy = emptyStatusListCopy(statusFilter);
+  const emptyCopy = emptyWorkAreaCopy();
 
-  return (
-    <div
-      style={{
-        height: '100vh',
-        minHeight: '100vh',
-        overflow: 'hidden',
-        backgroundColor: '#0F172A',
-        color: '#F8FAFC',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      {/* KDS HEADER BAR */}
-      <header
-        style={{
-          backgroundColor: '#070F1E',
-          borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
-          padding: '0.85rem 1.25rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem',
-          flexShrink: 0,
-          position: 'sticky',
-          top: 0,
-          zIndex: 50,
-        }}
-      >
-        {/* Row 1: branding + utilities (fixed, never wraps away from each other) */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '1rem',
-            minWidth: 0,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '50%',
-                  backgroundColor: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
-                  flexShrink: 0,
-                  overflow: 'hidden',
-                  border: '2px solid rgba(255, 255, 255, 0.8)',
-                }}
-              >
-                <img
-                  src="/logo_pescheria.png"
-                  alt="Pescheria Pessano Logo"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    borderRadius: '50%',
-                  }}
-                />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <h1 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '0.02em', color: 'white' }}>
-                  PESCHERIA PESSANO
-                </h1>
-                <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Kitchen Display System (KDS)
-                </span>
-              </div>
-            </div>
 
-            <div
-              style={{
-                backgroundColor: '#1E293B',
-                border: '1px solid rgba(148, 163, 184, 0.2)',
-                padding: '0.4rem 0.85rem',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: '#38BDF8',
-                fontWeight: 800,
-                fontSize: '1rem',
-                letterSpacing: '0.05em',
-                flexShrink: 0,
-              }}
-            >
-              <Clock size={18} />
-              <span>{currentTime || '00:00:00'}</span>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => {
-                unlockAudio();
-                playAudioBeep();
-              }}
-              title={audioUnlocked ? 'Suono Abilitato (Clicca per Test Audio)' : 'Audio in attesa di sblocco dal browser. Clicca per sbloccare!'}
-              style={{
-                padding: '0.45rem 0.85rem',
-                borderRadius: '8px',
-                backgroundColor: audioUnlocked ? '#1E293B' : '#7F1D1D',
-                border: audioUnlocked ? '1px solid rgba(148, 163, 184, 0.2)' : '1px solid #EF4444',
-                color: audioUnlocked ? '#FACC15' : '#FCA5A5',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                boxShadow: audioUnlocked ? 'none' : '0 0 10px rgba(239, 68, 68, 0.35)',
-                transition: 'all 0.2s',
-              }}
-            >
-              <Volume2 size={18} />
-              <span>{audioUnlocked ? 'Audio Attivo' : 'Attiva Audio'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={toggleFullscreen}
-              style={{
-                padding: '0.5rem',
-                borderRadius: '8px',
-                backgroundColor: '#1E293B',
-                border: '1px solid rgba(148, 163, 184, 0.2)',
-                color: 'white',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Row 2: toolbar — view toggle, filters, counters/history (always together) */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.65rem',
-            flexWrap: 'wrap',
-            rowGap: '0.65rem',
-          }}
-        >
-          <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)', flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => switchBoardView('active')}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: boardView === 'active' ? '#3B82F6' : 'transparent',
-                color: boardView === 'active' ? 'white' : '#94A3B8',
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-              }}
-            >
-              Attivi
-            </button>
-            <button
-              type="button"
-              onClick={() => switchBoardView('history')}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: boardView === 'history' ? '#8B5CF6' : 'transparent',
-                color: boardView === 'history' ? 'white' : '#94A3B8',
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-              }}
-            >
-              <History size={14} />
-              Storico
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)', flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => setActiveFilter('TUTTI')}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: activeFilter === 'TUTTI' ? '#3B82F6' : 'transparent',
-                color: activeFilter === 'TUTTI' ? 'white' : '#94A3B8',
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-              }}
-            >
-              Tutti ({boardView === 'active' ? orders.length : filteredHistoryOrders.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter('RITIRO')}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: activeFilter === 'RITIRO' ? '#F59E0B' : 'transparent',
-                color: activeFilter === 'RITIRO' ? 'white' : '#94A3B8',
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-              }}
-            >
-              Solo Ritiro
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter('CONSEGNA')}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: activeFilter === 'CONSEGNA' ? '#06B6D4' : 'transparent',
-                color: activeFilter === 'CONSEGNA' ? 'white' : '#94A3B8',
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-              }}
-            >
-              Solo Consegne
-            </button>
-          </div>
-
-          {boardView === 'active' ? (
-            <>
-              <button
-                type="button"
-                onClick={() => setStatusFilter((current) => nextStatusFilter(current, 'RICEVUTO'))}
-                aria-pressed={statusFilter === 'RICEVUTO'}
-                style={{
-                  backgroundColor: statusFilter === 'RICEVUTO' ? 'rgba(234, 179, 8, 0.35)' : 'rgba(234, 179, 8, 0.15)',
-                  border: statusFilter === 'RICEVUTO' ? '1px solid #FACC15' : '1px solid rgba(234, 179, 8, 0.4)',
-                  color: '#FACC15',
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '8px',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  fontFamily: 'inherit',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  flexShrink: 0,
-                  cursor: 'pointer',
-                  boxShadow: statusFilter === 'RICEVUTO' ? '0 0 0 1px #FACC15' : 'none',
-                }}
-              >
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FACC15' }} />
-                {countRicevuto} In Attesa
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter((current) => nextStatusFilter(current, 'IN_PREPARAZIONE'))}
-                aria-pressed={statusFilter === 'IN_PREPARAZIONE'}
-                style={{
-                  backgroundColor: statusFilter === 'IN_PREPARAZIONE' ? 'rgba(59, 130, 246, 0.35)' : 'rgba(59, 130, 246, 0.15)',
-                  border: statusFilter === 'IN_PREPARAZIONE' ? '1px solid #60A5FA' : '1px solid rgba(59, 130, 246, 0.4)',
-                  color: '#60A5FA',
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '8px',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  fontFamily: 'inherit',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  flexShrink: 0,
-                  cursor: 'pointer',
-                  boxShadow: statusFilter === 'IN_PREPARAZIONE' ? '0 0 0 1px #60A5FA' : 'none',
-                }}
-              >
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#60A5FA' }} />
-                {countInPrep} In Prep
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter((current) => nextStatusFilter(current, 'PRONTO'))}
-                aria-pressed={statusFilter === 'PRONTO'}
-                style={{
-                  backgroundColor: statusFilter === 'PRONTO' ? 'rgba(34, 197, 94, 0.35)' : 'rgba(34, 197, 94, 0.15)',
-                  border: statusFilter === 'PRONTO' ? '1px solid #4ADE80' : '1px solid rgba(34, 197, 94, 0.4)',
-                  color: '#4ADE80',
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '8px',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  fontFamily: 'inherit',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  flexShrink: 0,
-                  cursor: 'pointer',
-                  boxShadow: statusFilter === 'PRONTO' ? '0 0 0 1px #4ADE80' : 'none',
-                }}
-              >
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4ADE80' }} />
-                {countPronto} Pronti
-              </button>
-            </>
-          ) : (
-            <>
-              <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)', flexShrink: 0 }}>
-                {(['today', '7days', '30days'] as HistoryPeriod[]).map((period) => {
-                  const labels: Record<HistoryPeriod, string> = { today: 'Oggi', '7days': '7 giorni', '30days': '30 giorni' };
-                  return (
-                    <button
-                      key={period}
-                      type="button"
-                      onClick={() => setHistoryPeriod(period)}
-                      style={{
-                        padding: '0.35rem 0.75rem',
-                        borderRadius: '6px',
-                        border: 'none',
-                        backgroundColor: historyPeriod === period ? '#8B5CF6' : 'transparent',
-                        color: historyPeriod === period ? 'white' : '#94A3B8',
-                        fontWeight: 700,
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {labels[period]}
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1 1 200px', minWidth: '180px', maxWidth: '320px' }}>
-                <Search size={16} color="#64748B" style={{ position: 'absolute', left: '0.65rem', pointerEvents: 'none' }} />
-                <input
-                  type="search"
-                  placeholder="Cerca cliente, telefono, ID..."
-                  value={historySearch}
-                  onChange={(e) => setHistorySearch(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.4rem 0.75rem 0.4rem 2rem',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(148, 163, 184, 0.25)',
-                    backgroundColor: '#1E293B',
-                    color: 'white',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                  }}
-                />
-              </div>
-            </>
-          )}
-        </div>
-      </header>
-
-      {/* KDS MAIN MONITOR CONTENT */}
-      <main ref={mainRef} style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', minHeight: 0 }}>
-        {boardView === 'history' ? (
-          historyLoading && historyOrders.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '1rem' }}>
-              <RefreshCw size={36} className="animate-spin" color="#A78BFA" />
-              <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#94A3B8' }}>Caricamento storico ordini...</span>
-            </div>
-          ) : filteredHistoryOrders.length === 0 ? (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '400px',
-                backgroundColor: '#1E293B',
-                borderRadius: '16px',
-                border: '2px dashed rgba(148, 163, 184, 0.2)',
-                padding: '2rem',
-                textAlign: 'center',
-              }}
-            >
-              <History size={56} color="#8B5CF6" style={{ marginBottom: '1rem' }} />
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>
-                Nessun ordine completato
-              </h2>
-              <p style={{ color: '#94A3B8', maxWidth: '500px', margin: 0, fontSize: '0.95rem' }}>
-                Non ci sono ordini archiviati nel periodo selezionato{historySearch.trim() ? ' per la ricerca inserita' : ''}.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                {filteredHistoryOrders.map((ord) => {
-                  const isExpanded = !!expandedHistoryIds[ord.id];
-                  const isDelivery = ord.order_type.toLowerCase().includes('consegna');
-                  const itemSummary = ord.order_items
-                    .map((item) => `${item.quantity && item.quantity > 1 ? `${item.quantity}x ` : ''}${item.item_name}`)
-                    .join(' · ');
-
-                  return (
-                    <div
-                      key={ord.id}
-                      style={{
-                        backgroundColor: '#1E293B',
-                        borderRadius: '14px',
-                        border: '1px solid rgba(148, 163, 184, 0.2)',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleHistoryExpanded(ord.id)}
-                        style={{
-                          width: '100%',
-                          padding: '1rem 1.15rem',
-                          backgroundColor: '#0F172A',
-                          border: 'none',
-                          color: 'white',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          gap: '1rem',
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: '240px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
-                            <span style={{ fontSize: '1.2rem', fontWeight: 900 }}>{ord.display_id || `#${ord.id}`}</span>
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.25rem',
-                                padding: '0.15rem 0.5rem',
-                                borderRadius: '6px',
-                                fontSize: '0.7rem',
-                                fontWeight: 800,
-                                backgroundColor: isDelivery ? 'rgba(6, 182, 212, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                                color: isDelivery ? '#38BDF8' : '#FBBF24',
-                              }}
-                            >
-                              {isDelivery ? <Truck size={11} /> : <ShoppingBag size={11} />}
-                              {ord.order_type}
-                            </span>
-                            <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 600 }}>
-                              {formatOrderDateTime(ord.created_at)}
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', fontSize: '0.95rem' }}>
-                            <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                              <User size={14} color="#94A3B8" />
-                              {ord.customer_name}
-                            </span>
-                            {ord.phone && (
-                              <span style={{ color: '#38BDF8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <Phone size={13} />
-                                {ord.phone}
-                              </span>
-                            )}
-                            <span style={{ color: '#4ADE80', fontWeight: 800 }}>
-                              €{ord.total_price.toFixed(2)}
-                            </span>
-                          </div>
-                          {!isExpanded && itemSummary && (
-                            <p style={{ margin: '0.45rem 0 0', color: '#94A3B8', fontSize: '0.85rem', lineHeight: 1.4 }}>
-                              {itemSummary}
-                            </p>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                          <a
-                            href={`/ordine/${ord.display_id || ord.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            title="Apri tracking ordine"
-                            style={{
-                              padding: '0.4rem 0.65rem',
-                              borderRadius: '8px',
-                              backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                              border: '1px solid rgba(59, 130, 246, 0.35)',
-                              color: '#60A5FA',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.3rem',
-                              fontSize: '0.75rem',
-                              fontWeight: 700,
-                              textDecoration: 'none',
-                            }}
-                          >
-                            <ExternalLink size={14} />
-                            Tracking
-                          </a>
-                          {isExpanded ? <ChevronUp size={20} color="#94A3B8" /> : <ChevronDown size={20} color="#94A3B8" />}
-                        </div>
-                      </button>
-
-                      {isExpanded && (
-                        <div style={{ padding: '0.85rem 1.15rem 1.15rem', borderTop: '1px solid rgba(148, 163, 184, 0.12)' }}>
-                          {(ord.delivery_address || ord.notes) && (
-                            <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', color: '#CBD5E1', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                              {ord.delivery_address && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#38BDF8' }}>
-                                  <Truck size={13} />
-                                  {ord.delivery_address}
-                                </div>
-                              )}
-                              {ord.notes && <div style={{ color: '#FACC15', fontStyle: 'italic' }}>{ord.notes}</div>}
-                            </div>
-                          )}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {ord.order_items.map((item, idx) => (
-                              <div
-                                key={item.id || idx}
-                                style={{
-                                  padding: '0.65rem 0.85rem',
-                                  borderRadius: '8px',
-                                  backgroundColor: '#0F172A',
-                                  border: '1px solid rgba(148, 163, 184, 0.12)',
-                                  fontSize: '0.9rem',
-                                }}
-                              >
-                                <div style={{ fontWeight: 800, color: '#F1F5F9', marginBottom: '0.25rem' }}>
-                                  {item.quantity && item.quantity > 1 ? `${item.quantity}x ` : ''}
-                                  {item.item_name}
-                                  {item.item_type === 'fritto' && (
-                                    <span
-                                      style={{
-                                        marginLeft: '0.4rem',
-                                        fontSize: '0.7rem',
-                                        fontWeight: 800,
-                                        letterSpacing: '0.04em',
-                                        textTransform: 'uppercase',
-                                        color: '#FBBF24',
-                                      }}
-                                    >
-                                      {FRIED_ON_ARRIVAL_KDS}
-                                    </span>
-                                  )}
-                                  {item.price ? ` — €${(item.price * (item.quantity || 1)).toFixed(2)}` : ''}
-                                </div>
-                                {item.item_type === 'poke' && (
-                                  <div style={{ color: '#94A3B8', fontSize: '0.8rem', lineHeight: 1.5 }}>
-                                    {[item.bases?.length ? `Basi: ${item.bases.join(', ')}` : null,
-                                      item.proteins?.length ? `Proteine: ${item.proteins.join(', ')}` : null,
-                                      item.toppings?.length ? `Topping: ${item.toppings.join(', ')}` : null,
-                                      item.sauces?.length ? `Salse: ${item.sauces.join(', ')}` : null]
-                                      .filter(Boolean)
-                                      .join(' · ')}
-                                  </div>
-                                )}
-                                {item.item_type === 'pesce' && (item.preparation || item.weight_grams) && (
-                                  <div style={{ color: '#94A3B8', fontSize: '0.8rem' }}>
-                                    {[item.preparation, item.weight_grams ? `${item.weight_grams}g` : null].filter(Boolean).join(' · ')}
-                                  </div>
-                                )}
-                                {item.notes && (
-                                  <div style={{ marginTop: '0.25rem', color: '#FACC15', fontSize: '0.8rem', fontStyle: 'italic' }}>
-                                    {item.notes}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  marginTop: '1.25rem',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <button
-                  type="button"
-                  disabled={historyPage === 0 || historyLoading}
-                  onClick={() => fetchHistoryOrders(historyPage - 1, false)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(148, 163, 184, 0.25)',
-                    backgroundColor: historyPage === 0 ? 'rgba(30, 41, 59, 0.5)' : '#1E293B',
-                    color: historyPage === 0 ? '#64748B' : 'white',
-                    fontWeight: 700,
-                    cursor: historyPage === 0 ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                  }}
-                >
-                  <ChevronLeft size={18} />
-                  Precedente
-                </button>
-                <span style={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.9rem' }}>
-                  Pagina {historyPage + 1}
-                </span>
-                {historyHasMore && (
-                  <button
-                    type="button"
-                    disabled={historyLoading}
-                    onClick={() => fetchHistoryOrders(historyPage + 1, false)}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(148, 163, 184, 0.25)',
-                      backgroundColor: '#1E293B',
-                      color: 'white',
-                      fontWeight: 700,
-                      cursor: historyLoading ? 'wait' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                    }}
-                  >
-                    Successiva
-                    <ChevronRight size={18} />
-                  </button>
-                )}
-                {historyHasMore && (
-                  <button
-                    type="button"
-                    disabled={historyLoading}
-                    onClick={() => fetchHistoryOrders(historyPage + 1, true)}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      borderRadius: '8px',
-                      border: 'none',
-                      backgroundColor: '#8B5CF6',
-                      color: 'white',
-                      fontWeight: 700,
-                      cursor: historyLoading ? 'wait' : 'pointer',
-                    }}
-                  >
-                    Carica altri
-                  </button>
-                )}
-              </div>
-            </>
-          )
-        ) : loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '1rem' }}>
-            <RefreshCw size={36} className="animate-spin" color="#38BDF8" />
-            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#94A3B8' }}>Caricamento monitor ordini in corso...</span>
-          </div>
-        ) : filteredOrders.length === 0 ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: '400px',
-              backgroundColor: '#1E293B',
-              borderRadius: '16px',
-              border: '2px dashed rgba(148, 163, 184, 0.2)',
-              padding: '2rem',
-              textAlign: 'center',
-            }}
-          >
-            <CheckCircle2 size={56} color="#10B981" style={{ marginBottom: '1rem' }} />
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>
-              {emptyCopy.title}
-            </h2>
-            <p style={{ color: '#94A3B8', maxWidth: '500px', margin: '0', fontSize: '0.95rem' }}>
-              {emptyCopy.body}
-            </p>
-          </div>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-              gap: '1.25rem',
-              alignItems: 'start',
-            }}
-          >
-            {filteredOrders.map((ord) => {
+  const renderOrderCard = (ord: KdsOrder) => {
               const { timeText, isAsap } = extractRequestedTimeInfo(ord.notes);
               const timerInfo = calculateOrderTimer(ord.created_at, timeText, isAsap);
               const isDelivery = ord.order_type.toLowerCase().includes('consegna');
@@ -1366,8 +731,6 @@ export const KdsBoard: React.FC = () => {
                   ? '2px solid #EF4444'
                   : ord.status === 'IN_PREPARAZIONE'
                   ? '2px solid #3B82F6'
-                  : ord.status === 'PRONTO'
-                  ? '2px solid #10B981'
                   : '1px solid rgba(148, 163, 184, 0.2)';
 
               return (
@@ -1983,93 +1346,742 @@ export const KdsBoard: React.FC = () => {
                         SEGNALA PRONTO
                       </button>
                     )}
-
-                    {ord.status === 'PRONTO' && (() => {
-                      const whatsappUrl = buildOrderReadyWhatsAppUrl(ord);
-
-                      return (
-                        <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'stretch' }}>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleUpdateStatus(ord.id, 'COMPLETATO');
-                            }}
-                            style={{
-                              flex: 1,
-                              minHeight: '54px',
-                              borderRadius: '12px',
-                              backgroundColor: '#8B5CF6',
-                              color: 'white',
-                              border: 'none',
-                              fontSize: '1.05rem',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '0.5rem',
-                              boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)',
-                              transition: 'all 0.2s',
-                            }}
-                          >
-                            <PackageCheck size={22} />
-                            ARCHIVIA
-                          </button>
-
-                          <button
-                            type="button"
-                            disabled={!whatsappUrl}
-                            title={whatsappUrl ? 'Avvisa il cliente su WhatsApp che l\'ordine è pronto' : 'Numero di telefono non disponibile'}
-                            aria-label={whatsappUrl ? 'Avvisa il cliente su WhatsApp' : 'WhatsApp non disponibile: numero mancante'}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (!whatsappUrl) return;
-                              openOrderReadyWhatsApp(ord);
-                            }}
-                            style={{
-                              flexShrink: 0,
-                              width: '54px',
-                              minHeight: '54px',
-                              borderRadius: '12px',
-                              background: whatsappUrl
-                                ? 'linear-gradient(145deg, #25D366 0%, #128C7E 100%)'
-                                : 'rgba(148, 163, 184, 0.15)',
-                              color: whatsappUrl ? 'white' : '#64748B',
-                              border: whatsappUrl ? 'none' : '1px solid rgba(148, 163, 184, 0.25)',
-                              cursor: whatsappUrl ? 'pointer' : 'not-allowed',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: whatsappUrl ? '0 4px 15px rgba(37, 211, 102, 0.45)' : 'none',
-                              transition: 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease',
-                              opacity: whatsappUrl ? 1 : 0.55,
-                              touchAction: 'manipulation',
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!whatsappUrl) return;
-                              e.currentTarget.style.transform = 'scale(1.04)';
-                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(37, 211, 102, 0.55)';
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!whatsappUrl) return;
-                              e.currentTarget.style.transform = 'scale(1)';
-                              e.currentTarget.style.boxShadow = '0 4px 15px rgba(37, 211, 102, 0.45)';
-                            }}
-                          >
-                            <WhatsAppIcon size={26} />
-                          </button>
-                        </div>
-                      );
-                    })()}
                   </div>
                   </div>
                 </div>
               );
-            })}
+            
+  };
+  return (
+    <div
+      style={{
+        height: '100vh',
+        minHeight: '100vh',
+        overflow: 'hidden',
+        backgroundColor: '#0F172A',
+        color: '#F8FAFC',
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {/* KDS HEADER BAR */}
+      <header
+        style={{
+          backgroundColor: '#070F1E',
+          borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
+          padding: '0.85rem 1.25rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          flexShrink: 0,
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+        }}
+      >
+        {/* Row 1: branding + utilities (fixed, never wraps away from each other) */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            minWidth: 0,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  backgroundColor: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
+                  flexShrink: 0,
+                  overflow: 'hidden',
+                  border: '2px solid rgba(255, 255, 255, 0.8)',
+                }}
+              >
+                <img
+                  src="/logo_pescheria.png"
+                  alt="Pescheria Pessano Logo"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '50%',
+                  }}
+                />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h1 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '0.02em', color: 'white' }}>
+                  PESCHERIA PESSANO
+                </h1>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Kitchen Display System (KDS)
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: '#1E293B',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                padding: '0.4rem 0.85rem',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: '#38BDF8',
+                fontWeight: 800,
+                fontSize: '1rem',
+                letterSpacing: '0.05em',
+                flexShrink: 0,
+              }}
+            >
+              <Clock size={18} />
+              <span>{currentTime || '00:00:00'}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => {
+                unlockAudio();
+                playAudioBeep();
+              }}
+              title={audioUnlocked ? 'Suono Abilitato (Clicca per Test Audio)' : 'Audio in attesa di sblocco dal browser. Clicca per sbloccare!'}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                backgroundColor: audioUnlocked ? '#1E293B' : '#7F1D1D',
+                border: audioUnlocked ? '1px solid rgba(148, 163, 184, 0.2)' : '1px solid #EF4444',
+                color: audioUnlocked ? '#FACC15' : '#FCA5A5',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                boxShadow: audioUnlocked ? 'none' : '0 0 10px rgba(239, 68, 68, 0.35)',
+                transition: 'all 0.2s',
+              }}
+            >
+              <Volume2 size={18} />
+              <span>{audioUnlocked ? 'Audio Attivo' : 'Attiva Audio'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '8px',
+                backgroundColor: '#1E293B',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: toolbar — view toggle, filters, counters/history (always together) */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.65rem',
+            flexWrap: 'wrap',
+            rowGap: '0.65rem',
+          }}
+        >
+          <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => switchBoardView('active')}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: boardView === 'active' ? '#3B82F6' : 'transparent',
+                color: boardView === 'active' ? 'white' : '#94A3B8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}
+            >
+              Attivi
+            </button>
+            <button
+              type="button"
+              onClick={() => switchBoardView('history')}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: boardView === 'history' ? '#8B5CF6' : 'transparent',
+                color: boardView === 'history' ? 'white' : '#94A3B8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}
+            >
+              <History size={14} />
+              Storico
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => setActiveFilter('TUTTI')}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: activeFilter === 'TUTTI' ? '#3B82F6' : 'transparent',
+                color: activeFilter === 'TUTTI' ? 'white' : '#94A3B8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+              }}
+            >
+              Tutti ({boardView === 'active' ? orders.length : filteredHistoryOrders.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFilter('RITIRO')}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: activeFilter === 'RITIRO' ? '#F59E0B' : 'transparent',
+                color: activeFilter === 'RITIRO' ? 'white' : '#94A3B8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+              }}
+            >
+              Solo Ritiro
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFilter('CONSEGNA')}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: activeFilter === 'CONSEGNA' ? '#06B6D4' : 'transparent',
+                color: activeFilter === 'CONSEGNA' ? 'white' : '#94A3B8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+              }}
+            >
+              Solo Consegne
+            </button>
+          </div>
+
+          {boardView === 'active' ? (
+            <>
+              <span
+                style={{
+                  backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                  border: '1px solid rgba(234, 179, 8, 0.4)',
+                  color: '#FACC15',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FACC15' }} />
+                {countRicevuto} In Attesa
+              </span>
+              <span
+                style={{
+                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  color: '#60A5FA',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#60A5FA' }} />
+                {countInPrep} In Prep
+              </span>
+              <span
+                style={{
+                  backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                  border: '1px solid rgba(34, 197, 94, 0.4)',
+                  color: '#4ADE80',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4ADE80' }} />
+                {countPronto} Pronti
+              </span>
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)', flexShrink: 0 }}>
+                {(['today', '7days', '30days'] as HistoryPeriod[]).map((period) => {
+                  const labels: Record<HistoryPeriod, string> = { today: 'Oggi', '7days': '7 giorni', '30days': '30 giorni' };
+                  return (
+                    <button
+                      key={period}
+                      type="button"
+                      onClick={() => setHistoryPeriod(period)}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '6px',
+                        border: 'none',
+                        backgroundColor: historyPeriod === period ? '#8B5CF6' : 'transparent',
+                        color: historyPeriod === period ? 'white' : '#94A3B8',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {labels[period]}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1 1 200px', minWidth: '180px', maxWidth: '320px' }}>
+                <Search size={16} color="#64748B" style={{ position: 'absolute', left: '0.65rem', pointerEvents: 'none' }} />
+                <input
+                  type="search"
+                  placeholder="Cerca cliente, telefono, ID..."
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.4rem 0.75rem 0.4rem 2rem',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    backgroundColor: '#1E293B',
+                    color: 'white',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* KDS MAIN MONITOR CONTENT */}
+      <main style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {boardView === 'history' ? (
+          <div ref={mainRef} style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', minHeight: 0 }}>
+          historyLoading && historyOrders.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '1rem' }}>
+              <RefreshCw size={36} className="animate-spin" color="#A78BFA" />
+              <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#94A3B8' }}>Caricamento storico ordini...</span>
+            </div>
+          ) : filteredHistoryOrders.length === 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '400px',
+                backgroundColor: '#1E293B',
+                borderRadius: '16px',
+                border: '2px dashed rgba(148, 163, 184, 0.2)',
+                padding: '2rem',
+                textAlign: 'center',
+              }}
+            >
+              <History size={56} color="#8B5CF6" style={{ marginBottom: '1rem' }} />
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>
+                Nessun ordine completato
+              </h2>
+              <p style={{ color: '#94A3B8', maxWidth: '500px', margin: 0, fontSize: '0.95rem' }}>
+                Non ci sono ordini archiviati nel periodo selezionato{historySearch.trim() ? ' per la ricerca inserita' : ''}.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {filteredHistoryOrders.map((ord) => {
+                  const isExpanded = !!expandedHistoryIds[ord.id];
+                  const isDelivery = ord.order_type.toLowerCase().includes('consegna');
+                  const itemSummary = ord.order_items
+                    .map((item) => `${item.quantity && item.quantity > 1 ? `${item.quantity}x ` : ''}${item.item_name}`)
+                    .join(' · ');
+
+                  return (
+                    <div
+                      key={ord.id}
+                      style={{
+                        backgroundColor: '#1E293B',
+                        borderRadius: '14px',
+                        border: '1px solid rgba(148, 163, 184, 0.2)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleHistoryExpanded(ord.id)}
+                        style={{
+                          width: '100%',
+                          padding: '1rem 1.15rem',
+                          backgroundColor: '#0F172A',
+                          border: 'none',
+                          color: 'white',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '1rem',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: '240px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
+                            <span style={{ fontSize: '1.2rem', fontWeight: 900 }}>{ord.display_id || `#${ord.id}`}</span>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                padding: '0.15rem 0.5rem',
+                                borderRadius: '6px',
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                backgroundColor: isDelivery ? 'rgba(6, 182, 212, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                                color: isDelivery ? '#38BDF8' : '#FBBF24',
+                              }}
+                            >
+                              {isDelivery ? <Truck size={11} /> : <ShoppingBag size={11} />}
+                              {ord.order_type}
+                            </span>
+                            <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 600 }}>
+                              {formatOrderDateTime(ord.created_at)}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', fontSize: '0.95rem' }}>
+                            <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <User size={14} color="#94A3B8" />
+                              {ord.customer_name}
+                            </span>
+                            {ord.phone && (
+                              <span style={{ color: '#38BDF8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <Phone size={13} />
+                                {ord.phone}
+                              </span>
+                            )}
+                            <span style={{ color: '#4ADE80', fontWeight: 800 }}>
+                              €{ord.total_price.toFixed(2)}
+                            </span>
+                          </div>
+                          {!isExpanded && itemSummary && (
+                            <p style={{ margin: '0.45rem 0 0', color: '#94A3B8', fontSize: '0.85rem', lineHeight: 1.4 }}>
+                              {itemSummary}
+                            </p>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                          <a
+                            href={`/ordine/${ord.display_id || ord.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Apri tracking ordine"
+                            style={{
+                              padding: '0.4rem 0.65rem',
+                              borderRadius: '8px',
+                              backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                              border: '1px solid rgba(59, 130, 246, 0.35)',
+                              color: '#60A5FA',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <ExternalLink size={14} />
+                            Tracking
+                          </a>
+                          {isExpanded ? <ChevronUp size={20} color="#94A3B8" /> : <ChevronDown size={20} color="#94A3B8" />}
+                        </div>
+                      </button>
+
+                      {isExpanded && (
+                        <div style={{ padding: '0.85rem 1.15rem 1.15rem', borderTop: '1px solid rgba(148, 163, 184, 0.12)' }}>
+                          {(ord.delivery_address || ord.notes) && (
+                            <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', color: '#CBD5E1', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                              {ord.delivery_address && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#38BDF8' }}>
+                                  <Truck size={13} />
+                                  {ord.delivery_address}
+                                </div>
+                              )}
+                              {ord.notes && <div style={{ color: '#FACC15', fontStyle: 'italic' }}>{ord.notes}</div>}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {ord.order_items.map((item, idx) => (
+                              <div
+                                key={item.id || idx}
+                                style={{
+                                  padding: '0.65rem 0.85rem',
+                                  borderRadius: '8px',
+                                  backgroundColor: '#0F172A',
+                                  border: '1px solid rgba(148, 163, 184, 0.12)',
+                                  fontSize: '0.9rem',
+                                }}
+                              >
+                                <div style={{ fontWeight: 800, color: '#F1F5F9', marginBottom: '0.25rem' }}>
+                                  {item.quantity && item.quantity > 1 ? `${item.quantity}x ` : ''}
+                                  {item.item_name}
+                                  {item.item_type === 'fritto' && (
+                                    <span
+                                      style={{
+                                        marginLeft: '0.4rem',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 800,
+                                        letterSpacing: '0.04em',
+                                        textTransform: 'uppercase',
+                                        color: '#FBBF24',
+                                      }}
+                                    >
+                                      {FRIED_ON_ARRIVAL_KDS}
+                                    </span>
+                                  )}
+                                  {item.price ? ` — €${(item.price * (item.quantity || 1)).toFixed(2)}` : ''}
+                                </div>
+                                {item.item_type === 'poke' && (
+                                  <div style={{ color: '#94A3B8', fontSize: '0.8rem', lineHeight: 1.5 }}>
+                                    {[item.bases?.length ? `Basi: ${item.bases.join(', ')}` : null,
+                                      item.proteins?.length ? `Proteine: ${item.proteins.join(', ')}` : null,
+                                      item.toppings?.length ? `Topping: ${item.toppings.join(', ')}` : null,
+                                      item.sauces?.length ? `Salse: ${item.sauces.join(', ')}` : null]
+                                      .filter(Boolean)
+                                      .join(' · ')}
+                                  </div>
+                                )}
+                                {item.item_type === 'pesce' && (item.preparation || item.weight_grams) && (
+                                  <div style={{ color: '#94A3B8', fontSize: '0.8rem' }}>
+                                    {[item.preparation, item.weight_grams ? `${item.weight_grams}g` : null].filter(Boolean).join(' · ')}
+                                  </div>
+                                )}
+                                {item.notes && (
+                                  <div style={{ marginTop: '0.25rem', color: '#FACC15', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                    {item.notes}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  marginTop: '1.25rem',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <button
+                  type="button"
+                  disabled={historyPage === 0 || historyLoading}
+                  onClick={() => fetchHistoryOrders(historyPage - 1, false)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    backgroundColor: historyPage === 0 ? 'rgba(30, 41, 59, 0.5)' : '#1E293B',
+                    color: historyPage === 0 ? '#64748B' : 'white',
+                    fontWeight: 700,
+                    cursor: historyPage === 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}
+                >
+                  <ChevronLeft size={18} />
+                  Precedente
+                </button>
+                <span style={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.9rem' }}>
+                  Pagina {historyPage + 1}
+                </span>
+                {historyHasMore && (
+                  <button
+                    type="button"
+                    disabled={historyLoading}
+                    onClick={() => fetchHistoryOrders(historyPage + 1, false)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(148, 163, 184, 0.25)',
+                      backgroundColor: '#1E293B',
+                      color: 'white',
+                      fontWeight: 700,
+                      cursor: historyLoading ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                    }}
+                  >
+                    Successiva
+                    <ChevronRight size={18} />
+                  </button>
+                )}
+                {historyHasMore && (
+                  <button
+                    type="button"
+                    disabled={historyLoading}
+                    onClick={() => fetchHistoryOrders(historyPage + 1, true)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: '#8B5CF6',
+                      color: 'white',
+                      fontWeight: 700,
+                      cursor: historyLoading ? 'wait' : 'pointer',
+                    }}
+                  >
+                    Carica altri
+                  </button>
+                )}
+              </div>
+            </>
+          )
+          </div>
+        ) : (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <div ref={mainRef} style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', minHeight: 0 }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '1rem' }}>
+            <RefreshCw size={36} className="animate-spin" color="#38BDF8" />
+            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#94A3B8' }}>Caricamento monitor ordini in corso...</span>
+          </div>
+        ) : workIsEmpty ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '400px',
+              backgroundColor: '#1E293B',
+              borderRadius: '16px',
+              border: '2px dashed rgba(148, 163, 184, 0.2)',
+              padding: '2rem',
+              textAlign: 'center',
+            }}
+          >
+            <CheckCircle2 size={56} color="#10B981" style={{ marginBottom: '1rem' }} />
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>
+              {emptyCopy.title}
+            </h2>
+            <p style={{ color: '#94A3B8', maxWidth: '500px', margin: '0', fontSize: '0.95rem' }}>
+              {emptyCopy.body}
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {groupedWork.slotGroups.map((group) => (
+              <section key={group.slotKey}>
+                <SlotGroupHeader group={group} calculateOrderTimer={calculateOrderTimer} />
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                    gap: '1.25rem',
+                    alignItems: 'start',
+                    marginTop: '0.75rem',
+                  }}
+                >
+                  {group.orders.map((ord) => renderOrderCard(ord))}
+                </div>
+              </section>
+            ))}
+
+            {groupedWork.generalQueue.length > 0 && (
+              <section>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: '1rem',
+                    fontWeight: 800,
+                    color: '#94A3B8',
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Altri ordini · {groupedWork.generalQueue.length}{' '}
+                  {groupedWork.generalQueue.length === 1 ? 'ordine' : 'ordini'}
+                </h3>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                    gap: '1.25rem',
+                    alignItems: 'start',
+                    marginTop: '0.75rem',
+                  }}
+                >
+                  {groupedWork.generalQueue.map((ord) => renderOrderCard(ord))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+            </div>
+            {/* Ready strip added in Task 4 */}
           </div>
         )}
       </main>
