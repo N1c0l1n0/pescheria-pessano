@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getLocalOrderById, subscribeToLocalOrders } from '../utils/orderStore';
+import { friedArrivalMessage } from '../utils/friedArrival';
 import { mapKdsOrderItem } from '../utils/orderMappers';
 
 export interface OrderItem {
@@ -349,6 +350,10 @@ export const OrderTracking: React.FC = () => {
   const schedule = parseTrackerSchedule(order?.notes);
   const isDelivery = (order?.order_type || '').toLowerCase().includes('consegna');
   const hasScheduledTime = schedule.hasTime;
+  const hasFried = (order?.order_items || order?.items || []).some((item) => {
+    const itemName = (item.item_name || item.name || '').toLowerCase();
+    return item.item_type === 'fritto' || itemName.includes('cono') || itemName.includes('fritt');
+  });
 
   const displayId = order?.display_id || (order?.id ? `#${String(order.id).slice(-4).toUpperCase()}` : (id ? `#${String(id).slice(-4).toUpperCase()}` : '#0000'));
 
@@ -763,6 +768,23 @@ export const OrderTracking: React.FC = () => {
                           : 'Presentati al banco a quest\'ora')}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {hasFried && (
+                <div
+                  style={{
+                    padding: '0.65rem 0.8rem',
+                    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    borderRadius: '0.5rem',
+                    color: '#FCD34D',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    marginBottom: '1.15rem',
+                  }}
+                >
+                  {friedArrivalMessage(order.order_type || 'Ritiro')}
                 </div>
               )}
 

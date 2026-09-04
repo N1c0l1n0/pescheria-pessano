@@ -16,6 +16,7 @@ import {
   resolvePokeSubmitSlot,
   type CapacityOrder,
 } from '../utils/pokeSlotCapacity';
+import { friedArrivalMessage } from '../utils/friedArrival';
 import { AlarmTimePicker } from './AlarmTimePicker';
 import { FISH_CATALOG, FishItem } from './FishMenuCatalog';
 
@@ -1484,6 +1485,9 @@ export const PokeBuilder: React.FC = () => {
                   <p className="order-step-sub" style={{ maxWidth: '36rem', marginInline: 'auto' }}>
                     Dorati al momento in olio ad alta temperatura, serviti caldi da asporto.
                   </p>
+                  <p className="order-step-sub" style={{ maxWidth: '36rem', marginInline: 'auto', marginTop: '0.65rem', fontWeight: 700, color: 'var(--color-coral)' }}>
+                    {friedArrivalMessage(orderType)}
+                  </p>
                 </div>
 
                 <div className="order-product-grid">
@@ -1755,6 +1759,12 @@ export const PokeBuilder: React.FC = () => {
                   <div className="order-cart-kicker">
                     Articoli ({orderList.length})
                   </div>
+
+                  {orderList.some((i) => i.itemType === 'fritto') && (
+                    <p className="order-hint" style={{ marginTop: '0.65rem', color: '#FDE047', fontWeight: 700 }}>
+                      {friedArrivalMessage(orderType)}
+                    </p>
+                  )}
 
                   {orderList.map((item) => {
                     if (item.itemType === 'fritto') {

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getLocalOrders, updateLocalOrderStatus, subscribeToLocalOrders } from '../utils/orderStore';
+import { FRIED_ON_ARRIVAL_KDS } from '../utils/friedArrival';
 import {
   type KdsOrder,
   type KdsOrderItem,
@@ -1191,6 +1192,20 @@ export const KdsBoard: React.FC = () => {
                                 <div style={{ fontWeight: 800, color: '#F1F5F9', marginBottom: '0.25rem' }}>
                                   {item.quantity && item.quantity > 1 ? `${item.quantity}x ` : ''}
                                   {item.item_name}
+                                  {item.item_type === 'fritto' && (
+                                    <span
+                                      style={{
+                                        marginLeft: '0.4rem',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 800,
+                                        letterSpacing: '0.04em',
+                                        textTransform: 'uppercase',
+                                        color: '#FBBF24',
+                                      }}
+                                    >
+                                      {FRIED_ON_ARRIVAL_KDS}
+                                    </span>
+                                  )}
                                   {item.price ? ` — €${(item.price * (item.quantity || 1)).toFixed(2)}` : ''}
                                 </div>
                                 {item.item_type === 'poke' && (
@@ -1573,6 +1588,20 @@ export const KdsBoard: React.FC = () => {
                             <span style={{ fontSize: '1rem', fontWeight: 800, color: isFishItem ? '#38BDF8' : isFriedItem ? '#FBBF24' : '#FF6B6B', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                               <Sparkles size={16} />
                               {item.item_name || (isFishItem ? 'Pesce Fresco al Banco' : isFriedItem ? 'Cono Fritto Espresso' : 'Poke Custom')}
+                              {isFriedItem && (
+                                <span
+                                  style={{
+                                    marginLeft: '0.4rem',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 800,
+                                    letterSpacing: '0.04em',
+                                    textTransform: 'uppercase',
+                                    color: '#FBBF24',
+                                  }}
+                                >
+                                  {FRIED_ON_ARRIVAL_KDS}
+                                </span>
+                              )}
                             </span>
                             {item.quantity && item.quantity >= 1 && (
                               <span style={{ backgroundColor: isFishItem ? '#0284C7' : isFriedItem ? '#F59E0B' : '#EF4444', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800 }}>
