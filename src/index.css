@@ -2525,10 +2525,6 @@ textarea:focus {
 
 html:has(.fish-admin-shell),
 body:has(.fish-admin-shell) {
-  background: #e8eef0;
-}
-
-.fish-admin-shell {
   --banco-ice: #e8eef0;
   --banco-ice-deep: #d4dee3;
   --banco-card: #f6fafb;
@@ -2541,6 +2537,10 @@ body:has(.fish-admin-shell) {
   --banco-line: rgba(26, 36, 40, 0.1);
   --font-price: 'Barlow Condensed', 'Plus Jakarta Sans', sans-serif;
 
+  background: #e8eef0;
+}
+
+.fish-admin-shell {
   min-height: 100vh;
   min-height: 100dvh;
   color: var(--banco-slate);
