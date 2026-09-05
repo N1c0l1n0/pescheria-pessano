@@ -3,10 +3,12 @@ import type { FishItem } from '../types/fishCatalog';
 import {
   EMPTY_FISH_ITEM,
   canSaveFishDraft,
+  changedSortOrders,
   formatFishPrice,
   isFishEditorDirty,
   parseFishPrice,
   patchFishItem,
+  reorderFishItems,
   stepFishPrice,
 } from './fishAdmin';
 
@@ -58,5 +60,47 @@ describe('fish editor draft', () => {
     expect(isFishEditorDirty(sample, sample)).toBe(false);
     expect(isFishEditorDirty({ ...sample, name: 'Orata' }, sample)).toBe(true);
     expect(isFishEditorDirty({ ...EMPTY_FISH_ITEM, name: 'Orata' }, null)).toBe(true);
+    expect(isFishEditorDirty({ ...sample, sortOrder: 9 }, sample)).toBe(false);
+  });
+});
+
+const catalog = (
+  ['orata', 'branzino', 'seppia'] as const
+).map((id, sortOrder) => ({ ...sample, id, name: id, sortOrder }));
+
+describe('reorderFishItems', () => {
+  it('moves a middle item to the top and rewrites 0…n-1', () => {
+    const next = reorderFishItems(catalog, 'branzino', 'orata');
+    expect(next.map((item) => item.id)).toEqual(['branzino', 'orata', 'seppia']);
+    expect(next.map((item) => item.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  it('moves the first item to the last slot', () => {
+    const next = reorderFishItems(catalog, 'orata', 'seppia');
+    expect(next.map((item) => item.id)).toEqual(['branzino', 'seppia', 'orata']);
+    expect(next.map((item) => item.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  it('moves the last item to the first slot', () => {
+    const next = reorderFishItems(catalog, 'seppia', 'orata');
+    expect(next.map((item) => item.id)).toEqual(['seppia', 'orata', 'branzino']);
+    expect(next.map((item) => item.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  it('returns the same array when an id is missing or both ids match', () => {
+    expect(reorderFishItems(catalog, 'orata', 'orata')).toBe(catalog);
+    expect(reorderFishItems(catalog, 'missing', 'orata')).toBe(catalog);
+    expect(reorderFishItems(catalog, 'orata', 'missing')).toBe(catalog);
+  });
+});
+
+describe('changedSortOrders', () => {
+  it('returns only ids whose sortOrder changed', () => {
+    const swapped = reorderFishItems(catalog, 'orata', 'branzino');
+    expect(changedSortOrders(catalog, swapped)).toEqual([
+      { id: 'branzino', sortOrder: 0 },
+      { id: 'orata', sortOrder: 1 },
+    ]);
+    expect(changedSortOrders(catalog, catalog)).toEqual([]);
   });
 });

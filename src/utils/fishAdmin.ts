@@ -50,9 +50,34 @@ export function isFishEditorDirty(draft: FishItem, original: FishItem | null): b
   return (
     draft.name !== original.name ||
     draft.origin !== original.origin ||
-    draft.image !== original.image ||
-    (draft.sortOrder ?? 0) !== (original.sortOrder ?? 0)
+    draft.image !== original.image
   );
+}
+
+export function reorderFishItems(
+  items: FishItem[],
+  activeId: string,
+  overId: string
+): FishItem[] {
+  if (activeId === overId) return items;
+  const from = items.findIndex((item) => item.id === activeId);
+  const to = items.findIndex((item) => item.id === overId);
+  if (from === -1 || to === -1) return items;
+
+  const next = items.slice();
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next.map((item, index) => (item.sortOrder === index ? item : { ...item, sortOrder: index }));
+}
+
+export function changedSortOrders(
+  previous: FishItem[],
+  next: FishItem[]
+): { id: string; sortOrder: number }[] {
+  const previousOrder = new Map(previous.map((item) => [item.id, item.sortOrder ?? 0]));
+  return next
+    .filter((item) => (item.sortOrder ?? 0) !== (previousOrder.get(item.id) ?? 0))
+    .map((item) => ({ id: item.id, sortOrder: item.sortOrder ?? 0 }));
 }
 
 export function canSaveFishDraft(draft: FishItem): boolean {
