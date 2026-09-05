@@ -1,69 +1,33 @@
 import { AlertCircle, Check, Clock, Loader2 } from 'lucide-react';
 import type { SlotSummary } from '../utils/pokeSlotCapacity';
 
-const VARIANT_STYLES: Record<
-  SlotSummary['variant'],
-  { bg: string; border: string; color: string; Icon: typeof Check }
-> = {
-  available: {
-    bg: '#DCFCE7',
-    border: '#86EFAC',
-    color: '#15803D',
-    Icon: Check,
-  },
-  low: {
-    bg: '#FFEDD5',
-    border: '#FDBA74',
-    color: '#C2410C',
-    Icon: Clock,
-  },
-  full: {
-    bg: '#FEE2E2',
-    border: '#FCA5A5',
-    color: '#B91C1C',
-    Icon: AlertCircle,
-  },
-  overbooked: {
-    bg: '#FEE2E2',
-    border: '#FCA5A5',
-    color: '#B91C1C',
-    Icon: AlertCircle,
-  },
-  unavailable: {
-    bg: '#FEE2E2',
-    border: '#FCA5A5',
-    color: '#B91C1C',
-    Icon: AlertCircle,
-  },
-  loading: {
-    bg: 'rgba(19, 64, 116, 0.06)',
-    border: 'rgba(19, 64, 116, 0.12)',
-    color: 'var(--color-ocean-dark)',
-    Icon: Loader2,
-  },
-};
+const VARIANT_ICONS = {
+  available: Check,
+  low: Clock,
+  full: AlertCircle,
+  warning: AlertCircle,
+  unavailable: AlertCircle,
+  loading: Loader2,
+} as const;
+
+function remainingCopy(summary: SlotSummary): string | null {
+  if (summary.variant === 'loading' || summary.variant === 'unavailable') return null;
+  if (summary.variant === 'warning') return 'Attenzione';
+  if (summary.variant === 'full') return 'Esaurito (10/10)';
+  return summary.remaining === 1 ? '1 poke rimasta' : `${summary.remaining} poke rimaste`;
+}
 
 export function PokeSlotSummary({ summary }: { summary: SlotSummary | null }) {
   if (!summary) return null;
 
-  const style = VARIANT_STYLES[summary.variant];
-  const Icon = style.Icon;
+  const Icon = VARIANT_ICONS[summary.variant];
+  const hasTime = Boolean(summary.slotStart && summary.slotEnd);
+  const text =
+    summary.variant === 'warning' && !hasTime ? summary.headline : summary.headline;
 
   return (
     <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        marginTop: '0.75rem',
-        padding: '0.65rem 0.85rem',
-        borderRadius: 'var(--radius-sm)',
-        backgroundColor: style.bg,
-        border: `1px solid ${style.border}`,
-        color: style.color,
-        fontSize: '0.825rem',
-        fontWeight: 600,
-      }}
+      className={`poke-slot-summary poke-slot-summary--${summary.variant}`}
       aria-live="polite"
     >
       <Icon
@@ -74,7 +38,9 @@ export function PokeSlotSummary({ summary }: { summary: SlotSummary | null }) {
             : undefined
         }
       />
-      <span>{summary.headline}</span>
+      <span>{text}</span>
     </div>
   );
 }
+
+export { remainingCopy };
