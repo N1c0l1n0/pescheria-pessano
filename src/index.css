@@ -2637,9 +2637,8 @@ body:has(.fish-admin-shell) {
 }
 
 .fish-admin-menu__panel {
-  position: absolute;
-  top: calc(100% + 0.4rem);
-  right: 0;
+  position: fixed;
+  z-index: 40;
   min-width: 12.5rem;
   display: grid;
   padding: 0.35rem;
