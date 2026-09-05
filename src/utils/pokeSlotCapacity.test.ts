@@ -7,6 +7,8 @@ import {
   countPokeInOrder,
   countsTowardSlotCapacity,
   findFirstAvailableSlot,
+  findNextAvailableSlots,
+  formatSlotFullError,
   mergeCapacityOrders,
   occupancyBySlot,
   parseClockAndDay,
@@ -309,6 +311,79 @@ describe('resolvePokeSubmitSlot', () => {
     expect(result).toEqual({
       error: 'La pescheria è chiusa in questo giorno. Scegli un altro giorno.',
     });
+  });
+});
+
+describe('findNextAvailableSlots', () => {
+  const dateKey = '2030-09-03';
+  const slots = ['12:00', '12:20', '12:40', '13:00'];
+
+  it('returns up to 3 slots with enough remaining seats after a given slot', () => {
+    const occupancy = {
+      [`${dateKey}|12:00`]: 10,
+      [`${dateKey}|12:20`]: 10,
+      [`${dateKey}|12:40`]: 6,
+      [`${dateKey}|13:00`]: 2,
+    };
+    expect(
+      findNextAvailableSlots({
+        slotStarts: slots,
+        occupancy,
+        dateKey,
+        minSeats: 2,
+        afterSlot: '12:20',
+        limit: 3,
+      })
+    ).toEqual([
+      { time: '12:40', end: '13:00', remaining: 4 },
+      { time: '13:00', end: '13:20', remaining: 8 },
+    ]);
+  });
+
+  it('returns empty array when no slot fits', () => {
+    const occupancy = {
+      [`${dateKey}|12:00`]: 10,
+      [`${dateKey}|12:20`]: 10,
+      [`${dateKey}|12:40`]: 10,
+    };
+    expect(
+      findNextAvailableSlots({
+        slotStarts: slots.slice(0, 3),
+        occupancy,
+        dateKey,
+        minSeats: 1,
+        afterSlot: '12:00',
+      })
+    ).toEqual([]);
+  });
+});
+
+describe('formatSlotFullError', () => {
+  it('formats error with alternatives', () => {
+    const message = formatSlotFullError({
+      slotStart: '12:30',
+      slotEnd: '12:50',
+      cartPokeCount: 2,
+      alternatives: [
+        { time: '13:10', end: '13:30', remaining: 4 },
+        { time: '13:30', end: '13:50', remaining: 1 },
+      ],
+    });
+    expect(message).toContain('Fascia 12:30–12:50 esaurita per 2 poke.');
+    expect(message).toContain('Prossime fasce disponibili:');
+    expect(message).toContain('· 13:10–13:30 · 4 posti');
+    expect(message).toContain('· 13:30–13:50 · 1 posto');
+    expect(message).toContain('Scegli un altro orario e riprova.');
+  });
+
+  it('formats error without alternatives when cart is too large', () => {
+    const message = formatSlotFullError({
+      slotStart: '12:30',
+      slotEnd: '12:50',
+      cartPokeCount: 5,
+      alternatives: [],
+    });
+    expect(message).toContain('Nessuna fascia con abbastanza posti per 5 poke.');
   });
 });
 

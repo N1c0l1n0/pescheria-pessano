@@ -191,6 +191,61 @@ export function findFirstAvailableSlot(args: {
   return null;
 }
 
+export type SlotAlternative = {
+  time: string;
+  end: string;
+  remaining: number;
+};
+
+export function findNextAvailableSlots(args: {
+  slotStarts: string[];
+  occupancy: Record<string, number>;
+  dateKey: string;
+  minSeats: number;
+  afterSlot?: string;
+  limit?: number;
+}): SlotAlternative[] {
+  const limit = args.limit ?? 3;
+  const afterIdx = args.afterSlot ? args.slotStarts.indexOf(args.afterSlot) : -1;
+  const startIdx = afterIdx >= 0 ? afterIdx + 1 : 0;
+  const results: SlotAlternative[] = [];
+
+  for (const time of args.slotStarts.slice(startIdx)) {
+    const booked = args.occupancy[occupancyKey(args.dateKey, time)] || 0;
+    const remaining = Math.max(0, MAX_POKE_PER_SLOT - booked);
+    if (remaining >= args.minSeats) {
+      results.push({
+        time,
+        end: addMinutesToTime(time, POKE_SLOT_MINUTES),
+        remaining,
+      });
+      if (results.length >= limit) break;
+    }
+  }
+  return results;
+}
+
+export function formatSlotFullError(args: {
+  slotStart: string;
+  slotEnd: string;
+  cartPokeCount: number;
+  alternatives: SlotAlternative[];
+}): string {
+  if (args.alternatives.length === 0) {
+    return `Nessuna fascia con abbastanza posti per ${args.cartPokeCount} poke. Scegli un altro giorno o riduci le poke.`;
+  }
+  const lines = [
+    `Fascia ${args.slotStart}–${args.slotEnd} esaurita per ${args.cartPokeCount} poke.`,
+    'Prossime fasce disponibili:',
+  ];
+  for (const alt of args.alternatives) {
+    const posti = alt.remaining === 1 ? '1 posto' : `${alt.remaining} posti`;
+    lines.push(`· ${alt.time}–${alt.end} · ${posti}`);
+  }
+  lines.push('Scegli un altro orario e riprova.');
+  return lines.join('\n');
+}
+
 function formatSlotRange(slotStart: string): string {
   return `${slotStart}–${addMinutesToTime(slotStart, POKE_SLOT_MINUTES)}`;
 }
