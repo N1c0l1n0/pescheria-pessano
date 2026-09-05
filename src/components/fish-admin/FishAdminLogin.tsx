@@ -9,14 +9,25 @@ interface FishAdminLoginProps {
 export const FishAdminLogin: React.FC<FishAdminLoginProps> = ({ onSuccess }) => {
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = (event: React.FormEvent) => {
+  const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (authenticateAdmin(pin.trim())) {
-      onSuccess();
-      return;
+    setPinError('');
+    setSubmitting(true);
+
+    try {
+      const ok = await authenticateAdmin(pin.trim());
+      if (ok) {
+        onSuccess();
+        return;
+      }
+      setPinError('PIN non valido');
+    } catch {
+      setPinError('Errore di verifica PIN. Riprova.');
+    } finally {
+      setSubmitting(false);
     }
-    setPinError('PIN non valido');
   };
 
   return (
@@ -40,8 +51,8 @@ export const FishAdminLogin: React.FC<FishAdminLoginProps> = ({ onSuccess }) => 
             />
           </label>
           {pinError ? <p className="fish-admin-status fish-admin-status--error">{pinError}</p> : null}
-          <button type="submit" className="fish-admin-btn fish-admin-btn--primary">
-            Entra
+          <button type="submit" className="fish-admin-btn fish-admin-btn--primary" disabled={submitting}>
+            {submitting ? 'Verifica…' : 'Entra'}
           </button>
         </form>
       </div>

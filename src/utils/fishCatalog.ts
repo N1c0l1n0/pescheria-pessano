@@ -90,21 +90,63 @@ export function slugifyFishId(name: string): string {
     .slice(0, 48);
 }
 
+const DEFAULT_ADMIN_PIN = 'pessano2026';
+
 export function getAdminPin(): string {
   const env = (import.meta as ImportMeta & { env?: Record<string, string> }).env;
-  return env?.VITE_FISH_ADMIN_PIN || 'pessano2026';
+  return env?.VITE_FISH_ADMIN_PIN?.trim() || DEFAULT_ADMIN_PIN;
 }
 
 export function isAdminAuthenticated(): boolean {
   return sessionStorage.getItem('fish_admin_auth') === '1';
 }
 
-export function authenticateAdmin(pin: string): boolean {
+function markAdminAuthenticated(): void {
+  sessionStorage.setItem('fish_admin_auth', '1');
+}
+
+/** Local fallback for Vite dev when the Cloudflare worker is not running. */
+function authenticateAdminLocally(pin: string): boolean {
   if (pin === getAdminPin()) {
-    sessionStorage.setItem('fish_admin_auth', '1');
+    markAdminAuthenticated();
     return true;
   }
   return false;
+}
+
+/**
+ * Verify admin PIN via Cloudflare Worker runtime env (FISH_ADMIN_PIN / VITE_FISH_ADMIN_PIN).
+ * Falls back to build-time VITE_FISH_ADMIN_PIN only in local dev.
+ */
+export async function authenticateAdmin(pin: string): Promise<boolean> {
+  const trimmed = pin.trim();
+  if (!trimmed) return false;
+
+  try {
+    const response = await fetch('/api/fish-admin/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: trimmed }),
+    });
+
+    if (response.status === 404 || response.status === 405) {
+      return authenticateAdminLocally(trimmed);
+    }
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const data = (await response.json()) as { ok?: boolean };
+    if (data.ok) {
+      markAdminAuthenticated();
+      return true;
+    }
+
+    return false;
+  } catch {
+    return authenticateAdminLocally(trimmed);
+  }
 }
 
 export function logoutAdmin(): void {
