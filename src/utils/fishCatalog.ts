@@ -113,7 +113,7 @@ export function digitsOnly(value: string): string {
 
 export function getAdminPin(): string {
   const env = (import.meta as ImportMeta & { env?: Record<string, string> }).env;
-  return env?.VITE_FISH_ADMIN_PIN || 'pessano2026';
+  return env?.VITE_FISH_ADMIN_PIN || '2134';
 }
 
 export function isAdminAuthenticated(): boolean {

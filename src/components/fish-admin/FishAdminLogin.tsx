@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock } from 'lucide-react';
-import { authenticateAdmin } from '../../utils/fishCatalog';
+import { authenticateAdmin, digitsOnly } from '../../utils/fishCatalog';
 
 interface FishAdminLoginProps {
   onSuccess: () => void;
@@ -33,7 +33,7 @@ export const FishAdminLogin: React.FC<FishAdminLoginProps> = ({ onSuccess }) => 
             <input
               type="password"
               value={pin}
-              onChange={(e) => setPin(e.target.value)}
+              onChange={(e) => setPin(digitsOnly(e.target.value))}
               autoFocus
               autoComplete="current-password"
               inputMode="numeric"
