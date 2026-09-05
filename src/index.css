@@ -2678,7 +2678,7 @@ body:has(.fish-admin-shell) {
 
 .fish-admin-row {
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: 48px 64px 1fr;
   gap: 0.7rem;
   padding: 0.7rem;
   border: 1px solid var(--banco-line);
@@ -2689,6 +2689,26 @@ body:has(.fish-admin-shell) {
 
 .fish-admin-row--hidden {
   opacity: 0.58;
+}
+
+.fish-admin-row__handle {
+  width: 48px;
+  height: 48px;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--banco-foam);
+  cursor: grab;
+  touch-action: none;
+}
+
+.fish-admin-row__handle:active {
+  cursor: grabbing;
 }
 
 .fish-admin-row__photo {

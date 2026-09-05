@@ -1,7 +1,13 @@
 import React from 'react';
-import { Pencil } from 'lucide-react';
+import { GripVertical, Pencil } from 'lucide-react';
 import type { FishItem } from '../../types/fishCatalog';
 import { FishPriceStepper } from './FishPriceStepper';
+
+export type FishAdminDragHandle = {
+  attributes: React.HTMLAttributes<HTMLButtonElement>;
+  listeners?: React.HTMLAttributes<HTMLButtonElement>;
+  setActivatorNodeRef: (element: HTMLElement | null) => void;
+};
 
 interface FishAdminRowProps {
   item: FishItem;
@@ -11,6 +17,7 @@ interface FishAdminRowProps {
   onPriceCommit: (price: number) => void;
   onToggleActive: () => void;
   onEdit: () => void;
+  dragHandle?: FishAdminDragHandle;
 }
 
 export const FishAdminRow: React.FC<FishAdminRowProps> = ({
@@ -21,12 +28,24 @@ export const FishAdminRow: React.FC<FishAdminRowProps> = ({
   onPriceCommit,
   onToggleActive,
   onEdit,
+  dragHandle,
 }) => {
   const hidden = item.isActive === false;
   const statusError = Boolean(status?.toLowerCase().includes('errore'));
 
   return (
     <article className={`fish-admin-row${hidden ? ' fish-admin-row--hidden' : ''}`}>
+      <button
+        type="button"
+        className="fish-admin-row__handle"
+        aria-label={`Riordina ${item.name}`}
+        ref={dragHandle?.setActivatorNodeRef}
+        {...dragHandle?.attributes}
+        {...dragHandle?.listeners}
+      >
+        <GripVertical size={18} />
+      </button>
+
       <button type="button" className="fish-admin-row__photo" onClick={onEdit} aria-label={`Modifica ${item.name}`}>
         <img
           src={item.image}
