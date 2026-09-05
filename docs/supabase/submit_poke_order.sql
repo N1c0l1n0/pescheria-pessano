@@ -1,5 +1,7 @@
 -- Deploy manually in Supabase SQL Editor.
 -- Enables atomic poke slot capacity check + order insert.
+--
+-- Schema note: orders.id is bigint (serial), order_items.id is uuid.
 
 CREATE OR REPLACE FUNCTION public.submit_poke_order(
   p_friendly_id text,
@@ -19,7 +21,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_order_id uuid;
+  v_order_id bigint;
   v_slot_time text;
   v_slot_day text;
   v_date_key date;
