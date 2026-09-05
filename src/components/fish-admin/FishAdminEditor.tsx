@@ -111,16 +111,6 @@ export const FishAdminEditor: React.FC<FishAdminEditorProps> = ({
           </div>
         </fieldset>
 
-        <label className="fish-admin-field">
-          Ordine in vetrina
-          <input
-            type="number"
-            inputMode="numeric"
-            value={draft.sortOrder ?? 0}
-            onChange={(e) => onChange({ sortOrder: Number(e.target.value) })}
-          />
-        </label>
-
         {status ? (
           <p className={`fish-admin-status${statusError ? ' fish-admin-status--error' : ''}`}>{status}</p>
         ) : null}
