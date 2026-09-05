@@ -11,11 +11,10 @@ import { getDaySchedule, getQuickTimeOptionsForDate, isTimeInOpeningHours } from
 import {
   MAX_POKE_PER_SLOT,
   buildSlotSummary,
-  canAddPokeToSlot,
   localDateKey,
   mergeCapacityOrders,
   occupancyBySlot,
-  resolvePokeSubmitSlot,
+  validatePokeSubmitSlot,
   type CapacityOrder,
 } from '../utils/pokeSlotCapacity';
 import { friedArrivalMessage } from '../utils/friedArrival';
@@ -396,8 +395,6 @@ export const PokeBuilder: React.FC = () => {
     occupancyLoaded,
   ]);
 
-  const pokeAddBlocked = !canAddPokeToSlot(slotSummary, !editingPokeId);
-
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -454,6 +451,13 @@ export const PokeBuilder: React.FC = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          scheduleOccupancyReload();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'order_items' },
         () => {
           scheduleOccupancyReload();
         }
@@ -637,13 +641,6 @@ export const PokeBuilder: React.FC = () => {
     }
     if (selectedProteine.length === 0) {
       triggerValidationError(`Seleziona almeno 1 Proteina per la Poke di "${trimmedName}"!`, 'stepProteine');
-      return;
-    }
-    if (!canAddPokeToSlot(slotSummary, !editingPokeId)) {
-      triggerValidationError(
-        'Fascia poke al completo. Scegli un altro orario.',
-        'ordine-invia'
-      );
       return;
     }
     if (!editingPokeId && cartPokeCount >= MAX_POKE_PER_SLOT) {
@@ -838,7 +835,7 @@ export const PokeBuilder: React.FC = () => {
     const slotStarts = getQuickTimeOptionsForDate(occupancyDate);
     let effectiveTime = pickupTime || 'Prima possibile';
     if (pokeCount > 0) {
-      const resolved = resolvePokeSubmitSlot({
+      const validated = validatePokeSubmitSlot({
         pickupTime: effectiveTime,
         selectedDay,
         slotStarts,
@@ -846,13 +843,13 @@ export const PokeBuilder: React.FC = () => {
         dateKey: occupancyDateKey,
         cartPokeCount: pokeCount,
       });
-      if ('error' in resolved) {
+      if (!validated.ok) {
         setIsSubmitting(false);
-        triggerValidationError(resolved.error, 'ordine-dati');
+        triggerValidationError(validated.error, 'ordine-dati');
         return;
       }
       const formattedDay = selectedDay === 'oggi' ? 'Oggi' : 'Domani';
-      effectiveTime = `${resolved.time} (${formattedDay})`;
+      effectiveTime = `${validated.time} (${formattedDay})`;
       setPickupTime(effectiveTime);
     }
 
@@ -1529,15 +1526,12 @@ export const PokeBuilder: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleSavePokeToOrder}
-                      disabled={pokeAddBlocked}
                       className="btn btn-coral"
                       style={{
                         flex: '1 1 240px',
                         padding: '0.9rem 1.25rem',
                         fontSize: '0.95rem',
                         justifyContent: 'center',
-                        opacity: pokeAddBlocked ? 0.55 : 1,
-                        cursor: pokeAddBlocked ? 'not-allowed' : 'pointer',
                       }}
                     >
                       <PlusCircle size={18} />
