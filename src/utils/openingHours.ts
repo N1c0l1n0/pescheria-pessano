@@ -287,3 +287,83 @@ export function getQuickTimeOptionsForDate(
   return slotsOptions;
 }
 
+export const MEAL_WINDOWS = {
+  pranzo: { start: '11:30', end: '13:30' },
+  cena: { start: '18:30', end: '20:15' },
+} as const;
+
+export const MEAL_PRESET_TARGETS = {
+  pranzo: ['12:10', '12:30', '13:10'],
+  cena: ['18:45', '19:05', '19:25', '20:05'],
+} as const;
+
+export interface MealPresetOptions {
+  pranzo: string[];
+  cena: string[];
+}
+
+export function dayHasEvening(schedule: DaySchedule): boolean {
+  return schedule.slots.some((slot) => timeToMinutes(slot.open) >= timeToMinutes('17:00'));
+}
+
+function resolveTargetsToGrid(
+  targets: readonly string[],
+  gridAll: string[],
+  gridVisible: Set<string>,
+  window: { start: string; end: string }
+): string[] {
+  const windowStart = timeToMinutes(window.start);
+  const windowEnd = timeToMinutes(window.end);
+  const resolved = new Set<string>();
+
+  for (const target of targets) {
+    const targetMin = timeToMinutes(target);
+    let best: string | null = null;
+    let bestDist = Infinity;
+
+    for (const slot of gridAll) {
+      const slotMin = timeToMinutes(slot);
+      if (slotMin < windowStart || slotMin > windowEnd) continue;
+      const dist = Math.abs(slotMin - targetMin);
+      if (dist < bestDist || (dist === bestDist && best !== null && slotMin > timeToMinutes(best))) {
+        bestDist = dist;
+        best = slot;
+      }
+    }
+
+    if (best && gridVisible.has(best)) {
+      resolved.add(best);
+    }
+  }
+
+  return Array.from(resolved).sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+}
+
+export function getMealPresetOptionsForDate(date: Date = new Date()): MealPresetOptions {
+  const schedule = getDaySchedule(date);
+  if (schedule.isClosedAllDay) {
+    return { pranzo: [], cena: [] };
+  }
+
+  const gridAll = getQuickTimeOptionsForDate(date, { includePast: true });
+  const gridVisible = new Set(getQuickTimeOptionsForDate(date, { includePast: false }));
+  const hasEvening = dayHasEvening(schedule);
+
+  return {
+    pranzo: resolveTargetsToGrid(
+      MEAL_PRESET_TARGETS.pranzo,
+      gridAll,
+      gridVisible,
+      MEAL_WINDOWS.pranzo
+    ),
+    cena: hasEvening
+      ? resolveTargetsToGrid(
+          MEAL_PRESET_TARGETS.cena,
+          gridAll,
+          gridVisible,
+          MEAL_WINDOWS.cena
+        )
+      : [],
+  };
+}
+
