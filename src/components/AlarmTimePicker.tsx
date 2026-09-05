@@ -3,21 +3,14 @@ import { Clock, Calendar, AlertCircle, Check } from 'lucide-react';
 import {
   getDaySchedule,
   isTimeInOpeningHours,
-  getQuickTimeOptionsForDate,
+  getMealPresetOptionsForDate,
+  getVisibleMealGroups,
 } from '../utils/openingHours';
-import {
-  containingSlotStart,
-  occupancyKey,
-  slotAvailability,
-} from '../utils/pokeSlotCapacity';
 
 interface TimePickerProps {
   orderType: 'Ritiro' | 'Consegna';
   selectedTime: string;
   selectedDay: 'oggi' | 'domani';
-  slotOccupancy?: Record<string, number>;
-  cartPokeCount?: number;
-  dateKey?: string;
   onTimeChange: (time: string, day: 'oggi' | 'domani') => void;
 }
 
@@ -25,9 +18,6 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
   orderType,
   selectedTime,
   selectedDay,
-  slotOccupancy,
-  cartPokeCount = 0,
-  dateKey,
   onTimeChange,
 }) => {
   const [day, setDay] = useState<'oggi' | 'domani'>(selectedDay);
@@ -44,12 +34,11 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
 
   const activeDate = day === 'oggi' ? todayDate : tomorrowDate;
   const activeSchedule = getDaySchedule(activeDate);
-  const quickSlots = getQuickTimeOptionsForDate(activeDate);
-  const quickSlotsForContainment = getQuickTimeOptionsForDate(activeDate, {
-    includePast: true,
-  });
+  const mealPresets = getMealPresetOptionsForDate(activeDate);
+  const visibleMeals = getVisibleMealGroups(activeDate);
+  const visiblePranzo = visibleMeals.showPranzo ? mealPresets.pranzo : [];
+  const visibleCena = visibleMeals.showCena ? mealPresets.cena : [];
 
-  // Helper to strip any trailing "(Oggi)" or "(Domani)" tags
   const cleanTimeStr = (str: string): string => {
     return (str || '').replace(/\s*\((Oggi|Domani|oggi|domani)\)/gi, '').trim();
   };
@@ -75,19 +64,33 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
 
   const isAsapSelected = !isCustom && (rawSelectedTime === 'Prima possibile' || rawSelectedTime.includes('ASAP'));
   const isValidCustomTime = isTimeInOpeningHours(customTime, activeDate);
-  const customSlotStart = containingSlotStart(customTime, quickSlotsForContainment);
-  const customBooked = dateKey && customSlotStart
-    ? (slotOccupancy?.[occupancyKey(dateKey, customSlotStart)] || 0)
-    : 0;
-  const customAvailability = slotAvailability(customBooked, cartPokeCount);
-  const isCustomPokeSlotFull = cartPokeCount > 0
-    && Boolean(dateKey)
-    && Boolean(customSlotStart)
-    && customAvailability.disabled;
+
+  const renderPresetButton = (slotTime: string) => {
+    const isSel = !isCustom && selectedTime.includes(slotTime);
+    return (
+      <button
+        key={slotTime}
+        type="button"
+        onClick={() => handlePresetSelect(slotTime)}
+        style={{
+          padding: '0.45rem 0.75rem',
+          borderRadius: 'var(--radius-sm)',
+          border: isSel ? '1.5px solid var(--color-ocean-medium)' : '1px solid rgba(11, 37, 69, 0.15)',
+          backgroundColor: isSel ? 'var(--color-ocean-dark)' : 'white',
+          color: isSel ? 'white' : 'var(--color-ocean-dark)',
+          fontWeight: isSel ? 800 : 600,
+          fontSize: '0.825rem',
+          cursor: 'pointer',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        {slotTime}
+      </button>
+    );
+  };
 
   return (
     <div className="order-timepicker">
-      {/* 1. Day Selector (Oggi vs Domani) */}
       <div
         style={{
           display: 'flex',
@@ -141,7 +144,6 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
         </div>
       </div>
 
-      {/* 2. Opening Hours Info Banner */}
       {activeSchedule.isClosedAllDay ? (
         <div
           style={{
@@ -185,7 +187,6 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
         </div>
       )}
 
-      {/* 3. Preset Time Pill Buttons */}
       <div style={{ marginBottom: '1rem' }}>
         <div style={{ fontSize: '0.775rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
           Seleziona Orario
@@ -209,37 +210,41 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
             ⚡ Prima possibile
           </button>
 
-          {quickSlots.map((slotTime) => {
-            const isSel = !isCustom && selectedTime.includes(slotTime);
-            const booked = dateKey
-              ? (slotOccupancy?.[occupancyKey(dateKey, slotTime)] || 0)
-              : 0;
-            const availability = slotAvailability(booked, cartPokeCount);
-            return (
-              <button
-                key={slotTime}
-                type="button"
-                disabled={availability.disabled}
-                onClick={() => {
-                  if (!availability.disabled) handlePresetSelect(slotTime);
-                }}
+          {visiblePranzo.length > 0 && (
+            <div style={{ width: '100%', marginTop: '0.35rem' }}>
+              <div
                 style={{
-                  padding: '0.45rem 0.75rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: isSel ? '1.5px solid var(--color-ocean-medium)' : '1px solid rgba(11, 37, 69, 0.15)',
-                  backgroundColor: isSel ? 'var(--color-ocean-dark)' : 'white',
-                  color: isSel ? 'white' : 'var(--color-ocean-dark)',
-                  fontWeight: isSel ? 800 : 600,
-                  fontSize: '0.825rem',
-                  cursor: availability.disabled ? 'not-allowed' : 'pointer',
-                  opacity: availability.disabled ? 0.55 : 1,
-                  transition: 'all 0.15s ease',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: 'var(--color-text-muted)',
+                  marginBottom: '0.35rem',
                 }}
               >
-                {availability.caption ? `${slotTime} · ${availability.caption}` : slotTime}
-              </button>
-            );
-          })}
+                Pranzo
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                {visiblePranzo.map(renderPresetButton)}
+              </div>
+            </div>
+          )}
+
+          {visibleCena.length > 0 && (
+            <div style={{ width: '100%', marginTop: '0.35rem' }}>
+              <div
+                style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: 'var(--color-text-muted)',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                Cena
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                {visibleCena.map(renderPresetButton)}
+              </div>
+            </div>
+          )}
 
           <button
             type="button"
@@ -264,7 +269,6 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
         </div>
       </div>
 
-      {/* 4. Native Time Input with Automatic Phone Numeric Keyboard & Autocomplete */}
       {isCustom && (
         <div
           style={{
@@ -312,7 +316,6 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
               }}
             />
 
-            {/* Validation badge */}
             <div
               style={{
                 display: 'inline-flex',
@@ -320,13 +323,13 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
                 gap: '0.35rem',
                 padding: '0.4rem 0.75rem',
                 borderRadius: 'var(--radius-full)',
-                backgroundColor: isValidCustomTime && !isCustomPokeSlotFull ? '#DCFCE7' : '#FEE2E2',
-                color: isValidCustomTime && !isCustomPokeSlotFull ? '#15803D' : '#B91C1C',
+                backgroundColor: isValidCustomTime ? '#DCFCE7' : '#FEE2E2',
+                color: isValidCustomTime ? '#15803D' : '#B91C1C',
                 fontSize: '0.8rem',
                 fontWeight: 700,
               }}
             >
-              {isValidCustomTime && !isCustomPokeSlotFull ? (
+              {isValidCustomTime ? (
                 <>
                   <Check size={14} />
                   <span>Orario valido</span>
@@ -335,11 +338,9 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
                 <>
                   <AlertCircle size={14} />
                   <span>
-                    {isCustomPokeSlotFull
-                      ? 'Fascia poke al completo'
-                      : day === 'oggi'
-                        ? 'Orario già passato o pescheria chiusa'
-                        : 'Pescheria chiusa a quest\'ora'}
+                    {day === 'oggi'
+                      ? 'Orario già passato o pescheria chiusa'
+                      : 'Pescheria chiusa a quest\'ora'}
                   </span>
                 </>
               )}
