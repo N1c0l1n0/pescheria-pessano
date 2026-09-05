@@ -13,16 +13,19 @@ import {
   Receipt,
   User,
   MessageCircle,
-  Bell
+  Calendar,
+  Zap,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getLocalOrderById, subscribeToLocalOrders } from '../utils/orderStore';
-import { subscribeToOrderPush } from '../lib/onesignal';
+import { friedArrivalMessage } from '../utils/friedArrival';
+import { mapKdsOrderItem } from '../utils/orderMappers';
 
 export interface OrderItem {
   id?: string;
   order_id?: string;
   item_name?: string;
+  item_type?: 'poke' | 'fritto' | 'pesce' | string;
   size?: string;
   bases?: string[];
   proteins?: string[];
@@ -54,91 +57,71 @@ export interface Order {
   items?: OrderItem[];
 }
 
+interface TrackerSchedule {
+  clockHours: string | null;
+  clockMinutes: string | null;
+  dayLabel: 'Oggi' | 'Domani' | null;
+  isAsap: boolean;
+  hasTime: boolean;
+  remainingNotes: string;
+  rawTime: string;
+}
+
+const parseTrackerSchedule = (notes?: string): TrackerSchedule => {
+  const raw = (notes || '').trim();
+  const match = raw.match(/Orario:\s*([^—\n]+)/i);
+  const timeText = match?.[1]?.trim() || '';
+  const hasTime = Boolean(timeText);
+
+  const remainingNotes = raw
+    .replace(/Orario:\s*[^—\n]+/i, '')
+    .replace(/^\s*—\s*/, '')
+    .replace(/^Note generali:\s*/i, '')
+    .trim();
+
+  const isAsap = hasTime && /asap|prima possibile/i.test(timeText);
+  const dayMatch = timeText.match(/\((Oggi|Domani)\)/i);
+  const dayRaw = dayMatch?.[1];
+  const dayLabel: TrackerSchedule['dayLabel'] = dayRaw
+    ? (dayRaw.charAt(0).toUpperCase() + dayRaw.slice(1).toLowerCase()) as 'Oggi' | 'Domani'
+    : null;
+
+  const clockMatch = timeText.match(/(\d{1,2})[:.](\d{2})/);
+
+  return {
+    clockHours: clockMatch ? clockMatch[1].padStart(2, '0') : null,
+    clockMinutes: clockMatch ? clockMatch[2] : null,
+    dayLabel,
+    isAsap,
+    hasTime,
+    remainingNotes,
+    rawTime: timeText.replace(/\s*\((Oggi|Domani)\)/gi, '').trim(),
+  };
+};
+
+const isFriedOrderItem = (item: OrderItem): boolean => {
+  const itemName = (item.item_name || item.name || '').toLowerCase();
+  return item.item_type === 'fritto' || itemName.includes('cono') || itemName.includes('fritt');
+};
+
 export const OrderTracking: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isProntoAlertOpen, setIsProntoAlertOpen] = useState<boolean>(false);
-  const [isPushSubscribed, setIsPushSubscribed] = useState<boolean>(false);
-  const [pushToastMsg, setPushToastMsg] = useState<string | null>(null);
-
-  // Check saved push notification subscription state or global browser permission
-  useEffect(() => {
-    const orderIdToUse = order?.id || id;
-    if (!orderIdToUse || typeof window === 'undefined') return;
-
-    // Clean up any legacy push_global_granted if browser permission is not actually granted
-    const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-    if (!isGranted) {
-      localStorage.removeItem('push_global_granted');
-    }
-
-    const savedOrder = localStorage.getItem(`push_sub_${orderIdToUse}`) === 'true';
-
-    if (isGranted || savedOrder) {
-      setIsPushSubscribed(true);
-      subscribeToOrderPush(String(orderIdToUse)).catch((err) => {
-        console.warn('Auto order push tag error:', err);
-      });
-    } else {
-      setIsPushSubscribed(false);
-    }
-  }, [order?.id, id]);
-
-  const handleActivatePush = async () => {
-    const orderIdToUse = order?.id || id;
-    if (!orderIdToUse) return;
-
-    setPushToastMsg('🔔 Attivazione notifiche in corso...');
-
-    try {
-      await subscribeToOrderPush(String(orderIdToUse));
-      const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-      if (isGranted) {
-        setIsPushSubscribed(true);
-        setPushToastMsg('🔔 Notifiche attivate con successo per questo ordine!');
-      } else {
-        setPushToastMsg('🔔 Per favore accetta il permesso delle notifiche nel browser.');
-      }
-    } catch (err) {
-      console.warn('Push subscription background error:', err);
-      setPushToastMsg('🔔 Notifiche attivate per questo ordine.');
-    }
-
-    setTimeout(() => {
-      setPushToastMsg(null);
-    }, 4000);
-  };
 
   // Trigger sound, vibration & native notification for 'PRONTO' status
   const triggerProntoAlert = useCallback(() => {
     setIsProntoAlertOpen(true);
 
-    // Native System Push Notification (Fired on Desktop/Mobile via Service Worker)
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
       try {
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.ready.then((reg) => {
-            reg.showNotification('🎉 La tua Poke è Pronta!', {
-              body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
-              icon: '/pesce/tonno_pinna_gialla.jpg',
-              tag: 'poke_pronta_notification',
-            });
-          }).catch(() => {
-            new Notification('🎉 La tua Poke è Pronta!', {
-              body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
-              icon: '/pesce/tonno_pinna_gialla.jpg',
-              tag: 'poke_pronta_notification',
-            });
-          });
-        } else {
-          new Notification('🎉 La tua Poke è Pronta!', {
-            body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
-            icon: '/pesce/tonno_pinna_gialla.jpg',
-            tag: 'poke_pronta_notification',
-          });
-        }
+        new Notification('🎉 La tua Poke è Pronta!', {
+          body: 'La tua Poke è PRONTA! Puoi passare al banco di Pescheria Pessano per il ritiro.',
+          icon: '/pesce/tonno_pinna_gialla.jpg',
+          tag: 'poke_pronta_notification',
+        });
       } catch (e) {
         console.warn('Native Notification trigger error:', e);
       }
@@ -205,33 +188,7 @@ export const OrderTracking: React.FC = () => {
       if (!fetchErr && data) {
         const raw = data as any;
         const items = Array.isArray(raw.order_items)
-          ? raw.order_items.map((item: any) => {
-              let dt: any = {};
-              if (typeof item.details === 'string') {
-                try { dt = JSON.parse(item.details); } catch (e) { dt = {}; }
-              } else if (typeof item.details === 'object' && item.details !== null) {
-                dt = item.details;
-              }
-
-              const bases = Array.isArray(dt.bases) ? dt.bases : (Array.isArray(item.bases) ? item.bases : (Array.isArray(dt.basi) ? dt.basi : (Array.isArray(item.basi) ? item.basi : [])));
-              const proteins = Array.isArray(dt.proteins) ? dt.proteins : (Array.isArray(item.proteins) ? item.proteins : (Array.isArray(dt.proteine) ? dt.proteine : (Array.isArray(item.proteine) ? item.proteine : [])));
-              const toppings = Array.isArray(dt.toppings) ? dt.toppings : (Array.isArray(item.toppings) ? item.toppings : (Array.isArray(dt.ingredienti) ? dt.ingredienti : (Array.isArray(item.ingredienti) ? item.ingredienti : [])));
-              const sauces = Array.isArray(dt.sauces) ? dt.sauces : (Array.isArray(item.sauces) ? item.sauces : (Array.isArray(dt.salse) ? dt.salse : (Array.isArray(item.salse) ? item.salse : [])));
-
-              return {
-                id: String(item.id),
-                item_name: item.name || item.item_name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
-                size: dt.size || item.size || '',
-                bases,
-                proteins,
-                toppings,
-                sauces,
-                has_sesame: dt.has_sesame ?? item.has_sesame ?? true,
-                notes: dt.notes || item.notes || '',
-                price: Number(item.unit_price || item.price || 0),
-                quantity: Number(item.quantity || 1),
-              };
-            })
+          ? raw.order_items.map((item: Record<string, unknown>) => mapKdsOrderItem(item))
           : [];
 
         const normalizedOrder: Order = {
@@ -260,33 +217,9 @@ export const OrderTracking: React.FC = () => {
       // Local store fallback
       const local = getLocalOrderById(id);
       if (local) {
-        const normalizedLocalItems = (local.order_items || (local as any).items || []).map((item: any) => {
-          let dt: any = {};
-          if (typeof item.details === 'string') {
-            try { dt = JSON.parse(item.details); } catch (e) { dt = {}; }
-          } else if (typeof item.details === 'object' && item.details !== null) {
-            dt = item.details;
-          }
-
-          const bases = Array.isArray(item.bases) ? item.bases : (Array.isArray(dt.bases) ? dt.bases : (Array.isArray(item.basi) ? item.basi : (Array.isArray(dt.basi) ? dt.basi : [])));
-          const proteins = Array.isArray(item.proteins) ? item.proteins : (Array.isArray(dt.proteins) ? dt.proteins : (Array.isArray(item.proteine) ? item.proteine : (Array.isArray(dt.proteine) ? dt.proteine : [])));
-          const toppings = Array.isArray(item.toppings) ? item.toppings : (Array.isArray(dt.toppings) ? dt.toppings : (Array.isArray(item.ingredienti) ? item.ingredienti : (Array.isArray(dt.ingredienti) ? dt.ingredienti : [])));
-          const sauces = Array.isArray(item.sauces) ? item.sauces : (Array.isArray(dt.sauces) ? dt.sauces : (Array.isArray(item.salse) ? item.salse : (Array.isArray(dt.salse) ? dt.salse : [])));
-
-          return {
-            id: String(item.id || Math.random()),
-            item_name: item.item_name || item.name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
-            size: item.size || dt.size || '',
-            bases,
-            proteins,
-            toppings,
-            sauces,
-            has_sesame: item.has_sesame ?? dt.has_sesame ?? true,
-            notes: item.notes || dt.notes || '',
-            price: Number(item.price || item.unit_price || 0),
-            quantity: Number(item.quantity || 1),
-          };
-        });
+        const normalizedLocalItems = (local.order_items || (local as any).items || []).map((item) =>
+          mapKdsOrderItem(item)
+        );
 
         const normalizedLocal: Order = {
           ...local,
@@ -338,7 +271,15 @@ export const OrderTracking: React.FC = () => {
       console.error('Error fetching order:', err);
       const local = getLocalOrderById(id);
       if (local) {
-        setOrder(local as Order);
+        setOrder({
+          ...local,
+          id: String(local.id),
+          display_id: local.display_id || `#${String(local.id).slice(-4).toUpperCase()}`,
+          customer_name: local.customer_name || 'Cliente',
+          phone: (local as any).customer_phone || local.phone || '',
+          total_price: Number((local as any).total_amount || local.total_price || 0),
+          order_items: (local.order_items || []).map((item) => mapKdsOrderItem(item)),
+        } as Order);
       } else {
         setError(err.message || 'Impossibile recuperare i dettagli dell\'ordine.');
       }
@@ -411,27 +352,29 @@ export const OrderTracking: React.FC = () => {
   };
 
   const currentStep = getStepIndex(order?.status);
-
+  const schedule = parseTrackerSchedule(order?.notes);
+  const isDelivery = (order?.order_type || '').toLowerCase().includes('consegna');
+  const hasScheduledTime = schedule.hasTime;
+  const hasFried = (order?.order_items || order?.items || []).some(isFriedOrderItem);
 
   const displayId = order?.display_id || (order?.id ? `#${String(order.id).slice(-4).toUpperCase()}` : (id ? `#${String(id).slice(-4).toUpperCase()}` : '#0000'));
 
   return (
     <div
+      className="tracker-page"
       style={{
         minHeight: '100vh',
-        backgroundColor: '#071527',
         color: 'white',
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
       {/* TOP BAR BRAND HEADER */}
       <header
         style={{
-          backgroundColor: 'rgba(11, 37, 69, 0.9)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(141, 169, 196, 0.2)',
+          backgroundColor: 'rgba(4, 18, 33, 0.88)',
+          backdropFilter: 'blur(16px)',
+          borderBottom: '1px solid rgba(201, 162, 39, 0.2)',
           padding: '0.85rem 1.5rem',
           position: 'sticky',
           top: 0,
@@ -479,7 +422,7 @@ export const OrderTracking: React.FC = () => {
               <div style={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                 Pescheria Pessano
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#8DA9C4' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-gold-soft)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
                 Finale Ligure (SV)
               </div>
             </div>
@@ -491,10 +434,11 @@ export const OrderTracking: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              backgroundColor: 'rgba(56, 189, 248, 0.15)',
+              background:
+                'linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(201, 162, 39, 0.12) 100%)',
               padding: '0.45rem 0.9rem',
               borderRadius: '999px',
-              border: '1px solid rgba(56, 189, 248, 0.35)',
+              border: '1px solid rgba(201, 162, 39, 0.32)',
             }}
           >
             <Receipt size={16} color="#38BDF8" />
@@ -588,30 +532,8 @@ export const OrderTracking: React.FC = () => {
         {!loading && !error && order && (
           <div className="tracker-grid-layout">
             
-            {/* LEFT COLUMN: REALTIME STATUS, PRONTO ALERT, PUSH & ASSISTANCE */}
+            {/* LEFT COLUMN: REALTIME STATUS, PRONTO ALERT & ASSISTANCE */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-              
-              {/* SUCCESS TOAST MESSAGE */}
-              {pushToastMsg && (
-                <div
-                  style={{
-                    padding: '0.75rem 1rem',
-                    borderRadius: '0.65rem',
-                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                    border: '1.5px solid #10B981',
-                    color: '#A7F3D0',
-                    fontWeight: 700,
-                    fontSize: '0.875rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.2)',
-                  }}
-                >
-                  <CheckCircle2 size={18} color="#10B981" style={{ flexShrink: 0 }} />
-                  <span>{pushToastMsg}</span>
-                </div>
-              )}
 
               {/* COMPACT & MODERN PRONTO TRIGGER BANNER */}
               {(order.status === 'PRONTO' || isProntoAlertOpen) && (
@@ -807,60 +729,64 @@ export const OrderTracking: React.FC = () => {
                 </div>
               </div>
 
-              {/* PUSH NOTIFICATION SUBSCRIPTION BANNER */}
-              {!isPushSubscribed && (
-                <div
-                  style={{
-                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                    border: '1px solid rgba(56, 189, 248, 0.35)',
-                    borderRadius: '0.85rem',
-                    padding: '0.9rem 1.1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '0.75rem',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: '180px' }}>
-                    <div
-                      style={{
-                        width: '34px',
-                        height: '34px',
-                        borderRadius: '50%',
-                        backgroundColor: '#0284C7',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Bell size={17} color="white" />
+              {/* PICKUP / DELIVERY TIME — dedicated schedule card, not a note */}
+              {hasScheduledTime && (
+                <div className={`tracker-schedule ${schedule.isAsap ? 'tracker-schedule--asap' : 'tracker-schedule--timed'}`}>
+                  <div className="tracker-schedule-icon" aria-hidden="true">
+                    {schedule.isAsap ? <Zap size={24} /> : <Clock size={24} />}
+                  </div>
+                  <div className="tracker-schedule-body">
+                    <div className="tracker-schedule-kicker">
+                      <span>
+                        {isDelivery ? 'Orario di consegna' : 'Orario di ritiro'}
+                      </span>
+                      {schedule.dayLabel && (
+                        <span className={`tracker-schedule-day tracker-schedule-day--${schedule.dayLabel.toLowerCase()}`}>
+                          <Calendar size={11} />
+                          {schedule.dayLabel}
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'white' }}>
-                        Notifica quando pronto?
+
+                    {schedule.isAsap ? (
+                      <div className="tracker-schedule-asap-label">Prima possibile</div>
+                    ) : schedule.clockHours && schedule.clockMinutes ? (
+                      <div className="tracker-schedule-clock" aria-label={`${schedule.clockHours}:${schedule.clockMinutes}`}>
+                        <span>{schedule.clockHours}</span>
+                        <span className="tracker-schedule-colon">:</span>
+                        <span>{schedule.clockMinutes}</span>
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.8)', lineHeight: 1.3 }}>
-                        Ricevi un avviso push sul tuo dispositivo.
-                      </div>
+                    ) : (
+                      <div className="tracker-schedule-asap-label">{schedule.rawTime}</div>
+                    )}
+
+                    <div className="tracker-schedule-hint">
+                      {schedule.isAsap
+                        ? (isDelivery
+                          ? 'Partiamo appena l\'ordine è pronto'
+                          : 'Passa al banco appena ricevi l\'avviso')
+                        : (isDelivery
+                          ? 'Consegna prevista a quest\'ora'
+                          : 'Presentati al banco a quest\'ora')}
                     </div>
                   </div>
+                </div>
+              )}
 
-                  <button
-                    type="button"
-                    onClick={handleActivatePush}
-                    className="btn btn-coral"
-                    style={{
-                      padding: '0.45rem 0.9rem',
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                      whiteSpace: 'nowrap',
-                      borderRadius: '0.5rem',
-                    }}
-                  >
-                    Attiva Notifiche
-                  </button>
+              {hasFried && (
+                <div
+                  style={{
+                    padding: '0.65rem 0.8rem',
+                    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    borderRadius: '0.5rem',
+                    color: '#FCD34D',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    marginBottom: '1.15rem',
+                  }}
+                >
+                  {friedArrivalMessage(order.order_type || 'Ritiro')}
                 </div>
               )}
 
@@ -975,8 +901,8 @@ export const OrderTracking: React.FC = () => {
                 </div>
               </div>
 
-              {/* Order Notes Banner if present */}
-              {order.notes && (
+              {/* Order notes — only real customer notes, never the pickup time */}
+              {schedule.remainingNotes && (
                 <div
                   style={{
                     padding: '0.6rem 0.8rem',
@@ -993,21 +919,17 @@ export const OrderTracking: React.FC = () => {
                   }}
                 >
                   <Receipt size={15} style={{ flexShrink: 0 }} />
-                  <span>Nota: {order.notes}</span>
+                  <span>Nota: {schedule.remainingNotes}</span>
                 </div>
               )}
 
               {/* INGREDIENTS / ITEMS LIST */}
               <div style={{ marginBottom: '1.15rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '0.2rem' }}>
                 {(order.order_items || order.items || []).map((item, idx) => {
-                  const isFried =
-                    (item as any).item_type === 'fritto' ||
-                    (item.item_name || '').toLowerCase().includes('cono') ||
-                    (item.item_name || '').toLowerCase().includes('fritt');
+                  const isFried = isFriedOrderItem(item);
 
                   const isFish =
-                    (item as any).item_type === 'pesce' ||
-                    (item as any).details?.item_type === 'pesce' ||
+                    item.item_type === 'pesce' ||
                     (item.item_name || '').startsWith('🐟') ||
                     (item.item_name || '').toLowerCase().includes('kg');
 
@@ -1077,7 +999,7 @@ export const OrderTracking: React.FC = () => {
                           </div>
                         )}
 
-                        {item.has_sesame !== undefined && (
+                        {!isFried && !isFish && item.has_sesame !== undefined && (
                           <div>
                             <span style={{ color: '#8DA9C4', fontWeight: 600 }}>Sesamo:</span>{' '}
                             <span style={{ color: item.has_sesame ? '#34D399' : '#F87171', fontWeight: 700 }}>

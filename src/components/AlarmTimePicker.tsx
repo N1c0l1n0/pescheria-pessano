@@ -3,20 +3,42 @@ import { Clock, Calendar, AlertCircle, Check } from 'lucide-react';
 import {
   getDaySchedule,
   isTimeInOpeningHours,
-  getQuickTimeOptionsForDate,
+  getMealPresetOptionsForDate,
+  getVisibleMealGroups,
 } from '../utils/openingHours';
+import {
+  MAX_POKE_PER_SLOT,
+  POKE_SLOT_MINUTES,
+  addMinutesToTime,
+  occupancyKey,
+} from '../utils/pokeSlotCapacity';
 
 interface TimePickerProps {
   orderType: 'Ritiro' | 'Consegna';
   selectedTime: string;
   selectedDay: 'oggi' | 'domani';
+  slotOccupancy?: Record<string, number>;
+  dateKey?: string;
+  occupancyLoaded?: boolean;
   onTimeChange: (time: string, day: 'oggi' | 'domani') => void;
+}
+
+function presetRemainingLabel(booked: number): { text: string; tone: 'ok' | 'low' | 'full' } {
+  const remaining = Math.max(0, MAX_POKE_PER_SLOT - booked);
+  if (remaining <= 0) return { text: 'Esaurito', tone: 'full' };
+  if (remaining <= 2) {
+    return { text: remaining === 1 ? '1 poke' : `${remaining} poke`, tone: 'low' };
+  }
+  return { text: `${remaining} poke`, tone: 'ok' };
 }
 
 export const AlarmTimePicker: React.FC<TimePickerProps> = ({
   orderType,
   selectedTime,
   selectedDay,
+  slotOccupancy,
+  dateKey,
+  occupancyLoaded = false,
   onTimeChange,
 }) => {
   const [day, setDay] = useState<'oggi' | 'domani'>(selectedDay);
@@ -33,9 +55,11 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
 
   const activeDate = day === 'oggi' ? todayDate : tomorrowDate;
   const activeSchedule = getDaySchedule(activeDate);
-  const quickSlots = getQuickTimeOptionsForDate(activeDate);
+  const mealPresets = getMealPresetOptionsForDate(activeDate);
+  const visibleMeals = getVisibleMealGroups(activeDate);
+  const visiblePranzo = visibleMeals.showPranzo ? mealPresets.pranzo : [];
+  const visibleCena = visibleMeals.showCena ? mealPresets.cena : [];
 
-  // Helper to strip any trailing "(Oggi)" or "(Domani)" tags
   const cleanTimeStr = (str: string): string => {
     return (str || '').replace(/\s*\((Oggi|Domani|oggi|domani)\)/gi, '').trim();
   };
@@ -62,17 +86,55 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
   const isAsapSelected = !isCustom && (rawSelectedTime === 'Prima possibile' || rawSelectedTime.includes('ASAP'));
   const isValidCustomTime = isTimeInOpeningHours(customTime, activeDate);
 
+  const renderPresetButton = (slotTime: string) => {
+    const isSel = !isCustom && selectedTime.includes(slotTime);
+    const booked = dateKey ? (slotOccupancy?.[occupancyKey(dateKey, slotTime)] || 0) : 0;
+    const remaining = occupancyLoaded ? presetRemainingLabel(booked) : null;
+    const slotEnd = addMinutesToTime(slotTime, POKE_SLOT_MINUTES);
+    const toneColor = remaining?.tone === 'full'
+      ? (isSel ? '#FECACA' : '#B91C1C')
+      : remaining?.tone === 'low'
+        ? (isSel ? '#FDBA74' : '#C2410C')
+        : (isSel ? 'rgba(255,255,255,0.78)' : 'var(--color-text-muted)');
+
+    return (
+      <button
+        key={slotTime}
+        type="button"
+        onClick={() => handlePresetSelect(slotTime)}
+        style={{
+          display: 'inline-flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '0.12rem',
+          padding: '0.55rem 0.8rem',
+          borderRadius: 'var(--radius-sm)',
+          border: isSel
+            ? '1.5px solid var(--color-ocean-medium)'
+            : remaining?.tone === 'full'
+              ? '1px solid #FCA5A5'
+              : '1px solid rgba(11, 37, 69, 0.15)',
+          backgroundColor: isSel ? 'var(--color-ocean-dark)' : 'white',
+          color: isSel ? 'white' : 'var(--color-ocean-dark)',
+          fontWeight: isSel ? 800 : 600,
+          fontSize: '0.825rem',
+          cursor: 'pointer',
+          transition: 'all 0.15s ease',
+          minWidth: '6.4rem',
+        }}
+      >
+        <span>{slotTime}–{slotEnd}</span>
+        {remaining ? (
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: toneColor }}>
+            {remaining.text}
+          </span>
+        ) : null}
+      </button>
+    );
+  };
+
   return (
-    <div
-      style={{
-        borderRadius: 'var(--radius-md)',
-        backgroundColor: '#F8FAFC',
-        border: '1px solid rgba(11, 37, 69, 0.12)',
-        padding: '1.25rem',
-        marginTop: '0.5rem',
-      }}
-    >
-      {/* 1. Day Selector (Oggi vs Domani) */}
+    <div className="order-timepicker">
       <div
         style={{
           display: 'flex',
@@ -100,51 +162,32 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
         <div
           style={{
             display: 'flex',
-            gap: '0.35rem',
+            gap: '0.2rem',
             backgroundColor: 'white',
-            padding: '3px',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid rgba(11, 37, 69, 0.12)',
+            padding: '0.22rem',
+            borderRadius: 'var(--radius-full)',
+            border: '1px solid rgba(10, 35, 66, 0.08)',
           }}
         >
           <button
             type="button"
             onClick={() => handleDaySelect('oggi')}
-            style={{
-              padding: '0.4rem 0.85rem',
-              borderRadius: '6px',
-              border: 'none',
-              backgroundColor: day === 'oggi' ? 'var(--color-ocean-dark)' : 'transparent',
-              color: day === 'oggi' ? 'white' : 'var(--color-text-muted)',
-              fontWeight: day === 'oggi' ? 800 : 600,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
+            className={`order-filter-chip${day === 'oggi' ? ' order-filter-chip--active' : ''}`}
+            style={{ fontSize: '0.8rem' }}
           >
             Oggi ({todayDate.toLocaleDateString('it-IT', { weekday: 'short' })})
           </button>
           <button
             type="button"
             onClick={() => handleDaySelect('domani')}
-            style={{
-              padding: '0.4rem 0.85rem',
-              borderRadius: '6px',
-              border: 'none',
-              backgroundColor: day === 'domani' ? 'var(--color-ocean-dark)' : 'transparent',
-              color: day === 'domani' ? 'white' : 'var(--color-text-muted)',
-              fontWeight: day === 'domani' ? 800 : 600,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
+            className={`order-filter-chip${day === 'domani' ? ' order-filter-chip--active' : ''}`}
+            style={{ fontSize: '0.8rem' }}
           >
             Domani ({tomorrowDate.toLocaleDateString('it-IT', { weekday: 'short' })})
           </button>
         </div>
       </div>
 
-      {/* 2. Opening Hours Info Banner */}
       {activeSchedule.isClosedAllDay ? (
         <div
           style={{
@@ -188,7 +231,6 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
         </div>
       )}
 
-      {/* 3. Preset Time Pill Buttons */}
       <div style={{ marginBottom: '1rem' }}>
         <div style={{ fontSize: '0.775rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
           Seleziona Orario
@@ -212,29 +254,41 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
             ⚡ Prima possibile
           </button>
 
-          {quickSlots.map((slotTime) => {
-            const isSel = !isCustom && selectedTime.includes(slotTime);
-            return (
-              <button
-                key={slotTime}
-                type="button"
-                onClick={() => handlePresetSelect(slotTime)}
+          {visiblePranzo.length > 0 && (
+            <div style={{ width: '100%', marginTop: '0.35rem' }}>
+              <div
                 style={{
-                  padding: '0.45rem 0.75rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: isSel ? '1.5px solid var(--color-ocean-medium)' : '1px solid rgba(11, 37, 69, 0.15)',
-                  backgroundColor: isSel ? 'var(--color-ocean-dark)' : 'white',
-                  color: isSel ? 'white' : 'var(--color-ocean-dark)',
-                  fontWeight: isSel ? 800 : 600,
-                  fontSize: '0.825rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: 'var(--color-text-muted)',
+                  marginBottom: '0.35rem',
                 }}
               >
-                {slotTime}
-              </button>
-            );
-          })}
+                Pranzo
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                {visiblePranzo.map(renderPresetButton)}
+              </div>
+            </div>
+          )}
+
+          {visibleCena.length > 0 && (
+            <div style={{ width: '100%', marginTop: '0.35rem' }}>
+              <div
+                style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: 'var(--color-text-muted)',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                Cena
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                {visibleCena.map(renderPresetButton)}
+              </div>
+            </div>
+          )}
 
           <button
             type="button"
@@ -259,7 +313,6 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
         </div>
       </div>
 
-      {/* 4. Native Time Input with Automatic Phone Numeric Keyboard & Autocomplete */}
       {isCustom && (
         <div
           style={{
@@ -307,7 +360,6 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
               }}
             />
 
-            {/* Validation badge */}
             <div
               style={{
                 display: 'inline-flex',
@@ -329,7 +381,11 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
               ) : (
                 <>
                   <AlertCircle size={14} />
-                  <span>{day === 'oggi' ? 'Orario già passato o pescheria chiusa' : 'Pescheria chiusa a quest\'ora'}</span>
+                  <span>
+                    {day === 'oggi'
+                      ? 'Orario già passato o pescheria chiusa'
+                      : 'Pescheria chiusa a quest\'ora'}
+                  </span>
                 </>
               )}
             </div>

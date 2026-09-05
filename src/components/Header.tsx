@@ -32,53 +32,22 @@ export const Header: React.FC = () => {
   }, []);
 
   return (
-    <header
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-        transition: 'all 0.3s ease',
-        backgroundColor: isScrolled
-          ? 'rgba(11, 37, 69, 0.95)'
-          : 'rgba(11, 37, 69, 0.85)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(141, 169, 196, 0.15)',
-        boxShadow: isScrolled ? '0 8px 24px rgba(0,0,0,0.2)' : 'none',
-      }}
-    >
-      <div className="container" style={{ paddingTop: '0.85rem', paddingBottom: '0.85rem' }}>
+    <header className={`site-header${isScrolled ? ' is-scrolled' : ''}`}>
+      <div className="container" style={{ paddingTop: '0.8rem', paddingBottom: '0.8rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          
-          {/* Logo */}
           <a
             href="/#hero"
             onClick={(e) => handleSectionNav('hero', e)}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.75rem',
+              gap: '0.8rem',
               textDecoration: 'none',
               color: 'white',
               cursor: 'pointer',
             }}
           >
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '50%',
-                backgroundColor: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
-                flexShrink: 0,
-                overflow: 'hidden',
-                border: '2px solid rgba(255, 255, 255, 0.8)',
-              }}
-            >
+            <div className="brand-logo-ring">
               <img
                 src="/logo_pescheria.png"
                 alt="Pescheria Pessano Finale Ligure Logo"
@@ -94,10 +63,11 @@ export const Header: React.FC = () => {
               <div
                 className="font-serif brand-title"
                 style={{
-                  fontSize: 'clamp(1.05rem, 4vw, 1.25rem)',
-                  fontWeight: 800,
+                  fontSize: 'clamp(1.05rem, 4vw, 1.28rem)',
+                  fontWeight: 700,
                   lineHeight: 1.1,
                   whiteSpace: 'nowrap',
+                  letterSpacing: '-0.02em',
                 }}
               >
                 Pescheria Pessano
@@ -105,40 +75,38 @@ export const Header: React.FC = () => {
               <div
                 className="brand-subtitle"
                 style={{
-                  fontSize: '0.65rem',
-                  color: 'var(--color-sea-blue)',
-                  letterSpacing: '0.08em',
+                  fontSize: '0.62rem',
+                  color: 'var(--color-gold-soft)',
+                  letterSpacing: '0.14em',
                   textTransform: 'uppercase',
                   fontWeight: 600,
                   whiteSpace: 'nowrap',
+                  marginTop: '0.12rem',
                 }}
               >
-                Finale Ligure (SV)
+                Finale Ligure · SV
               </div>
             </div>
           </a>
 
-          {/* Nav Links */}
           <nav
             style={{
               display: 'none',
               alignItems: 'center',
-              gap: '1.5rem',
+              gap: '1.35rem',
             }}
             className="desktop-nav"
           >
-            <Link to="/" onClick={(e) => handleSectionNav('hero', e)} style={navLinkStyle}>Home</Link>
-            <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} style={navLinkStyle}>Banco Pesce</a>
-            <Link to="/componi-poke" style={navLinkStyle}>Ordina d'Asporto</Link>
-            <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} style={navLinkStyle}>Servizi</a>
-            <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} style={navLinkStyle}>Orari</a>
-            <a href="/#contatti" onClick={(e) => handleSectionNav('contatti', e)} style={navLinkStyle}>Contatti</a>
+            <Link to="/" onClick={(e) => handleSectionNav('hero', e)} className="nav-link">Home</Link>
+            <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} className="nav-link">Banco Pesce</a>
+            <Link to="/componi-poke" className="nav-link">Ordina d'Asporto</Link>
+            <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} className="nav-link">Servizi</a>
+            <a href="/#recensioni" onClick={(e) => handleSectionNav('recensioni', e)} className="nav-link">Recensioni</a>
+            <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} className="nav-link">Orari</a>
+            <a href="/#contatti" onClick={(e) => handleSectionNav('contatti', e)} className="nav-link">Contatti</a>
           </nav>
 
-          {/* Right Header Status & Call */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            
-            {/* Live Store Status Badge (Aperto / Chiuso only) - Clickable to Opening Hours */}
             <a
               href="/#orari"
               onClick={(e) => handleSectionNav('orari', e)}
@@ -157,12 +125,11 @@ export const Header: React.FC = () => {
               <span>{status.isOpen ? 'Aperto' : 'Chiuso'}</span>
             </a>
 
-            {/* Quick Call Button */}
             <a
               href="tel:019692623"
               className="btn btn-coral header-phone-btn"
               style={{
-                padding: '0.5rem 0.85rem',
+                padding: '0.5rem 0.95rem',
                 fontSize: '0.85rem',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
@@ -172,35 +139,34 @@ export const Header: React.FC = () => {
               <span className="header-phone-text">019 692623</span>
             </a>
 
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               style={{
-                background: 'none',
-                border: 'none',
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.14)',
                 color: 'white',
                 cursor: 'pointer',
                 padding: '0.4rem',
+                borderRadius: '10px',
+                display: 'inline-flex',
               }}
               className="mobile-toggle"
               aria-label="Apri Menu"
             >
-              {mobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
+              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
-
         </div>
 
-        {/* Mobile Dropdown */}
         {mobileMenuOpen && (
           <div
             style={{
               marginTop: '1rem',
-              paddingTop: '1rem',
-              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              padding: '1.1rem 0 0.35rem',
+              borderTop: '1px solid rgba(232, 212, 154, 0.18)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '1rem',
+              gap: '0.95rem',
             }}
           >
             <a
@@ -225,6 +191,7 @@ export const Header: React.FC = () => {
             <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} style={mobileNavLinkStyle}>Banco del Pesce Fresco</a>
             <Link to="/componi-poke" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Ordina d'Asporto</Link>
             <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} style={mobileNavLinkStyle}>I Nostri Servizi</a>
+            <a href="/#recensioni" onClick={(e) => handleSectionNav('recensioni', e)} style={mobileNavLinkStyle}>Recensioni</a>
             <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} style={mobileNavLinkStyle}>Orari di Apertura</a>
             <a href="/#contatti" onClick={(e) => handleSectionNav('contatti', e)} style={mobileNavLinkStyle}>Dove Siamo & Contatti</a>
           </div>
@@ -242,18 +209,10 @@ export const Header: React.FC = () => {
   );
 };
 
-const navLinkStyle: React.CSSProperties = {
-  color: 'rgba(255, 255, 255, 0.85)',
-  textDecoration: 'none',
-  fontSize: '0.925rem',
-  fontWeight: 600,
-  whiteSpace: 'nowrap',
-  transition: 'color 0.2s ease',
-};
-
 const mobileNavLinkStyle: React.CSSProperties = {
   color: 'white',
   textDecoration: 'none',
   fontSize: '1.05rem',
   fontWeight: 600,
+  letterSpacing: '-0.01em',
 };

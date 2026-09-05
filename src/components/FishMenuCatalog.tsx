@@ -1,160 +1,18 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Waves, Anchor, Sparkles, Search, Info, X, ShieldCheck } from 'lucide-react';
+import { useFishCatalog } from '../hooks/useFishCatalog';
+import type { FishItem } from '../types/fishCatalog';
 
-export interface FishItem {
-  id: string;
-  name: string;
-  origin: string; // 'Mar Ligure' | 'Medit. Occ.'
-  locationDetail: string;
-  pricePerKg: number;
-  image: string;
-  description: string;
-  cookingTip: string;
-  winePairing: string;
-  isPopular?: boolean;
-}
-
-export const FISH_CATALOG: FishItem[] = [
-  {
-    id: 'acciughe',
-    name: 'Acciughe del Golfo',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 18.00,
-    image: '/pesce/acciughe.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'tonno-pinna-gialla',
-    name: 'Tonno Pinna Gialla',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 44.00,
-    image: '/pesce/tonno_pinna_gialla.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'pescatrice',
-    name: 'Rana Pescatrice (Coda di Rospo)',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 28.00,
-    image: '/pesce/pescatrice.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'polpo',
-    name: 'Polpo Verace del Golfo',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 34.00,
-    image: '/pesce/polpo.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'triglia',
-    name: 'Triglia di Scoglio Nostrana',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 34.00,
-    image: '/pesce/triglia.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: false,
-  },
-  {
-    id: 'nasello',
-    name: 'Nasello Fresco di Paranza',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 38.00,
-    image: '/pesce/nasello.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: false,
-  },
-  {
-    id: 'calamari',
-    name: 'Calamari Veraci Nostrani',
-    origin: 'Medit. Occ.',
-    locationDetail: '',
-    pricePerKg: 42.00,
-    image: '/pesce/calamari.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'branzino',
-    name: 'Branzino Selvaggio del Golfo',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 50.00,
-    image: '/pesce/branzino.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'pesce-spada',
-    name: 'Pesce Spada del Golfo',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 50.00,
-    image: '/pesce/pesce_spada.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'orata',
-    name: 'Orata di Mare Nostrana',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 56.00,
-    image: '/pesce/orata.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'rombo',
-    name: 'Rombo Chiodato del Mediterraneo',
-    origin: 'Medit. Occ.',
-    locationDetail: '',
-    pricePerKg: 58.00,
-    image: '/pesce/rombo.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-];
+export type { FishItem } from '../types/fishCatalog';
 
 export const FishMenuCatalog: React.FC = () => {
+  const { items, loading } = useFishCatalog();
   const [activeOrigin, setActiveOrigin] = useState<'all' | 'Mar Ligure' | 'Medit. Occ.'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFish, setSelectedFish] = useState<FishItem | null>(null);
 
-  const filteredItems = FISH_CATALOG.filter((item) => {
+  const filteredItems = items.filter((item) => {
     const matchesOrigin = activeOrigin === 'all' ? true : item.origin === activeOrigin;
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -166,51 +24,25 @@ export const FishMenuCatalog: React.FC = () => {
   return (
     <section
       id="pesce-fresco"
+      className="section-surface-alt"
       style={{
         padding: '5.5rem 0',
-        backgroundColor: '#F1F5F9', // Slate ice background
         backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(19, 64, 116, 0.04) 0%, transparent 75%)',
       }}
     >
       <div className="container">
 
         {/* Section Header */}
-        <div style={{ textAlign: 'center', maxWidth: '780px', margin: '0 auto 3.5rem auto' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              fontSize: '0.825rem',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '0.14em',
-              color: 'var(--color-ocean-medium)',
-              backgroundColor: 'rgba(19, 64, 116, 0.08)',
-              padding: '0.4rem 0.9rem',
-              borderRadius: 'var(--radius-full)',
-              marginBottom: '1rem',
-              border: '1px solid rgba(19, 64, 116, 0.15)',
-            }}
-          >
-            <Waves size={16} color="var(--color-ocean-medium)" />
-            <span>Selezione Artigianale Pessano • Finale Ligure</span>
+        <div className="section-header">
+          <div className="section-kicker">
+            <Waves size={15} color="var(--color-ocean-medium)" />
+            <span>Selezione Artigianale Pessano · Finale Ligure</span>
           </div>
-
-          <h2
-            className="font-serif heading-dark-gradient"
-            style={{
-              fontSize: 'clamp(2.2rem, 3.5vw, 3.2rem)',
-              fontWeight: 800,
-              color: 'var(--color-ocean-dark)',
-              marginBottom: '1rem',
-              lineHeight: 1.2,
-            }}
-          >
+          <div className="hairline-gold" />
+          <h2 className="section-title">
             Banco del Pesce Fresco del Giorno
           </h2>
-
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '1.08rem', lineHeight: 1.6 }}>
+          <p className="section-lede">
             Pescato locale selezionato ogni mattina dai nostri pescatori di fiducia nel Mar Ligure e nel Mediterraneo.
             Qualità artigianale, pulizia gratuita al banco e freschezza garantita.
           </p>
@@ -233,7 +65,7 @@ export const FishMenuCatalog: React.FC = () => {
               onClick={() => setActiveOrigin('all')}
               style={filterBtnStyle(activeOrigin === 'all')}
             >
-              Tutto ({FISH_CATALOG.length})
+              Tutto ({items.length})
             </button>
             <button
               type="button"
@@ -276,6 +108,12 @@ export const FishMenuCatalog: React.FC = () => {
             />
           </div>
         </div>
+
+        {loading && (
+          <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginBottom: '2rem' }}>
+            Caricamento selezione del giorno...
+          </p>
+        )}
 
         {/* Clean Grid Layout */}
         <div className="fish-grid">
@@ -321,7 +159,6 @@ export const FishMenuCatalog: React.FC = () => {
                   }}
                   className="fish-card-img"
                   onError={(e) => {
-                    // Fallback image if file error
                     (e.target as HTMLElement).setAttribute('src', '/hero_pescheria.jpg');
                   }}
                 />
@@ -374,7 +211,6 @@ export const FishMenuCatalog: React.FC = () => {
               {/* Card Body */}
               <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
                 <div>
-                  {/* Nome del Pesce in evidenza */}
                   <h3
                     className="font-serif"
                     style={{
@@ -389,35 +225,15 @@ export const FishMenuCatalog: React.FC = () => {
                   </h3>
                 </div>
 
-                {/* Card Footer: Prezzo al Kg */}
                 <div
                   style={{
                     borderTop: '1px solid rgba(11, 37, 69, 0.08)',
                     paddingTop: '0.85rem',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
+                    justifyContent: 'flex-end',
                   }}
                 >
-                  <div>
-                    <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-muted)', display: 'block', fontWeight: 700 }}>
-                      Prezzo al Kg
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '1.3rem',
-                        fontWeight: 900,
-                        color: 'var(--color-ocean-dark)',
-                        letterSpacing: '-0.02em',
-                      }}
-                    >
-                      € {item.pricePerKg.toFixed(2).replace('.', ',')}
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-muted)', marginLeft: '3px' }}>
-                        / Kg
-                      </span>
-                    </span>
-                  </div>
-
                   <button
                     type="button"
                     style={{
@@ -450,7 +266,8 @@ export const FishMenuCatalog: React.FC = () => {
             marginTop: '3.5rem',
             padding: '1.5rem 2rem',
             borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--color-ocean-dark)',
+            background:
+              'radial-gradient(ellipse 80% 120% at 100% 0%, rgba(143, 182, 204, 0.18), transparent 50%), var(--color-ocean-dark)',
             color: 'white',
             display: 'flex',
             alignItems: 'center',
@@ -458,6 +275,7 @@ export const FishMenuCatalog: React.FC = () => {
             flexWrap: 'wrap',
             gap: '1.25rem',
             boxShadow: 'var(--shadow-md)',
+            border: '1px solid rgba(201, 162, 39, 0.22)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -477,16 +295,16 @@ export const FishMenuCatalog: React.FC = () => {
             </div>
             <div>
               <h4 className="font-serif" style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.15rem', color: 'white' }}>
-                Servizio di Pulizia & Sfilettatura Gratuito al Banco
+                Ordina il Pesce Fresco del Giorno Online
               </h4>
               <p style={{ fontSize: '0.85rem', color: 'var(--color-sea-blue)', margin: 0 }}>
-                Puliamo, sfilettiamo ed evisceriamo il tuo pesce senza alcun costo aggiuntivo.
+                Scegli la pezzatura, richiedi pulizia e sfilettatura gratuite e ritira al banco quando preferisci.
               </p>
             </div>
           </div>
 
-          <a
-            href="/componi-poke"
+          <Link
+            to="/componi-poke?tab=pesce"
             style={{
               padding: '0.7rem 1.3rem',
               borderRadius: 'var(--radius-full)',
@@ -499,11 +317,18 @@ export const FishMenuCatalog: React.FC = () => {
               alignItems: 'center',
               gap: '0.4rem',
               boxShadow: 'var(--shadow-glow)',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <span>Ordina Poke o Ritiro</span>
+            <span>Ordina Pesce Fresco</span>
             <Sparkles size={15} />
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -590,10 +415,10 @@ export const FishMenuCatalog: React.FC = () => {
               />
             </div>
 
-            {/* Modal Footer (Fish Name ONLY) */}
+            {/* Modal Footer */}
             <div
               style={{
-                padding: '1.25rem 1.5rem',
+                padding: '1.25rem 1.5rem 1.5rem',
                 backgroundColor: 'var(--color-ocean-dark)',
                 textAlign: 'center',
                 borderTop: '1px solid rgba(255, 255, 255, 0.1)',
@@ -605,12 +430,24 @@ export const FishMenuCatalog: React.FC = () => {
                   fontSize: '1.6rem',
                   fontWeight: 800,
                   color: 'white',
-                  margin: 0,
+                  margin: '0 0 0.5rem 0',
                   letterSpacing: '0.02em',
                 }}
               >
                 {selectedFish.name}
               </h3>
+              <p style={{ color: 'var(--color-sea-blue)', fontSize: '0.875rem', margin: '0 0 1.25rem 0' }}>
+                {selectedFish.origin}
+                {selectedFish.isPopular ? ' • Prodotto popolare' : ''}
+              </p>
+              <Link
+                to="/componi-poke?tab=pesce"
+                className="btn btn-coral"
+                style={{ textDecoration: 'none', fontSize: '0.875rem', padding: '0.7rem 1.25rem' }}
+                onClick={() => setSelectedFish(null)}
+              >
+                Ordina questo pesce
+              </Link>
             </div>
           </div>
         </div>

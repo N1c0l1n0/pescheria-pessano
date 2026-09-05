@@ -1,10 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Clock,
   CheckCircle2,
   Play,
   Check,
-  PackageCheck,
   Maximize2,
   Minimize2,
   Volume2,
@@ -14,39 +13,32 @@ import {
   Phone,
   RefreshCw,
   Sparkles,
-  ChefHat
+  Focus,
+  History,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getLocalOrders, updateLocalOrderStatus, subscribeToLocalOrders } from '../utils/orderStore';
-import { sendOrderStatusNotification } from '../lib/onesignal';
+import { FRIED_ON_ARRIVAL_KDS } from '../utils/friedArrival';
+import {
+  type KdsOrder,
+  type KdsOrderItem,
+  type HistoryPeriod,
+  mapSupabaseOrderToKdsOrder,
+  mapLocalOrderToKdsOrder,
+  getHistoryDateRange,
+  formatOrderDateTime,
+  HISTORY_PAGE_SIZE,
+} from '../utils/orderMappers';
+import { emptyWorkAreaCopy, matchesFulfillmentFilter } from '../utils/kdsFilters';
+import { groupActiveOrders, resolveOrderSlotKey, type SlotGroup } from '../utils/kdsSlotGroups';
 
-export interface KdsOrderItem {
-  id?: string;
-  item_name?: string;
-  size?: string;
-  bases?: string[];
-  proteins?: string[];
-  toppings?: string[];
-  sauces?: string[];
-  has_sesame?: boolean;
-  notes?: string;
-  price?: number;
-  quantity?: number;
-}
-
-export interface KdsOrder {
-  id: string;
-  display_id?: string;
-  status: 'RICEVUTO' | 'IN_PREPARAZIONE' | 'PRONTO' | 'COMPLETATO' | string;
-  customer_name: string;
-  phone?: string;
-  order_type: 'Ritiro' | 'Consegna' | string;
-  delivery_address?: string;
-  total_price: number;
-  created_at: string;
-  notes?: string;
-  order_items: KdsOrderItem[];
-}
+export type { KdsOrder, KdsOrderItem };
 
 // Helper to extract customer's requested time from order notes
 export const extractRequestedTimeInfo = (notes?: string): { timeText: string; isAsap: boolean } => {
@@ -92,14 +84,289 @@ export const getOrderTargetMs = (o: KdsOrder): number => {
   return createdMs;
 };
 
+const normalizePhoneForWhatsApp = (phone: string): string | null => {
+  if (!phone?.trim()) return null;
+
+  let digits = phone.replace(/\D/g, '');
+  if (!digits) return null;
+
+  if (digits.startsWith('00')) digits = digits.slice(2);
+
+  if (digits.startsWith('39')) {
+    let national = digits.slice(2);
+    if (national.startsWith('0')) national = national.slice(1);
+    if (national.length >= 8 && national.length <= 11) return `39${national}`;
+    return digits.length >= 11 ? digits : null;
+  }
+
+  if (digits.startsWith('0')) digits = digits.slice(1);
+
+  if (digits.length >= 8 && digits.length <= 11) return `39${digits}`;
+
+  return digits.length >= 9 ? digits : null;
+};
+
+const buildOrderReadyWhatsAppMessage = (order: KdsOrder): string => {
+  const displayId = order.display_id || `#${order.id}`;
+  const isDelivery = order.order_type?.toLowerCase().includes('consegna');
+  return isDelivery
+    ? `Ciao ${order.customer_name}, il tuo ordine ${displayId} è pronto! Stiamo preparando la consegna. — Pescheria Pessano`
+    : `Ciao ${order.customer_name}, il tuo ordine ${displayId} è pronto! Puoi passare a ritirarlo. — Pescheria Pessano`;
+};
+
+const buildOrderReadyWhatsAppUrl = (order: KdsOrder): string | null => {
+  const phone = normalizePhoneForWhatsApp(order.phone || '');
+  if (!phone) return null;
+
+  const message = buildOrderReadyWhatsAppMessage(order);
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+};
+
+const openOrderReadyWhatsApp = (order: KdsOrder) => {
+  const url = buildOrderReadyWhatsAppUrl(order);
+  if (!url) return;
+
+  // Esci dal fullscreen nello stesso gesto, senza attendere: window.open
+  // dopo una Promise viene spesso bloccato come popup.
+  if (document.fullscreenElement && document.exitFullscreen) {
+    document.exitFullscreen().catch(() => undefined);
+  }
+
+  const popup = window.open(url, '_blank');
+  if (popup) {
+    try {
+      popup.opener = null;
+    } catch {
+      // ignore: some browsers block touching opener across origins
+    }
+    return;
+  }
+
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.target = '_blank';
+  anchor.rel = 'noopener noreferrer';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+};
+
+function SlotGroupHeader({
+  group,
+  calculateOrderTimer,
+}: {
+  group: SlotGroup;
+  calculateOrderTimer: (
+    createdAtStr: string,
+    requestedTimeText: string,
+    isAsap: boolean
+  ) => {
+    timerLabel: string;
+    subLabel: string;
+    timerBg: string;
+    timerText: string;
+    timerBorder: string;
+    isUrgent: boolean;
+  };
+}) {
+  const timerInfo = calculateOrderTimer('', group.slotTime, false);
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '0.75rem',
+        padding: '0.5rem 0.75rem',
+        borderRadius: '10px',
+        backgroundColor: timerInfo.isUrgent ? 'rgba(239, 68, 68, 0.12)' : '#1E293B',
+        border: timerInfo.isUrgent
+          ? '1px solid rgba(239, 68, 68, 0.45)'
+          : '1px solid rgba(148, 163, 184, 0.2)',
+      }}
+    >
+      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'white' }}>
+        Slot {group.slotTime} · {group.pokeCount} poke · {group.orderCount}{' '}
+        {group.orderCount === 1 ? 'ordine' : 'ordini'}
+      </h3>
+      <span
+        style={{
+          fontSize: '0.85rem',
+          fontWeight: 700,
+          color: timerInfo.timerText,
+          backgroundColor: timerInfo.timerBg,
+          border: `1px solid ${timerInfo.timerBorder}`,
+          borderRadius: '999px',
+          padding: '0.2rem 0.65rem',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {timerInfo.timerLabel}
+      </span>
+    </div>
+  );
+}
+
+function ReadyStrip({
+  orders,
+  onArchive,
+  onWhatsApp,
+}: {
+  orders: KdsOrder[];
+  onArchive: (orderId: string) => void;
+  onWhatsApp: (order: KdsOrder) => void;
+}) {
+  return (
+    <div
+      style={{
+        flexShrink: 0,
+        borderTop: '1px solid rgba(148, 163, 184, 0.25)',
+        backgroundColor: '#0B1220',
+        padding: '0.65rem 1rem',
+        minHeight: '80px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+      }}
+    >
+      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94A3B8', letterSpacing: '0.06em' }}>
+        PRONTI PER RITIRO ({orders.length})
+      </div>
+
+      {orders.length === 0 ? (
+        <div style={{ fontSize: '0.85rem', color: '#64748B' }}>Nessun ordine pronto</div>
+      ) : (
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.65rem',
+            overflowX: 'auto',
+            paddingBottom: '0.15rem',
+          }}
+        >
+          {orders.map((ord) => {
+            const slotKey = resolveOrderSlotKey(ord);
+            const slotLabel = slotKey ? slotKey.split('|')[1] : extractRequestedTimeInfo(ord.notes).timeText;
+            const isDelivery = ord.order_type.toLowerCase().includes('consegna');
+            const whatsAppUrl = buildOrderReadyWhatsAppUrl(ord);
+
+            return (
+              <div
+                key={ord.id}
+                style={{
+                  flex: '0 0 220px',
+                  minHeight: '72px',
+                  backgroundColor: '#1E293B',
+                  border: '1px solid rgba(34, 197, 94, 0.35)',
+                  borderRadius: '12px',
+                  padding: '0.55rem 0.65rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.35rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.35rem' }}>
+                  <span style={{ fontWeight: 800, color: 'white', fontSize: '0.9rem' }}>
+                    {ord.display_id || `#${ord.id}`} · {ord.customer_name}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      color: isDelivery ? '#38BDF8' : '#FBBF24',
+                    }}
+                  >
+                    {isDelivery ? 'Consegna' : 'Ritiro'}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#94A3B8' }}>Slot {slotLabel}</div>
+                <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto' }}>
+                  <button
+                    type="button"
+                    onClick={() => onArchive(ord.id)}
+                    style={{
+                      flex: 1,
+                      padding: '0.3rem 0.45rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: '#10B981',
+                      color: 'white',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.25rem',
+                    }}
+                  >
+                    <Check size={14} />
+                    Archivia
+                  </button>
+                  {whatsAppUrl && (
+                    <button
+                      type="button"
+                      onClick={() => onWhatsApp(ord)}
+                      aria-label="Invia WhatsApp"
+                      style={{
+                        padding: '0.3rem 0.45rem',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(148, 163, 184, 0.3)',
+                        backgroundColor: '#0F172A',
+                        color: '#4ADE80',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <ExternalLink size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const KdsBoard: React.FC = () => {
   const [orders, setOrders] = useState<KdsOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [boardView, setBoardView] = useState<'active' | 'history'>('active');
   const [activeFilter, setActiveFilter] = useState<'TUTTI' | 'RITIRO' | 'CONSEGNA'>('TUTTI');
+  const [historyOrders, setHistoryOrders] = useState<KdsOrder[]>([]);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(false);
+  const [historyPage, setHistoryPage] = useState<number>(0);
+  const [historyHasMore, setHistoryHasMore] = useState<boolean>(false);
+  const [historyPeriod, setHistoryPeriod] = useState<HistoryPeriod>('7days');
+  const [historySearch, setHistorySearch] = useState<string>('');
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState<Record<string, boolean>>({});
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<string>('');
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  
+  const [focusedOrderId, setFocusedOrderId] = useState<string | null>(null);
+  const orderCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const mainRef = useRef<HTMLDivElement | null>(null);
+
+  const focusOrder = useCallback((orderId: string | null) => {
+    setFocusedOrderId(orderId);
+    if (orderId) {
+      requestAnimationFrame(() => {
+        const card = orderCardRefs.current[orderId];
+        const main = mainRef.current;
+        if (!card || !main) return;
+
+        const cardRect = card.getBoundingClientRect();
+        const mainRect = main.getBoundingClientRect();
+        const targetTop = cardRect.top - mainRect.top + main.scrollTop - 16;
+        main.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+      });
+    }
+  }, []);
+
+  const clearFocus = useCallback(() => setFocusedOrderId(null), []);
+
   // Track checked ingredients per order and item (key: `${orderId}_${itemIdx}_${ingCategory}_${ingName}`)
   const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
 
@@ -203,14 +470,18 @@ export const KdsBoard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, []);
+
   // Fullscreen toggle handler
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(console.warn);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().then(() => setIsFullscreen(false)).catch(console.warn);
-      }
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(console.warn);
     }
   };
 
@@ -229,95 +500,13 @@ export const KdsBoard: React.FC = () => {
         .order('created_at', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        remoteOrders = data.map((o: any) => {
-          const items: KdsOrderItem[] = Array.isArray(o.order_items)
-            ? o.order_items.map((item: any) => {
-                let dt: any = {};
-                if (typeof item.details === 'string') {
-                  try { dt = JSON.parse(item.details); } catch (e) { dt = {}; }
-                } else if (typeof item.details === 'object' && item.details !== null) {
-                  dt = item.details;
-                }
-
-                const bases = Array.isArray(dt.bases) ? dt.bases : (Array.isArray(item.bases) ? item.bases : (Array.isArray(dt.basi) ? dt.basi : (Array.isArray(item.basi) ? item.basi : [])));
-                const proteins = Array.isArray(dt.proteins) ? dt.proteins : (Array.isArray(item.proteins) ? item.proteins : (Array.isArray(dt.proteine) ? dt.proteine : (Array.isArray(item.proteine) ? item.proteine : [])));
-                const toppings = Array.isArray(dt.toppings) ? dt.toppings : (Array.isArray(item.toppings) ? item.toppings : (Array.isArray(dt.ingredienti) ? dt.ingredienti : (Array.isArray(item.ingredienti) ? item.ingredienti : [])));
-                const sauces = Array.isArray(dt.sauces) ? dt.sauces : (Array.isArray(item.sauces) ? item.sauces : (Array.isArray(dt.salse) ? dt.salse : (Array.isArray(item.salse) ? item.salse : [])));
-
-                return {
-                  id: String(item.id),
-                  item_name: item.name || item.item_name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
-                  size: dt.size || item.size || '',
-                  bases,
-                  proteins,
-                  toppings,
-                  sauces,
-                  has_sesame: dt.has_sesame ?? item.has_sesame ?? true,
-                  notes: dt.notes || item.notes || '',
-                  price: Number(item.unit_price || item.price || 0),
-                  quantity: Number(item.quantity || 1),
-                };
-              })
-            : [];
-
-          return {
-            id: String(o.id),
-            display_id: o.friendly_id || `#${String(o.id).slice(-4).toUpperCase()}`,
-            status: o.status || 'RICEVUTO',
-            customer_name: o.customer_name || 'Cliente',
-            phone: o.customer_phone || o.phone || '',
-            order_type: o.order_type || 'Ritiro',
-            delivery_address: o.delivery_address || undefined,
-            total_price: Number(o.total_amount || o.total_price || 0),
-            created_at: o.created_at || new Date().toISOString(),
-            notes: o.notes || '',
-            order_items: items,
-          };
-        });
+        remoteOrders = data.map((o) => mapSupabaseOrderToKdsOrder(o as Record<string, unknown>));
       }
 
       // Combine with local orders (for instant offline / dev persistence)
       const localList = getLocalOrders()
         .filter((o) => o.status !== 'COMPLETATO')
-        .map((o) => ({
-          id: String(o.id),
-          display_id: o.display_id || `#${String(o.id).slice(-4).toUpperCase()}`,
-          status: o.status || 'RICEVUTO',
-          customer_name: o.customer_name || 'Cliente',
-          phone: (o as any).customer_phone || o.phone || '',
-          order_type: o.order_type || 'Ritiro',
-          delivery_address: o.delivery_address,
-          total_price: Number((o as any).total_amount || o.total_price || 0),
-          created_at: o.created_at || new Date().toISOString(),
-          notes: o.notes,
-          order_items: (o.order_items || []).map((item: any) => {
-            let dt: any = {};
-            if (typeof item.details === 'string') {
-              try { dt = JSON.parse(item.details); } catch (e) { dt = {}; }
-            } else if (typeof item.details === 'object' && item.details !== null) {
-              dt = item.details;
-            }
-
-            const bases = Array.isArray(item.bases) ? item.bases : (Array.isArray(dt.bases) ? dt.bases : (Array.isArray(item.basi) ? item.basi : (Array.isArray(dt.basi) ? dt.basi : [])));
-            const proteins = Array.isArray(item.proteins) ? item.proteins : (Array.isArray(dt.proteins) ? dt.proteins : (Array.isArray(item.proteine) ? item.proteine : (Array.isArray(dt.proteine) ? dt.proteine : [])));
-            const toppings = Array.isArray(item.toppings) ? item.toppings : (Array.isArray(dt.toppings) ? dt.toppings : (Array.isArray(item.ingredienti) ? item.ingredienti : (Array.isArray(dt.ingredienti) ? dt.ingredienti : [])));
-            const sauces = Array.isArray(item.sauces) ? item.sauces : (Array.isArray(dt.sauces) ? dt.sauces : (Array.isArray(item.salse) ? item.salse : (Array.isArray(dt.salse) ? dt.salse : [])));
-
-            return {
-              id: String(item.id || Math.random()),
-              item_name: item.item_name || item.name || (dt.size ? `Poke ${dt.size}` : 'Poke'),
-              size: item.size || dt.size || '',
-              bases,
-              proteins,
-              toppings,
-              sauces,
-              has_sesame: item.has_sesame ?? dt.has_sesame ?? true,
-              notes: item.notes || dt.notes || '',
-              price: Number(item.price || item.unit_price || 0),
-              quantity: Number(item.quantity || 1),
-            };
-          }),
-        }));
+        .map((o) => mapLocalOrderToKdsOrder(o));
 
       const orderMap = new Map<string, KdsOrder>();
       remoteOrders.forEach((o) => orderMap.set(o.id, o));
@@ -343,8 +532,56 @@ export const KdsBoard: React.FC = () => {
     }
   }, []);
 
-  // Supabase Realtime & Local Store Subscription
+  const fetchHistoryOrders = useCallback(async (page = 0, append = false) => {
+    try {
+      setHistoryLoading(true);
+      const { start, end } = getHistoryDateRange(historyPeriod);
+      const from = page * HISTORY_PAGE_SIZE;
+      const to = from + HISTORY_PAGE_SIZE - 1;
+
+      let query = supabase
+        .from('orders')
+        .select('*, order_items(*)', { count: 'exact' })
+        .eq('status', 'COMPLETATO')
+        .gte('created_at', start)
+        .lte('created_at', end)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      const search = historySearch.trim();
+      if (search) {
+        const pattern = `%${search}%`;
+        query = query.or(
+          `customer_name.ilike.${pattern},customer_phone.ilike.${pattern},friendly_id.ilike.${pattern}`
+        );
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        console.warn('History fetch failed:', error.message);
+        if (!append) setHistoryOrders([]);
+        setHistoryHasMore(false);
+        return;
+      }
+
+      const mapped = (data || []).map((o) => mapSupabaseOrderToKdsOrder(o as Record<string, unknown>));
+      setHistoryOrders((prev) => (append ? [...prev, ...mapped] : mapped));
+      setHistoryHasMore(count !== null ? from + mapped.length < count : mapped.length === HISTORY_PAGE_SIZE);
+      setHistoryPage(page);
+    } catch (e) {
+      console.warn('History fetch exception:', e);
+      if (!append) setHistoryOrders([]);
+      setHistoryHasMore(false);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [historyPeriod, historySearch]);
+
+  // Supabase Realtime & Local Store Subscription (active board only)
   useEffect(() => {
+    if (boardView !== 'active') return;
+
     fetchOrders(false);
 
     const unsubLocal = subscribeToLocalOrders(() => {
@@ -358,7 +595,7 @@ export const KdsBoard: React.FC = () => {
         { event: '*', schema: 'public', table: 'orders' },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const newOrder = payload.new as any;
+            const newOrder = payload.new as { status?: string };
             if (newOrder.status === 'RICEVUTO') {
               playAudioBeep();
             }
@@ -374,23 +611,27 @@ export const KdsBoard: React.FC = () => {
       unsubLocal();
       supabase.removeChannel(channel);
     };
-  }, [fetchOrders, playAudioBeep]);
+  }, [fetchOrders, playAudioBeep, boardView]);
+
+  // Load history on-demand when switching to history tab or changing filters
+  useEffect(() => {
+    if (boardView !== 'history') return;
+    fetchHistoryOrders(0, false);
+  }, [boardView, historyPeriod, historySearch, fetchHistoryOrders]);
 
   // Update order status handler
   const handleUpdateStatus = async (orderId: string, newStatus: 'IN_PREPARAZIONE' | 'PRONTO' | 'COMPLETATO') => {
-    const targetOrder = orders.find((o) => o.id === orderId);
-    const customerName = targetOrder?.customer_name || 'Cliente';
-
-    // Send Web Push Notification to subscriber of order
-    sendOrderStatusNotification({
-      orderId,
-      customerName,
-      newStatus,
-    }).then((sent) => {
-      console.log(`[KDS] Esito notifica push per ordine #${orderId} (${newStatus}):`, sent);
-    }).catch((err) => {
-      console.warn(`[KDS] Errore notifica push per ordine #${orderId}:`, err);
-    });
+    if (newStatus === 'COMPLETATO') {
+      clearFocus();
+      setCheckedIngredients((prev) => {
+        const prefix = `${orderId}_`;
+        return Object.fromEntries(Object.entries(prev).filter(([key]) => !key.startsWith(prefix)));
+      });
+    } else if (newStatus === 'IN_PREPARAZIONE') {
+      focusOrder(orderId);
+    } else if (newStatus === 'PRONTO') {
+      clearFocus();
+    }
 
     // Optimistic UI update
     setOrders((prev) => {
@@ -514,381 +755,185 @@ export const KdsBoard: React.FC = () => {
     };
   };
 
-  // Toggle ingredient checklist item
-  const toggleIngredient = (key: string) => {
+  // Toggle ingredient checklist item (switches focus to that order if needed)
+  const toggleIngredient = (orderId: string, key: string) => {
+    if (focusedOrderId !== orderId) focusOrder(orderId);
     setCheckedIngredients((prev) => ({
       ...prev,
       [key]: !prev[key]
     }));
   };
 
-  // Filter active orders
-  const filteredOrders = orders.filter((o) => {
-    if (activeFilter === 'RITIRO') return o.order_type.toLowerCase().includes('ritiro');
-    if (activeFilter === 'CONSEGNA') return o.order_type.toLowerCase().includes('consegna');
-    return true;
-  });
+  const fulfillmentFiltered = orders.filter((o) =>
+    matchesFulfillmentFilter(o.order_type, activeFilter)
+  );
+
+  const workOrders = fulfillmentFiltered.filter(
+    (o) => o.status === 'RICEVUTO' || o.status === 'IN_PREPARAZIONE'
+  );
+
+  const readyOrders = fulfillmentFiltered
+    .filter((o) => o.status === 'PRONTO')
+    .sort((a, b) => {
+      const slotA = resolveOrderSlotKey(a) ?? '';
+      const slotB = resolveOrderSlotKey(b) ?? '';
+      if (slotA !== slotB) return slotA.localeCompare(slotB);
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
+
+  const groupedWork = groupActiveOrders(workOrders);
+  const workIsEmpty =
+    groupedWork.slotGroups.length === 0 && groupedWork.generalQueue.length === 0;
+
+  const filteredHistoryOrders = historyOrders.filter((o) =>
+    matchesFulfillmentFilter(o.order_type, activeFilter)
+  );
+
+  const toggleHistoryExpanded = (orderId: string) => {
+    setExpandedHistoryIds((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
+  };
+
+  const switchBoardView = (view: 'active' | 'history') => {
+    setBoardView(view);
+    if (view === 'active') {
+      setExpandedHistoryIds({});
+    } else {
+      clearFocus();
+    }
+  };
+
+  // Drop focus when the order disappears or is hidden by the active filter
+  useEffect(() => {
+    if (!focusedOrderId) return;
+    const stillVisible = workOrders.some((o) => o.id === focusedOrderId);
+    if (!stillVisible) setFocusedOrderId(null);
+  }, [workOrders, focusedOrderId]);
+
+  // Escape or click outside cards to clear focus
+  useEffect(() => {
+    if (!focusedOrderId) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') clearFocus();
+    };
+
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-kds-order-card]')) return;
+      clearFocus();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [focusedOrderId, clearFocus]);
 
   // Counters
   const countRicevuto = orders.filter((o) => o.status === 'RICEVUTO').length;
   const countInPrep = orders.filter((o) => o.status === 'IN_PREPARAZIONE').length;
   const countPronto = orders.filter((o) => o.status === 'PRONTO').length;
-
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        backgroundColor: '#0F172A',
-        color: '#F8FAFC',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      {/* KDS HEADER BAR */}
-      <header
-        style={{
-          backgroundColor: '#070F1E',
-          borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
-          padding: '0.85rem 1.25rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          position: 'sticky',
-          top: 0,
-          zIndex: 50,
-        }}
-      >
-        {/* Title & Live Clock */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '12px',
-                backgroundColor: '#FF6B6B',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 0 15px rgba(255, 107, 107, 0.4)',
-              }}
-            >
-              <ChefHat size={24} color="white" />
-            </div>
-            <div>
-              <h1 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '0.02em', color: 'white' }}>
-                PESCHERIA PESSANO
-              </h1>
-              <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Kitchen Display System (KDS)
-              </span>
-            </div>
-          </div>
-
-          {/* Digital Clock */}
-          <div
-            style={{
-              backgroundColor: '#1E293B',
-              border: '1px solid rgba(148, 163, 184, 0.2)',
-              padding: '0.4rem 0.85rem',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              color: '#38BDF8',
-              fontWeight: 800,
-              fontSize: '1rem',
-              letterSpacing: '0.05em',
-            }}
-          >
-            <Clock size={18} />
-            <span>{currentTime || '00:00:00'}</span>
-          </div>
-        </div>
-
-        {/* Status Counters */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-          <div
-            style={{
-              backgroundColor: 'rgba(234, 179, 8, 0.15)',
-              border: '1px solid rgba(234, 179, 8, 0.4)',
-              color: '#FACC15',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-            }}
-          >
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FACC15' }} />
-            {countRicevuto} In Attesa
-          </div>
-
-          <div
-            style={{
-              backgroundColor: 'rgba(59, 130, 246, 0.15)',
-              border: '1px solid rgba(59, 130, 246, 0.4)',
-              color: '#60A5FA',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-            }}
-          >
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#60A5FA' }} />
-            {countInPrep} In Prep
-          </div>
-
-          <div
-            style={{
-              backgroundColor: 'rgba(34, 197, 94, 0.15)',
-              border: '1px solid rgba(34, 197, 94, 0.4)',
-              color: '#4ADE80',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-            }}
-          >
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4ADE80' }} />
-            {countPronto} Pronti
-          </div>
-        </div>
-
-        {/* Quick Filter Tabs & Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)' }}>
-            <button
-              type="button"
-              onClick={() => setActiveFilter('TUTTI')}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: activeFilter === 'TUTTI' ? '#3B82F6' : 'transparent',
-                color: activeFilter === 'TUTTI' ? 'white' : '#94A3B8',
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              Tutti ({orders.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter('RITIRO')}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: activeFilter === 'RITIRO' ? '#F59E0B' : 'transparent',
-                color: activeFilter === 'RITIRO' ? 'white' : '#94A3B8',
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              Solo Ritiro
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter('CONSEGNA')}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: activeFilter === 'CONSEGNA' ? '#06B6D4' : 'transparent',
-                color: activeFilter === 'CONSEGNA' ? 'white' : '#94A3B8',
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              Solo Consegne
-            </button>
-          </div>
-
-          {/* Test Beep Sound Button / Audio Unlock Button */}
-          <button
-            type="button"
-            onClick={() => {
-              unlockAudio();
-              playAudioBeep();
-            }}
-            title={audioUnlocked ? "Suono Abilitato (Clicca per Test Audio)" : "Audio in attesa di sblocco dal browser. Clicca per sbloccare!"}
-            style={{
-              padding: '0.45rem 0.85rem',
-              borderRadius: '8px',
-              backgroundColor: audioUnlocked ? '#1E293B' : '#7F1D1D',
-              border: audioUnlocked ? '1px solid rgba(148, 163, 184, 0.2)' : '1px solid #EF4444',
-              color: audioUnlocked ? '#FACC15' : '#FCA5A5',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              boxShadow: audioUnlocked ? 'none' : '0 0 10px rgba(239, 68, 68, 0.35)',
-              transition: 'all 0.2s',
-            }}
-          >
-            <Volume2 size={18} />
-            <span>{audioUnlocked ? "Audio Attivo" : "Attiva Audio"}</span>
-          </button>
+  const emptyCopy = emptyWorkAreaCopy();
 
 
-
-          {/* Fullscreen Toggle Button */}
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            style={{
-              padding: '0.5rem',
-              borderRadius: '8px',
-              backgroundColor: '#1E293B',
-              border: '1px solid rgba(148, 163, 184, 0.2)',
-              color: 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-          </button>
-        </div>
-      </header>
-
-      {/* KDS MAIN MONITOR CONTENT */}
-      <main style={{ flex: 1, padding: '1.25rem', overflowY: 'auto' }}>
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '1rem' }}>
-            <RefreshCw size={36} className="animate-spin" color="#38BDF8" />
-            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#94A3B8' }}>Caricamento monitor ordini in corso...</span>
-          </div>
-        ) : filteredOrders.length === 0 ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: '400px',
-              backgroundColor: '#1E293B',
-              borderRadius: '16px',
-              border: '2px dashed rgba(148, 163, 184, 0.2)',
-              padding: '2rem',
-              textAlign: 'center',
-            }}
-          >
-            <CheckCircle2 size={56} color="#10B981" style={{ marginBottom: '1rem' }} />
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>
-              Nessun Ordine Attivo al Momento!
-            </h2>
-            <p style={{ color: '#94A3B8', maxWidth: '500px', margin: '0', fontSize: '0.95rem' }}>
-              Tutti gli ordini in coda sono stati preparati e completati. In attesa di nuovi ordini in arrivo dai clienti.
-            </p>
-          </div>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-              gap: '1.25rem',
-              alignItems: 'start',
-            }}
-          >
-            {filteredOrders.map((ord) => {
+  const renderOrderCard = (ord: KdsOrder) => {
               const { timeText, isAsap } = extractRequestedTimeInfo(ord.notes);
               const timerInfo = calculateOrderTimer(ord.created_at, timeText, isAsap);
               const isDelivery = ord.order_type.toLowerCase().includes('consegna');
-              const isSelected = selectedOrderId === ord.id;
+              const isFocused = focusedOrderId === ord.id;
+              const hasOtherFocus = focusedOrderId !== null && !isFocused;
+
+              const statusBorder =
+                timerInfo.isUrgent
+                  ? '2px solid #EF4444'
+                  : ord.status === 'IN_PREPARAZIONE'
+                  ? '2px solid #3B82F6'
+                  : '1px solid rgba(148, 163, 184, 0.2)';
 
               return (
                 <div
                   key={ord.id}
-                  onClick={() => setSelectedOrderId(isSelected ? null : ord.id)}
+                  ref={(el) => { orderCardRefs.current[ord.id] = el; }}
+                  data-kds-order-card
+                  data-focused={isFocused ? 'true' : 'false'}
+                  className={[
+                    isFocused ? 'kds-order-card--focused' : '',
+                    hasOtherFocus ? 'kds-order-card--dimmed' : '',
+                  ].filter(Boolean).join(' ')}
+                  onClick={() => {
+                    if (!isFocused) focusOrder(ord.id);
+                  }}
                   style={{
-                    backgroundColor: isSelected ? '#0F172A' : '#1E293B',
+                    backgroundColor: '#1E293B',
                     borderRadius: '16px',
-                    border: isSelected
-                      ? '3px solid #FBBF24'
-                      : timerInfo.isUrgent
-                      ? '2px solid #EF4444'
-                      : ord.status === 'IN_PREPARAZIONE'
-                      ? '2px solid #3B82F6'
-                      : ord.status === 'PRONTO'
-                      ? '2px solid #10B981'
-                      : '1px solid rgba(148, 163, 184, 0.2)',
-                    boxShadow: isSelected
-                      ? '0 0 35px rgba(251, 191, 36, 0.75), 0 12px 35px rgba(0, 0, 0, 0.6)'
-                      : timerInfo.isUrgent
+                    border: statusBorder,
+                    boxShadow: timerInfo.isUrgent
                       ? '0 0 20px rgba(239, 68, 68, 0.35)'
                       : '0 8px 24px rgba(0, 0, 0, 0.3)',
-                    transform: isSelected ? 'scale(1.025)' : 'scale(1)',
-                    opacity: selectedOrderId && !isSelected ? 0.65 : 1,
-                    zIndex: isSelected ? 20 : 1,
+                    zIndex: isFocused ? 20 : 1,
+                    position: 'relative',
                     display: 'flex',
                     flexDirection: 'column',
                     overflow: 'hidden',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    cursor: isFocused ? 'default' : 'pointer',
                   }}
                 >
-                  {/* CARD HEADER */}
+                  <div className="kds-order-card__inner">
+                  {/* CARD HEADER — tap here to focus/unfocus */}
                   <div
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isFocused}
+                    aria-label={isFocused ? `Ordine ${ord.display_id || ord.id} in lettura. Premi per uscire.` : `Metti ordine ${ord.display_id || ord.id} in lettura`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isFocused) clearFocus();
+                      else focusOrder(ord.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (isFocused) clearFocus();
+                        else focusOrder(ord.id);
+                      }
+                    }}
+                    className={isFocused ? 'kds-order-header--focused' : undefined}
                     style={{
                       padding: '1rem 1.15rem',
-                      backgroundColor: isSelected ? '#1E293B' : '#0F172A',
-                      borderBottom: isSelected ? '1px solid rgba(251, 191, 36, 0.3)' : '1px solid rgba(148, 163, 184, 0.15)',
+                      backgroundColor: '#0F172A',
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       gap: '0.5rem',
+                      cursor: 'pointer',
+                      userSelect: 'none',
                     }}
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white', letterSpacing: '0.02em' }}>
+                        <span
+                          className={isFocused ? 'kds-order-id--focused' : undefined}
+                          style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white', letterSpacing: '0.02em' }}
+                        >
                           {ord.display_id || `#${ord.id}`}
                         </span>
 
-                        {/* Selected Highlighting Badge */}
-                        {isSelected && (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.3rem',
-                              padding: '0.2rem 0.6rem',
-                              borderRadius: '6px',
-                              fontSize: '0.75rem',
-                              fontWeight: 900,
-                              backgroundColor: '#FBBF24',
-                              color: '#0F172A',
-                              boxShadow: '0 2px 8px rgba(251, 191, 36, 0.6)',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
+                        {/* Focus badge or hint */}
+                        {isFocused ? (
+                          <span className="kds-focus-badge">
+                            <span className="kds-focus-badge__dot" aria-hidden="true" />
                             <Sparkles size={13} color="#0F172A" />
-                            IN LETTURA
+                            In lettura
                           </span>
-                        )}
+                        ) : !focusedOrderId ? (
+                          <span className="kds-focus-hint" title="Tocca per mettere in lettura">
+                            <Focus size={11} />
+                            Focus
+                          </span>
+                        ) : null}
                         
                         {/* Delivery Type Badge */}
                         <span
@@ -1009,16 +1054,9 @@ export const KdsBoard: React.FC = () => {
                   {/* CARD BODY - INTERACTIVE CHECKLIST */}
                   <div style={{ padding: '1rem 1.15rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                     {ord.order_items.map((item, itemIdx) => {
-                      const isFriedItem =
-                        (item as any).item_type === 'fritto' ||
-                        (item.item_name || '').toLowerCase().includes('cono') ||
-                        (item.item_name || '').toLowerCase().includes('fritt');
-
-                      const isFishItem =
-                        (item as any).item_type === 'pesce' ||
-                        (item as any).details?.item_type === 'pesce' ||
-                        (item.item_name || '').startsWith('🐟') ||
-                        (item.item_name || '').toLowerCase().includes('kg');
+                      const isFriedItem = item.item_type === 'fritto';
+                      const isFishItem = item.item_type === 'pesce';
+                      const isPokeItem = item.item_type === 'poke';
 
                       return (
                         <div
@@ -1035,6 +1073,20 @@ export const KdsBoard: React.FC = () => {
                             <span style={{ fontSize: '1rem', fontWeight: 800, color: isFishItem ? '#38BDF8' : isFriedItem ? '#FBBF24' : '#FF6B6B', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                               <Sparkles size={16} />
                               {item.item_name || (isFishItem ? 'Pesce Fresco al Banco' : isFriedItem ? 'Cono Fritto Espresso' : 'Poke Custom')}
+                              {isFriedItem && (
+                                <span
+                                  style={{
+                                    marginLeft: '0.4rem',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 800,
+                                    letterSpacing: '0.04em',
+                                    textTransform: 'uppercase',
+                                    color: '#FBBF24',
+                                  }}
+                                >
+                                  {FRIED_ON_ARRIVAL_KDS}
+                                </span>
+                              )}
                             </span>
                             {item.quantity && item.quantity >= 1 && (
                               <span style={{ backgroundColor: isFishItem ? '#0284C7' : isFriedItem ? '#F59E0B' : '#EF4444', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800 }}>
@@ -1051,8 +1103,8 @@ export const KdsBoard: React.FC = () => {
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                                   {/* Preparation chip */}
                                   {(() => {
-                                    const rawName = item.item_name || (item as any).name || '';
-                                    const prepName = (item as any).details?.preparation || (rawName.includes('-') ? rawName.split('-')[1]?.replace(']', '').replace(')', '').trim() : 'Eviscerato e desquamato');
+                                    const rawName = item.item_name || '';
+                                    const prepName = item.preparation || (rawName.includes('-') ? rawName.split('-')[1]?.replace(']', '').replace(')', '').trim() : 'Eviscerato e desquamato');
                                     const key = `${ord.id}_${itemIdx}_prep_${prepName}`;
                                     const isChecked = !!checkedIngredients[key];
                                     return (
@@ -1060,7 +1112,7 @@ export const KdsBoard: React.FC = () => {
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleIngredient(key);
+                                          toggleIngredient(ord.id, key);
                                         }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
@@ -1086,7 +1138,7 @@ export const KdsBoard: React.FC = () => {
 
                                   {/* Weight chip */}
                                   {(() => {
-                                    const weightG = (item as any).details?.weight_grams;
+                                    const weightG = item.weight_grams;
                                     const weightLabel = weightG ? (weightG >= 1000 ? `${(weightG / 1000).toFixed(1)} kg` : `${weightG}g`) : null;
                                     if (!weightLabel) return null;
                                     const key = `${ord.id}_${itemIdx}_weight_${weightLabel}`;
@@ -1096,7 +1148,7 @@ export const KdsBoard: React.FC = () => {
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleIngredient(key);
+                                          toggleIngredient(ord.id, key);
                                         }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
@@ -1124,7 +1176,7 @@ export const KdsBoard: React.FC = () => {
                             )}
 
                             {/* BASI */}
-                            {item.bases && item.bases.length > 0 && (
+                            {isPokeItem && item.bases && item.bases.length > 0 && (
                               <div>
                                 <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
                                   Basi
@@ -1139,7 +1191,7 @@ export const KdsBoard: React.FC = () => {
                                         key={base}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleIngredient(key);
+                                          toggleIngredient(ord.id, key);
                                         }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
@@ -1168,7 +1220,7 @@ export const KdsBoard: React.FC = () => {
                             )}
 
                             {/* PROTEINE */}
-                            {item.proteins && item.proteins.length > 0 && (
+                            {isPokeItem && item.proteins && item.proteins.length > 0 && (
                               <div style={{ marginTop: '0.2rem' }}>
                                 <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
                                   Proteine
@@ -1183,7 +1235,7 @@ export const KdsBoard: React.FC = () => {
                                         key={prot}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleIngredient(key);
+                                          toggleIngredient(ord.id, key);
                                         }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
@@ -1212,7 +1264,7 @@ export const KdsBoard: React.FC = () => {
                             )}
 
                             {/* TOPPING / INGREDIENTI */}
-                            {item.toppings && item.toppings.length > 0 && (
+                            {isPokeItem && item.toppings && item.toppings.length > 0 && (
                               <div style={{ marginTop: '0.2rem' }}>
                                 <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
                                   Topping / Ingredienti
@@ -1227,7 +1279,7 @@ export const KdsBoard: React.FC = () => {
                                         key={top}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleIngredient(key);
+                                          toggleIngredient(ord.id, key);
                                         }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
@@ -1256,7 +1308,7 @@ export const KdsBoard: React.FC = () => {
                             )}
 
                             {/* SALSE */}
-                            {item.sauces && item.sauces.length > 0 && (
+                            {isPokeItem && item.sauces && item.sauces.length > 0 && (
                               <div style={{ marginTop: '0.2rem' }}>
                                 <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
                                   Salse
@@ -1271,7 +1323,7 @@ export const KdsBoard: React.FC = () => {
                                         key={sauce}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleIngredient(key);
+                                          toggleIngredient(ord.id, key);
                                         }}
                                         style={{
                                           padding: '0.35rem 0.65rem',
@@ -1299,8 +1351,8 @@ export const KdsBoard: React.FC = () => {
                               </div>
                             )}
 
-                            {/* SESAMO */}
-                            {item.has_sesame !== undefined && (
+                            {/* SESAMO — solo per poke */}
+                            {isPokeItem && item.has_sesame !== undefined && (
                               <div style={{ marginTop: '0.2rem' }}>
                                 {(() => {
                                   const key = `${ord.id}_${itemIdx}_sesame`;
@@ -1310,7 +1362,7 @@ export const KdsBoard: React.FC = () => {
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        toggleIngredient(key);
+                                        toggleIngredient(ord.id, key);
                                       }}
                                       style={{
                                         padding: '0.25rem 0.5rem',
@@ -1349,7 +1401,11 @@ export const KdsBoard: React.FC = () => {
                   </div>
 
                   {/* FOOTER CARD - GIANT TOUCH ACTION BUTTONS */}
-                  <div style={{ padding: '0.85rem 1.15rem 1.15rem 1.15rem', borderTop: '1px solid rgba(148, 163, 184, 0.12)', backgroundColor: '#0F172A' }}>
+                  <div
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ padding: '0.85rem 1.15rem 1.15rem 1.15rem', borderTop: '1px solid rgba(148, 163, 184, 0.12)', backgroundColor: '#0F172A' }}
+                  >
                     {ord.status === 'RICEVUTO' && (
                       <button
                         type="button"
@@ -1409,40 +1465,748 @@ export const KdsBoard: React.FC = () => {
                         SEGNALA PRONTO
                       </button>
                     )}
-
-                    {ord.status === 'PRONTO' && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUpdateStatus(ord.id, 'COMPLETATO');
-                        }}
-                        style={{
-                          width: '100%',
-                          minHeight: '54px',
-                          borderRadius: '12px',
-                          backgroundColor: '#8B5CF6',
-                          color: 'white',
-                          border: 'none',
-                          fontSize: '1.05rem',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.5rem',
-                          boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        <PackageCheck size={22} />
-                        COMPLETA / ARCHIVIA
-                      </button>
-                    )}
+                  </div>
                   </div>
                 </div>
               );
-            })}
+            
+  };
+  return (
+    <div
+      style={{
+        height: '100vh',
+        minHeight: '100vh',
+        overflow: 'hidden',
+        backgroundColor: '#0F172A',
+        color: '#F8FAFC',
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {/* KDS HEADER BAR */}
+      <header
+        style={{
+          backgroundColor: '#070F1E',
+          borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
+          padding: '0.85rem 1.25rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          flexShrink: 0,
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+        }}
+      >
+        {/* Row 1: branding + utilities (fixed, never wraps away from each other) */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            minWidth: 0,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  backgroundColor: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
+                  flexShrink: 0,
+                  overflow: 'hidden',
+                  border: '2px solid rgba(255, 255, 255, 0.8)',
+                }}
+              >
+                <img
+                  src="/logo_pescheria.png"
+                  alt="Pescheria Pessano Logo"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '50%',
+                  }}
+                />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h1 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '0.02em', color: 'white' }}>
+                  PESCHERIA PESSANO
+                </h1>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Kitchen Display System (KDS)
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: '#1E293B',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                padding: '0.4rem 0.85rem',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: '#38BDF8',
+                fontWeight: 800,
+                fontSize: '1rem',
+                letterSpacing: '0.05em',
+                flexShrink: 0,
+              }}
+            >
+              <Clock size={18} />
+              <span>{currentTime || '00:00:00'}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => {
+                unlockAudio();
+                playAudioBeep();
+              }}
+              title={audioUnlocked ? 'Suono Abilitato (Clicca per Test Audio)' : 'Audio in attesa di sblocco dal browser. Clicca per sbloccare!'}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                backgroundColor: audioUnlocked ? '#1E293B' : '#7F1D1D',
+                border: audioUnlocked ? '1px solid rgba(148, 163, 184, 0.2)' : '1px solid #EF4444',
+                color: audioUnlocked ? '#FACC15' : '#FCA5A5',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                boxShadow: audioUnlocked ? 'none' : '0 0 10px rgba(239, 68, 68, 0.35)',
+                transition: 'all 0.2s',
+              }}
+            >
+              <Volume2 size={18} />
+              <span>{audioUnlocked ? 'Audio Attivo' : 'Attiva Audio'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '8px',
+                backgroundColor: '#1E293B',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: toolbar — view toggle, filters, counters/history (always together) */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.65rem',
+            flexWrap: 'wrap',
+            rowGap: '0.65rem',
+          }}
+        >
+          <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => switchBoardView('active')}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: boardView === 'active' ? '#3B82F6' : 'transparent',
+                color: boardView === 'active' ? 'white' : '#94A3B8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}
+            >
+              Attivi
+            </button>
+            <button
+              type="button"
+              onClick={() => switchBoardView('history')}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: boardView === 'history' ? '#8B5CF6' : 'transparent',
+                color: boardView === 'history' ? 'white' : '#94A3B8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}
+            >
+              <History size={14} />
+              Storico
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => setActiveFilter('TUTTI')}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: activeFilter === 'TUTTI' ? '#3B82F6' : 'transparent',
+                color: activeFilter === 'TUTTI' ? 'white' : '#94A3B8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+              }}
+            >
+              Tutti ({boardView === 'active' ? orders.length : filteredHistoryOrders.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFilter('RITIRO')}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: activeFilter === 'RITIRO' ? '#F59E0B' : 'transparent',
+                color: activeFilter === 'RITIRO' ? 'white' : '#94A3B8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+              }}
+            >
+              Solo Ritiro
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFilter('CONSEGNA')}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: activeFilter === 'CONSEGNA' ? '#06B6D4' : 'transparent',
+                color: activeFilter === 'CONSEGNA' ? 'white' : '#94A3B8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+              }}
+            >
+              Solo Consegne
+            </button>
+          </div>
+
+          {boardView === 'active' ? (
+            <>
+              <span
+                style={{
+                  backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                  border: '1px solid rgba(234, 179, 8, 0.4)',
+                  color: '#FACC15',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FACC15' }} />
+                {countRicevuto} In Attesa
+              </span>
+              <span
+                style={{
+                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  color: '#60A5FA',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#60A5FA' }} />
+                {countInPrep} In Prep
+              </span>
+              <span
+                style={{
+                  backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                  border: '1px solid rgba(34, 197, 94, 0.4)',
+                  color: '#4ADE80',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4ADE80' }} />
+                {countPronto} Pronti
+              </span>
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'flex', backgroundColor: '#1E293B', borderRadius: '8px', padding: '0.25rem', border: '1px solid rgba(148, 163, 184, 0.2)', flexShrink: 0 }}>
+                {(['today', '7days', '30days'] as HistoryPeriod[]).map((period) => {
+                  const labels: Record<HistoryPeriod, string> = { today: 'Oggi', '7days': '7 giorni', '30days': '30 giorni' };
+                  return (
+                    <button
+                      key={period}
+                      type="button"
+                      onClick={() => setHistoryPeriod(period)}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '6px',
+                        border: 'none',
+                        backgroundColor: historyPeriod === period ? '#8B5CF6' : 'transparent',
+                        color: historyPeriod === period ? 'white' : '#94A3B8',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {labels[period]}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1 1 200px', minWidth: '180px', maxWidth: '320px' }}>
+                <Search size={16} color="#64748B" style={{ position: 'absolute', left: '0.65rem', pointerEvents: 'none' }} />
+                <input
+                  type="search"
+                  placeholder="Cerca cliente, telefono, ID..."
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.4rem 0.75rem 0.4rem 2rem',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    backgroundColor: '#1E293B',
+                    color: 'white',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* KDS MAIN MONITOR CONTENT */}
+      <main style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {boardView === 'history' ? (
+          <div ref={mainRef} style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', minHeight: 0 }}>
+          historyLoading && historyOrders.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '1rem' }}>
+              <RefreshCw size={36} className="animate-spin" color="#A78BFA" />
+              <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#94A3B8' }}>Caricamento storico ordini...</span>
+            </div>
+          ) : filteredHistoryOrders.length === 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '400px',
+                backgroundColor: '#1E293B',
+                borderRadius: '16px',
+                border: '2px dashed rgba(148, 163, 184, 0.2)',
+                padding: '2rem',
+                textAlign: 'center',
+              }}
+            >
+              <History size={56} color="#8B5CF6" style={{ marginBottom: '1rem' }} />
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>
+                Nessun ordine completato
+              </h2>
+              <p style={{ color: '#94A3B8', maxWidth: '500px', margin: 0, fontSize: '0.95rem' }}>
+                Non ci sono ordini archiviati nel periodo selezionato{historySearch.trim() ? ' per la ricerca inserita' : ''}.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {filteredHistoryOrders.map((ord) => {
+                  const isExpanded = !!expandedHistoryIds[ord.id];
+                  const isDelivery = ord.order_type.toLowerCase().includes('consegna');
+                  const itemSummary = ord.order_items
+                    .map((item) => `${item.quantity && item.quantity > 1 ? `${item.quantity}x ` : ''}${item.item_name}`)
+                    .join(' · ');
+
+                  return (
+                    <div
+                      key={ord.id}
+                      style={{
+                        backgroundColor: '#1E293B',
+                        borderRadius: '14px',
+                        border: '1px solid rgba(148, 163, 184, 0.2)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleHistoryExpanded(ord.id)}
+                        style={{
+                          width: '100%',
+                          padding: '1rem 1.15rem',
+                          backgroundColor: '#0F172A',
+                          border: 'none',
+                          color: 'white',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '1rem',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: '240px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
+                            <span style={{ fontSize: '1.2rem', fontWeight: 900 }}>{ord.display_id || `#${ord.id}`}</span>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                padding: '0.15rem 0.5rem',
+                                borderRadius: '6px',
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                backgroundColor: isDelivery ? 'rgba(6, 182, 212, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                                color: isDelivery ? '#38BDF8' : '#FBBF24',
+                              }}
+                            >
+                              {isDelivery ? <Truck size={11} /> : <ShoppingBag size={11} />}
+                              {ord.order_type}
+                            </span>
+                            <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 600 }}>
+                              {formatOrderDateTime(ord.created_at)}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', fontSize: '0.95rem' }}>
+                            <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <User size={14} color="#94A3B8" />
+                              {ord.customer_name}
+                            </span>
+                            {ord.phone && (
+                              <span style={{ color: '#38BDF8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <Phone size={13} />
+                                {ord.phone}
+                              </span>
+                            )}
+                            <span style={{ color: '#4ADE80', fontWeight: 800 }}>
+                              €{ord.total_price.toFixed(2)}
+                            </span>
+                          </div>
+                          {!isExpanded && itemSummary && (
+                            <p style={{ margin: '0.45rem 0 0', color: '#94A3B8', fontSize: '0.85rem', lineHeight: 1.4 }}>
+                              {itemSummary}
+                            </p>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                          <a
+                            href={`/ordine/${ord.display_id || ord.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Apri tracking ordine"
+                            style={{
+                              padding: '0.4rem 0.65rem',
+                              borderRadius: '8px',
+                              backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                              border: '1px solid rgba(59, 130, 246, 0.35)',
+                              color: '#60A5FA',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <ExternalLink size={14} />
+                            Tracking
+                          </a>
+                          {isExpanded ? <ChevronUp size={20} color="#94A3B8" /> : <ChevronDown size={20} color="#94A3B8" />}
+                        </div>
+                      </button>
+
+                      {isExpanded && (
+                        <div style={{ padding: '0.85rem 1.15rem 1.15rem', borderTop: '1px solid rgba(148, 163, 184, 0.12)' }}>
+                          {(ord.delivery_address || ord.notes) && (
+                            <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', color: '#CBD5E1', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                              {ord.delivery_address && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#38BDF8' }}>
+                                  <Truck size={13} />
+                                  {ord.delivery_address}
+                                </div>
+                              )}
+                              {ord.notes && <div style={{ color: '#FACC15', fontStyle: 'italic' }}>{ord.notes}</div>}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {ord.order_items.map((item, idx) => (
+                              <div
+                                key={item.id || idx}
+                                style={{
+                                  padding: '0.65rem 0.85rem',
+                                  borderRadius: '8px',
+                                  backgroundColor: '#0F172A',
+                                  border: '1px solid rgba(148, 163, 184, 0.12)',
+                                  fontSize: '0.9rem',
+                                }}
+                              >
+                                <div style={{ fontWeight: 800, color: '#F1F5F9', marginBottom: '0.25rem' }}>
+                                  {item.quantity && item.quantity > 1 ? `${item.quantity}x ` : ''}
+                                  {item.item_name}
+                                  {item.item_type === 'fritto' && (
+                                    <span
+                                      style={{
+                                        marginLeft: '0.4rem',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 800,
+                                        letterSpacing: '0.04em',
+                                        textTransform: 'uppercase',
+                                        color: '#FBBF24',
+                                      }}
+                                    >
+                                      {FRIED_ON_ARRIVAL_KDS}
+                                    </span>
+                                  )}
+                                  {item.price ? ` — €${(item.price * (item.quantity || 1)).toFixed(2)}` : ''}
+                                </div>
+                                {item.item_type === 'poke' && (
+                                  <div style={{ color: '#94A3B8', fontSize: '0.8rem', lineHeight: 1.5 }}>
+                                    {[item.bases?.length ? `Basi: ${item.bases.join(', ')}` : null,
+                                      item.proteins?.length ? `Proteine: ${item.proteins.join(', ')}` : null,
+                                      item.toppings?.length ? `Topping: ${item.toppings.join(', ')}` : null,
+                                      item.sauces?.length ? `Salse: ${item.sauces.join(', ')}` : null]
+                                      .filter(Boolean)
+                                      .join(' · ')}
+                                  </div>
+                                )}
+                                {item.item_type === 'pesce' && (item.preparation || item.weight_grams) && (
+                                  <div style={{ color: '#94A3B8', fontSize: '0.8rem' }}>
+                                    {[item.preparation, item.weight_grams ? `${item.weight_grams}g` : null].filter(Boolean).join(' · ')}
+                                  </div>
+                                )}
+                                {item.notes && (
+                                  <div style={{ marginTop: '0.25rem', color: '#FACC15', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                    {item.notes}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  marginTop: '1.25rem',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <button
+                  type="button"
+                  disabled={historyPage === 0 || historyLoading}
+                  onClick={() => fetchHistoryOrders(historyPage - 1, false)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    backgroundColor: historyPage === 0 ? 'rgba(30, 41, 59, 0.5)' : '#1E293B',
+                    color: historyPage === 0 ? '#64748B' : 'white',
+                    fontWeight: 700,
+                    cursor: historyPage === 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}
+                >
+                  <ChevronLeft size={18} />
+                  Precedente
+                </button>
+                <span style={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.9rem' }}>
+                  Pagina {historyPage + 1}
+                </span>
+                {historyHasMore && (
+                  <button
+                    type="button"
+                    disabled={historyLoading}
+                    onClick={() => fetchHistoryOrders(historyPage + 1, false)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(148, 163, 184, 0.25)',
+                      backgroundColor: '#1E293B',
+                      color: 'white',
+                      fontWeight: 700,
+                      cursor: historyLoading ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                    }}
+                  >
+                    Successiva
+                    <ChevronRight size={18} />
+                  </button>
+                )}
+                {historyHasMore && (
+                  <button
+                    type="button"
+                    disabled={historyLoading}
+                    onClick={() => fetchHistoryOrders(historyPage + 1, true)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: '#8B5CF6',
+                      color: 'white',
+                      fontWeight: 700,
+                      cursor: historyLoading ? 'wait' : 'pointer',
+                    }}
+                  >
+                    Carica altri
+                  </button>
+                )}
+              </div>
+            </>
+          )
+          </div>
+        ) : (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <div ref={mainRef} style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', minHeight: 0 }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '1rem' }}>
+            <RefreshCw size={36} className="animate-spin" color="#38BDF8" />
+            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#94A3B8' }}>Caricamento monitor ordini in corso...</span>
+          </div>
+        ) : workIsEmpty ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '400px',
+              backgroundColor: '#1E293B',
+              borderRadius: '16px',
+              border: '2px dashed rgba(148, 163, 184, 0.2)',
+              padding: '2rem',
+              textAlign: 'center',
+            }}
+          >
+            <CheckCircle2 size={56} color="#10B981" style={{ marginBottom: '1rem' }} />
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>
+              {emptyCopy.title}
+            </h2>
+            <p style={{ color: '#94A3B8', maxWidth: '500px', margin: '0', fontSize: '0.95rem' }}>
+              {emptyCopy.body}
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {groupedWork.slotGroups.map((group) => (
+              <section key={group.slotKey}>
+                <SlotGroupHeader group={group} calculateOrderTimer={calculateOrderTimer} />
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                    gap: '1.25rem',
+                    alignItems: 'start',
+                    marginTop: '0.75rem',
+                  }}
+                >
+                  {group.orders.map((ord) => renderOrderCard(ord))}
+                </div>
+              </section>
+            ))}
+
+            {groupedWork.generalQueue.length > 0 && (
+              <section>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: '1rem',
+                    fontWeight: 800,
+                    color: '#94A3B8',
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Altri ordini · {groupedWork.generalQueue.length}{' '}
+                  {groupedWork.generalQueue.length === 1 ? 'ordine' : 'ordini'}
+                </h3>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                    gap: '1.25rem',
+                    alignItems: 'start',
+                    marginTop: '0.75rem',
+                  }}
+                >
+                  {groupedWork.generalQueue.map((ord) => renderOrderCard(ord))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+            </div>
+            {boardView === 'active' && (
+              <ReadyStrip
+                orders={readyOrders}
+                onArchive={(orderId) => handleUpdateStatus(orderId, 'COMPLETATO')}
+                onWhatsApp={openOrderReadyWhatsApp}
+              />
+            )}
           </div>
         )}
       </main>

@@ -4,14 +4,13 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
 
-// Auto-update Service Workers on mobile load to prevent stale PWA cache
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
     for (const registration of registrations) {
-      registration.update();
+      registration.unregister();
     }
-  }).catch((err) => {
-    console.warn('Service Worker update check error:', err);
+  }).catch(() => {
+    // Ignora errori di unregister (es. contesto non sicuro)
   });
 }
 

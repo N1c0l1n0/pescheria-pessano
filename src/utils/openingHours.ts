@@ -255,10 +255,15 @@ export function getValidMinutesForHour(hour: number, date: Date = new Date(), st
  * Get quick selectable time slot strings (e.g., ["12:30", "13:00", ...]) for a date.
  * Automatically filters out any slots earlier than the current time when date is Today.
  */
-export function getQuickTimeOptionsForDate(date: Date = new Date()): string[] {
+export function getQuickTimeOptionsForDate(
+  date: Date = new Date(),
+  options: { includePast?: boolean; stepMinutes?: number } = {}
+): string[] {
   const schedule = getDaySchedule(date);
   if (schedule.isClosedAllDay || !schedule.slots.length) return [];
 
+  const stepMinutes = options.stepMinutes ?? 20;
+  const includePast = options.includePast ?? false;
   const now = new Date();
   const isToday = isSameDay(date, now);
   const currentTotalMin = now.getHours() * 60 + now.getMinutes();
@@ -268,11 +273,9 @@ export function getQuickTimeOptionsForDate(date: Date = new Date()): string[] {
     const openMin = timeToMinutes(slot.open);
     const closeMin = timeToMinutes(slot.close);
 
-    // Round openMin up to nearest 15/30 min
-    const startMin = Math.ceil(openMin / 30) * 30;
-    for (let m = startMin; m <= closeMin; m += 30) {
+    for (let m = openMin; m <= closeMin; m += stepMinutes) {
       // Hide past slots if date is Today
-      if (isToday && m < currentTotalMin) {
+      if (!includePast && isToday && m < currentTotalMin) {
         continue;
       }
       const hh = Math.floor(m / 60).toString().padStart(2, '0');
@@ -282,5 +285,119 @@ export function getQuickTimeOptionsForDate(date: Date = new Date()): string[] {
   });
 
   return slotsOptions;
+}
+
+export const MEAL_WINDOWS = {
+  pranzo: { start: '11:30', end: '13:30' },
+  cena: { start: '18:30', end: '20:15' },
+} as const;
+
+export const MEAL_PRESET_TARGETS = {
+  pranzo: ['12:10', '12:30', '13:10'],
+  cena: ['18:45', '19:05', '19:25', '20:05'],
+} as const;
+
+export interface MealPresetOptions {
+  pranzo: string[];
+  cena: string[];
+}
+
+export function dayHasEvening(schedule: DaySchedule): boolean {
+  return schedule.slots.some((slot) => timeToMinutes(slot.open) >= timeToMinutes('17:00'));
+}
+
+function resolveTargetsToGrid(
+  targets: readonly string[],
+  gridAll: string[],
+  gridVisible: Set<string>,
+  window: { start: string; end: string }
+): string[] {
+  const windowStart = timeToMinutes(window.start);
+  const windowEnd = timeToMinutes(window.end);
+  const resolved = new Set<string>();
+
+  for (const target of targets) {
+    const targetMin = timeToMinutes(target);
+    let best: string | null = null;
+    let bestDist = Infinity;
+
+    for (const slot of gridAll) {
+      const slotMin = timeToMinutes(slot);
+      if (slotMin < windowStart || slotMin > windowEnd) continue;
+      const dist = Math.abs(slotMin - targetMin);
+      if (dist < bestDist || (dist === bestDist && best !== null && slotMin > timeToMinutes(best))) {
+        bestDist = dist;
+        best = slot;
+      }
+    }
+
+    if (best && gridVisible.has(best)) {
+      resolved.add(best);
+    }
+  }
+
+  return Array.from(resolved).sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+}
+
+export function getMealPresetOptionsForDate(date: Date = new Date()): MealPresetOptions {
+  const schedule = getDaySchedule(date);
+  if (schedule.isClosedAllDay) {
+    return { pranzo: [], cena: [] };
+  }
+
+  const gridAll = getQuickTimeOptionsForDate(date, { includePast: true });
+  const gridVisible = new Set(getQuickTimeOptionsForDate(date, { includePast: false }));
+  const hasEvening = dayHasEvening(schedule);
+
+  return {
+    pranzo: resolveTargetsToGrid(
+      MEAL_PRESET_TARGETS.pranzo,
+      gridAll,
+      gridVisible,
+      MEAL_WINDOWS.pranzo
+    ),
+    cena: hasEvening
+      ? resolveTargetsToGrid(
+          MEAL_PRESET_TARGETS.cena,
+          gridAll,
+          gridVisible,
+          MEAL_WINDOWS.cena
+        )
+      : [],
+  };
+}
+
+export const MEAL_OVERLAP_MINUTES = 30;
+
+export interface VisibleMealGroups {
+  showPranzo: boolean;
+  showCena: boolean;
+}
+
+export function getVisibleMealGroups(
+  date: Date,
+  now: Date = new Date()
+): VisibleMealGroups {
+  const schedule = getDaySchedule(date);
+  if (schedule.isClosedAllDay || !schedule.slots.length) {
+    return { showPranzo: false, showCena: false };
+  }
+
+  const hasEvening = dayHasEvening(schedule);
+  if (!isSameDay(date, now)) {
+    return { showPranzo: true, showCena: hasEvening };
+  }
+
+  const morningClose = timeToMinutes(schedule.slots[0].close);
+  const overlapStart = morningClose - MEAL_OVERLAP_MINUTES;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  if (nowMin < overlapStart) {
+    return { showPranzo: true, showCena: false };
+  }
+  if (nowMin <= morningClose) {
+    return { showPranzo: true, showCena: hasEvening };
+  }
+  return { showPranzo: false, showCena: hasEvening };
 }
 

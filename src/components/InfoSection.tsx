@@ -1,44 +1,26 @@
 import React from 'react';
-import { ShieldCheck, Utensils, ShoppingBag, Anchor, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ShieldCheck, Utensils, ShoppingBag, Anchor, Sparkles, ArrowRight } from 'lucide-react';
 
 export const InfoSection: React.FC = () => {
   return (
     <section
       id="servizi"
       style={{
-        padding: '5rem 0',
-        backgroundColor: 'var(--color-ice-blue)',
+        padding: '5.25rem 0',
+        backgroundColor: 'var(--color-sand)',
       }}
     >
       <div className="container">
 
         {/* Section Header */}
-        <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto 3.5rem auto' }}>
-          <div
-            style={{
-              fontSize: '0.85rem',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              color: 'var(--color-ocean-medium)',
-              marginBottom: '0.5rem',
-            }}
-          >
-            Pescheria & Gastronomia Storica
-          </div>
-
-          <h2
-            className="font-serif heading-dark-gradient"
-            style={{
-              fontSize: 'clamp(2.2rem, 3.5vw, 3.2rem)',
-              fontWeight: 800,
-              marginBottom: '1rem',
-            }}
-          >
+        <div className="section-header">
+          <div className="section-kicker">Pescheria & Gastronomia Storica</div>
+          <div className="hairline-gold" />
+          <h2 className="section-title">
             I Nostri Servizi Principali
           </h2>
-
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>
+          <p className="section-lede">
             Dal pesce fresco del nostro mare alla preparazione di Poke personalizzate e piatti pronti della tradizione: scopri tutti i servizi della Pescheria Pessano.
           </p>
         </div>
@@ -53,36 +35,11 @@ export const InfoSection: React.FC = () => {
         >
           {/* Card 1: Pesce Fresco */}
           <div
-            className="glass-panel"
-            style={{
-              padding: '1.75rem 1.5rem',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'white',
-              border: '1px solid rgba(11, 37, 69, 0.08)',
-              display: 'flex',
-              flexDirection: 'column',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-            }}
+            className="glass-panel service-card"
           >
             <div
-              style={{
-                width: '50px',
-                height: '50px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'rgba(11, 37, 69, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1.25rem',
-              }}
+              className="service-icon"
+              style={{ backgroundColor: 'rgba(10, 35, 66, 0.08)' }}
             >
               <Anchor size={26} color="var(--color-ocean-dark)" />
             </div>
@@ -126,40 +83,23 @@ export const InfoSection: React.FC = () => {
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Filiera corta e pescato locale
               </li>
             </ul>
+            <Link
+              to="/componi-poke?tab=pesce"
+              className="service-link"
+              style={{ color: 'var(--color-ocean-medium)' }}
+            >
+              Ordina pesce fresco
+              <ArrowRight size={15} />
+            </Link>
           </div>
 
           {/* Card 2: Poke Bowl Artigianali */}
           <div
-            className="glass-panel"
-            style={{
-              padding: '1.75rem 1.5rem',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'white',
-              border: '1px solid rgba(11, 37, 69, 0.08)',
-              display: 'flex',
-              flexDirection: 'column',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-            }}
+            className="glass-panel service-card"
           >
             <div
-              style={{
-                width: '50px',
-                height: '50px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'rgba(255, 107, 107, 0.12)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1.25rem',
-              }}
+              className="service-icon"
+              style={{ backgroundColor: 'rgba(232, 93, 82, 0.12)' }}
             >
               <Sparkles size={26} color="var(--color-coral)" />
             </div>
@@ -203,40 +143,23 @@ export const InfoSection: React.FC = () => {
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Basi, topping e salse a scelta
               </li>
             </ul>
+            <Link
+              to="/componi-poke"
+              className="service-link"
+              style={{ color: 'var(--color-coral)' }}
+            >
+              Componi la tua poke
+              <ArrowRight size={15} />
+            </Link>
           </div>
 
           {/* Card 3: Gastronomia Pronta */}
           <div
-            className="glass-panel"
-            style={{
-              padding: '1.75rem 1.5rem',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'white',
-              border: '1px solid rgba(11, 37, 69, 0.08)',
-              display: 'flex',
-              flexDirection: 'column',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-            }}
+            className="glass-panel service-card"
           >
             <div
-              style={{
-                width: '50px',
-                height: '50px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'rgba(19, 64, 116, 0.12)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1.25rem',
-              }}
+              className="service-icon"
+              style={{ backgroundColor: 'rgba(22, 74, 124, 0.12)' }}
             >
               <Utensils size={26} color="var(--color-ocean-medium)" />
             </div>
@@ -280,42 +203,25 @@ export const InfoSection: React.FC = () => {
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Specialità liguri preparate oggi
               </li>
             </ul>
+            <Link
+              to="/componi-poke?tab=fritti"
+              className="service-link"
+              style={{ color: 'var(--color-ocean-medium)' }}
+            >
+              Scopri i fritti d'asporto
+              <ArrowRight size={15} />
+            </Link>
           </div>
 
           {/* Card 4: Ordini Online & Tracciamento */}
           <div
-            className="glass-panel"
-            style={{
-              padding: '1.75rem 1.5rem',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'white',
-              border: '1px solid rgba(11, 37, 69, 0.08)',
-              display: 'flex',
-              flexDirection: 'column',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-            }}
+            className="glass-panel service-card"
           >
             <div
-              style={{
-                width: '50px',
-                height: '50px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'rgba(141, 169, 196, 0.18)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1.25rem',
-              }}
+              className="service-icon"
+              style={{ backgroundColor: 'rgba(143, 182, 204, 0.22)' }}
             >
-              <ShoppingBag size={26} color="var(--color-sea-blue)" />
+              <ShoppingBag size={26} color="var(--color-ocean-medium)" />
             </div>
 
             <h3
@@ -331,7 +237,7 @@ export const InfoSection: React.FC = () => {
                 lineHeight: 1.25,
               }}
             >
-              Ordini Online & Asporto
+              Ordini Online e Asporto
             </h3>
 
             <p
@@ -357,6 +263,14 @@ export const InfoSection: React.FC = () => {
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Confezionamento salvafreschezza
               </li>
             </ul>
+            <Link
+              to="/componi-poke"
+              className="service-link"
+              style={{ color: 'var(--color-ocean-medium)' }}
+            >
+              Inizia un ordine
+              <ArrowRight size={15} />
+            </Link>
           </div>
 
         </div>
