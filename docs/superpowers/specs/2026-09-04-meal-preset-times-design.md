@@ -1,7 +1,7 @@
 # Meal preset times in order picker
 
 **Date:** 2026-09-04  
-**Status:** Approved for implementation
+**Status:** Superseded by `docs/superpowers/specs/2026-09-05-meal-preset-visible-phases-design.md`
 
 ## Problem
 
