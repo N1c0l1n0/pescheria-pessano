@@ -15,6 +15,8 @@ import {
   mergeCapacityOrders,
   occupancyBySlot,
   validatePokeSubmitSlot,
+  findNextAvailableSlots,
+  formatSlotFullError,
   type CapacityOrder,
 } from '../utils/pokeSlotCapacity';
 import { friedArrivalMessage } from '../utils/friedArrival';
@@ -255,6 +257,76 @@ export interface ConfiguredFishItem {
 }
 
 export type OrderCartItem = ConfiguredPoke | ConfiguredFriedItem | ConfiguredFishItem;
+
+type SupabaseOrderItemPayload = {
+  id: string;
+  item_type: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  details: Record<string, unknown>;
+};
+
+function generateOrderItemUUID(): string {
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function buildSupabaseOrderItemPayload(item: OrderCartItem): SupabaseOrderItemPayload {
+  const itemUUID = generateOrderItemUUID();
+  if (item.itemType === 'fritto') {
+    const displayName = item.personName ? `${item.name} (${item.personName})` : item.name;
+    return {
+      id: itemUUID,
+      item_type: 'fritto',
+      name: displayName,
+      quantity: item.quantity,
+      unit_price: item.price,
+      details: {
+        fried_product_id: item.friedProductId,
+        person_name: item.personName || '',
+        notes: item.notes || '',
+      },
+    };
+  }
+  if (item.itemType === 'pesce') {
+    const weightLabel = item.weightGrams >= 1000 ? `${(item.weightGrams / 1000).toFixed(1)}kg` : `${item.weightGrams}g`;
+    const displayName = `${item.name} [${weightLabel} - ${item.preparation}]`;
+    return {
+      id: itemUUID,
+      item_type: 'pesce',
+      name: displayName,
+      quantity: 1,
+      unit_price: item.price,
+      details: {
+        fish_id: item.fishId,
+        origin: item.origin,
+        price_per_kg: item.pricePerKg,
+        weight_grams: item.weightGrams,
+        preparation: item.preparation,
+        person_name: item.personName || '',
+        notes: item.notes || '',
+      },
+    };
+  }
+  return {
+    id: itemUUID,
+    item_type: 'poke',
+    name: `Poke ${item.format.name} (${item.pokePersonName})`,
+    quantity: 1,
+    unit_price: item.price,
+    details: {
+      size: item.format.name,
+      bases: item.basi,
+      proteins: item.proteine,
+      toppings: item.ingredienti,
+      sauces: item.salse,
+      has_sesame: item.semiSesamo,
+      notes: item.notes || '',
+    },
+  };
+}
 
 const OrderStepHeader: React.FC<{
   step: number;
@@ -874,98 +946,120 @@ export const PokeBuilder: React.FC = () => {
     const generatedFriendlyId = `#${Math.floor(1000 + Math.random() * 9000)}`;
 
     try {
-      // 1. Insert parent order into Supabase 'orders' table
-      const { data: insertedOrder, error: orderErr } = await supabase
-        .from('orders')
-        .insert([
-          {
-            friendly_id: generatedFriendlyId,
-            status: 'RICEVUTO',
-            customer_name: clientName,
-            customer_phone: customerPhone.trim(),
-            order_type: orderType,
-            delivery_address: orderType === 'Consegna' ? deliveryAddress.trim() : null,
-            total_amount: totalToPay,
-            notes: combinedNotes,
-          },
-        ])
-        .select()
-        .single();
+      if (pokeCount > 0) {
+        const itemsPayload = finalItems.map(buildSupabaseOrderItemPayload);
 
-      if (orderErr) {
-        console.warn('Supabase orders insert notice:', orderErr.message || orderErr);
-      } else if (insertedOrder && insertedOrder.id !== undefined && insertedOrder.id !== null) {
-        insertedOrderId = String(insertedOrder.id);
-      }
-
-      // 2. Insert items into 'order_items' table if order ID exists
-      if (insertedOrderId) {
-        const numericOrderId = !isNaN(Number(insertedOrderId)) ? Number(insertedOrderId) : insertedOrderId;
-        const itemsPayload = finalItems.map((item) => {
-          const itemUUID = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-          if (item.itemType === 'fritto') {
-            const displayName = item.personName ? `${item.name} (${item.personName})` : item.name;
-            return {
-              id: itemUUID,
-              order_id: numericOrderId,
-              item_type: 'fritto',
-              name: displayName,
-              quantity: item.quantity,
-              unit_price: item.price,
-              details: {
-                fried_product_id: item.friedProductId,
-                person_name: item.personName || '',
-                notes: item.notes || '',
-              },
-            };
-          } else if (item.itemType === 'pesce') {
-            const weightLabel = item.weightGrams >= 1000 ? `${(item.weightGrams / 1000).toFixed(1)}kg` : `${item.weightGrams}g`;
-            const displayName = `${item.name} [${weightLabel} - ${item.preparation}]`;
-            return {
-              id: itemUUID,
-              order_id: numericOrderId,
-              item_type: 'pesce',
-              name: displayName,
-              quantity: 1,
-              unit_price: item.price,
-              details: {
-                fish_id: item.fishId,
-                origin: item.origin,
-                price_per_kg: item.pricePerKg,
-                weight_grams: item.weightGrams,
-                preparation: item.preparation,
-                person_name: item.personName || '',
-                notes: item.notes || '',
-              },
-            };
-          } else {
-            return {
-              id: itemUUID,
-              order_id: numericOrderId,
-              item_type: 'poke',
-              name: `Poke ${item.format.name} (${item.pokePersonName})`,
-              quantity: 1,
-              unit_price: item.price,
-              details: {
-                size: item.format.name,
-                bases: item.basi,
-                proteins: item.proteine,
-                toppings: item.ingredienti,
-                sauces: item.salse,
-                has_sesame: item.semiSesamo,
-                notes: item.notes || '',
-              },
-            };
-          }
+        const { data: rpcResult, error: rpcErr } = await supabase.rpc('submit_poke_order', {
+          p_friendly_id: generatedFriendlyId,
+          p_customer_name: clientName,
+          p_customer_phone: customerPhone.trim(),
+          p_order_type: orderType,
+          p_status: 'RICEVUTO',
+          p_total_price: totalToPay,
+          p_notes: combinedNotes,
+          p_delivery_address: orderType === 'Consegna' ? deliveryAddress.trim() : null,
+          p_poke_count: pokeCount,
+          p_items: itemsPayload,
         });
 
-        const { error: itemsErr } = await supabase.from('order_items').insert(itemsPayload);
-        if (itemsErr) {
-          console.warn('Supabase order_items insert notice:', itemsErr.message || itemsErr);
+        if (rpcErr) {
+          console.error('submit_poke_order RPC error:', rpcErr);
+          setIsSubmitting(false);
+          triggerValidationError(
+            'Impossibile inviare l\'ordine. Riprova tra qualche secondo.',
+            'ordine-invia'
+          );
+          return;
+        }
+
+        const result = rpcResult as {
+          ok: boolean;
+          code?: string;
+          order_id?: string;
+          friendly_id?: string;
+          slot?: string;
+          slot_end?: string;
+          requested?: number;
+        };
+
+        if (!result?.ok) {
+          setIsSubmitting(false);
+          if (result.code === 'SLOT_FULL') {
+            const slotEnd = result.slot_end || '';
+            const alternatives = findNextAvailableSlots({
+              slotStarts,
+              occupancy: latestOccupancy,
+              dateKey: occupancyDateKey,
+              minSeats: pokeCount,
+              afterSlot: result.slot,
+              limit: 3,
+            });
+            triggerValidationError(
+              formatSlotFullError({
+                slotStart: result.slot || '',
+                slotEnd,
+                cartPokeCount: pokeCount,
+                alternatives,
+              }),
+              'ordine-dati'
+            );
+          } else {
+            triggerValidationError(
+              'Impossibile inviare l\'ordine. Riprova tra qualche secondo.',
+              'ordine-invia'
+            );
+          }
+          return;
+        }
+
+        insertedOrderId = result.order_id ? String(result.order_id) : null;
+      } else {
+        const { data: insertedOrder, error: orderErr } = await supabase
+          .from('orders')
+          .insert([
+            {
+              friendly_id: generatedFriendlyId,
+              status: 'RICEVUTO',
+              customer_name: clientName,
+              customer_phone: customerPhone.trim(),
+              order_type: orderType,
+              delivery_address: orderType === 'Consegna' ? deliveryAddress.trim() : null,
+              total_amount: totalToPay,
+              notes: combinedNotes,
+            },
+          ])
+          .select()
+          .single();
+
+        if (orderErr) {
+          console.warn('Supabase orders insert notice:', orderErr.message || orderErr);
+        } else if (insertedOrder && insertedOrder.id !== undefined && insertedOrder.id !== null) {
+          insertedOrderId = String(insertedOrder.id);
+        }
+
+        if (insertedOrderId) {
+          const numericOrderId = !isNaN(Number(insertedOrderId)) ? Number(insertedOrderId) : insertedOrderId;
+          const itemsPayload = finalItems.map((item) => ({
+            ...buildSupabaseOrderItemPayload(item),
+            order_id: numericOrderId,
+          }));
+
+          const { error: itemsErr } = await supabase.from('order_items').insert(itemsPayload);
+          if (itemsErr) {
+            console.warn('Supabase order_items insert notice:', itemsErr.message || itemsErr);
+          }
         }
       }
     } catch (e) {
       console.error('Error submitting order to Supabase:', e);
+      if (pokeCount > 0) {
+        setIsSubmitting(false);
+        triggerValidationError(
+          'Impossibile inviare l\'ordine. Riprova tra qualche secondo.',
+          'ordine-invia'
+        );
+        return;
+      }
     }
 
     // 3. Fallback / Synchronize to local orderStore so KDS & OrderTracking ALWAYS work 100%
