@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   MAX_POKE_PER_SLOT,
   buildSlotSummary,
-  canAddPokeToSlot,
   containingSlotStart,
   countPokeInOrder,
   countsTowardSlotCapacity,
@@ -471,7 +470,23 @@ describe('buildSlotSummary', () => {
     expect(summary?.headline).toContain('1 nel tuo ordine');
   });
 
-  it('marks full slots', () => {
+  it('marks warning when cart exceeds remaining', () => {
+    const summary = buildSlotSummary({
+      pickupTime: '12:20 (Oggi)',
+      selectedDay: 'oggi',
+      dateKey,
+      slotStarts: slots,
+      slotOccupancy: { [`${dateKey}|12:20`]: 8 },
+      cartPokeCount: 3,
+      occupancyLoaded: true,
+    });
+    expect(summary?.variant).toBe('warning');
+    expect(summary?.headline).toContain('Attenzione');
+    expect(summary?.headline).toContain('2 posti');
+    expect(summary?.headline).toContain('3 poke nel carrello');
+  });
+
+  it('marks full with soft copy when cart is empty', () => {
     const summary = buildSlotSummary({
       pickupTime: '12:20 (Oggi)',
       selectedDay: 'oggi',
@@ -483,19 +498,20 @@ describe('buildSlotSummary', () => {
     });
     expect(summary?.variant).toBe('full');
     expect(summary?.headline).toContain('Esaurito (10/10)');
+    expect(summary?.headline).toContain('puoi continuare');
   });
 
-  it('marks overbooked when cart exceeds remaining', () => {
+  it('marks warning when slot is full but cart has poke', () => {
     const summary = buildSlotSummary({
       pickupTime: '12:20 (Oggi)',
       selectedDay: 'oggi',
       dateKey,
       slotStarts: slots,
-      slotOccupancy: { [`${dateKey}|12:20`]: 8 },
-      cartPokeCount: 3,
+      slotOccupancy: { [`${dateKey}|12:20`]: 10 },
+      cartPokeCount: 1,
       occupancyLoaded: true,
     });
-    expect(summary?.variant).toBe('overbooked');
+    expect(summary?.variant).toBe('warning');
   });
 
   it('marks low stock when remaining is 2 or less but cart still fits', () => {
@@ -557,32 +573,5 @@ describe('buildSlotSummary', () => {
       isDayClosed: true,
     });
     expect(summary).toBeNull();
-  });
-});
-
-describe('canAddPokeToSlot', () => {
-  it('allows add while loading', () => {
-    expect(canAddPokeToSlot({ variant: 'loading', headline: '', remaining: 0, inCart: 0 }, true)).toBe(true);
-  });
-
-  it('blocks add on full, overbooked, and unavailable', () => {
-    expect(canAddPokeToSlot({ variant: 'full', headline: '', remaining: 0, inCart: 0 }, true)).toBe(false);
-    expect(canAddPokeToSlot({ variant: 'overbooked', headline: '', remaining: 1, inCart: 2 }, true)).toBe(false);
-    expect(canAddPokeToSlot({ variant: 'unavailable', headline: '', remaining: 0, inCart: 0 }, true)).toBe(false);
-  });
-
-  it('blocks add when one more poke would exceed remaining', () => {
-    expect(
-      canAddPokeToSlot({ variant: 'available', headline: '', remaining: 2, inCart: 2 }, true)
-    ).toBe(false);
-    expect(
-      canAddPokeToSlot({ variant: 'available', headline: '', remaining: 2, inCart: 1 }, true)
-    ).toBe(true);
-  });
-
-  it('allows edit without requiring an extra seat', () => {
-    expect(
-      canAddPokeToSlot({ variant: 'available', headline: '', remaining: 2, inCart: 2 }, false)
-    ).toBe(true);
   });
 });

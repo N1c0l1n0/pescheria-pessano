@@ -143,7 +143,7 @@ export type SlotSummaryVariant =
   | 'available'
   | 'low'
   | 'full'
-  | 'overbooked'
+  | 'warning'
   | 'unavailable'
   | 'loading';
 
@@ -256,8 +256,13 @@ function buildHeadline(args: {
   inCart: number;
   variant: SlotSummaryVariant;
 }): string {
+  if (args.variant === 'warning') {
+    const posti = args.remaining === 1 ? '1 posto' : `${args.remaining} posti`;
+    const pokeLabel = args.inCart === 1 ? '1 poke' : `${args.inCart} poke`;
+    return `${args.prefix} · Attenzione: la fascia ha solo ${posti}, hai ${pokeLabel} nel carrello. Potresti dover cambiare orario.`;
+  }
   if (args.variant === 'full') {
-    return `${args.prefix} · Esaurito (10/10)`;
+    return `${args.prefix} · Esaurito (10/10) — puoi continuare, ma l'ordine potrebbe non andare a buon fine`;
   }
   if (args.variant === 'unavailable') {
     return 'Nessuna fascia poke disponibile. Scegli un altro giorno o riduci le poke.';
@@ -270,8 +275,8 @@ function buildHeadline(args: {
 
 function variantForSlot(booked: number, cartPokeCount: number): SlotSummaryVariant {
   const remaining = Math.max(0, MAX_POKE_PER_SLOT - booked);
+  if (cartPokeCount > remaining) return 'warning';
   if (remaining <= 0) return 'full';
-  if (cartPokeCount > remaining) return 'overbooked';
   if (remaining <= 2) return 'low';
   return 'available';
 }
@@ -352,22 +357,6 @@ export function buildSlotSummary(args: BuildSlotSummaryArgs): SlotSummary | null
     slotStart,
     slotEnd: addMinutesToTime(slotStart, POKE_SLOT_MINUTES),
   };
-}
-
-export function canAddPokeToSlot(
-  summary: SlotSummary | null,
-  addingOne: boolean
-): boolean {
-  if (!summary || summary.variant === 'loading') return true;
-  if (
-    summary.variant === 'full' ||
-    summary.variant === 'overbooked' ||
-    summary.variant === 'unavailable'
-  ) {
-    return false;
-  }
-  const needed = addingOne ? summary.inCart + 1 : summary.inCart;
-  return needed <= summary.remaining;
 }
 
 export function slotAvailability(
