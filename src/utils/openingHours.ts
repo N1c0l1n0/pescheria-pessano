@@ -367,3 +367,37 @@ export function getMealPresetOptionsForDate(date: Date = new Date()): MealPreset
   };
 }
 
+export const MEAL_OVERLAP_MINUTES = 30;
+
+export interface VisibleMealGroups {
+  showPranzo: boolean;
+  showCena: boolean;
+}
+
+export function getVisibleMealGroups(
+  date: Date,
+  now: Date = new Date()
+): VisibleMealGroups {
+  const schedule = getDaySchedule(date);
+  if (schedule.isClosedAllDay || !schedule.slots.length) {
+    return { showPranzo: false, showCena: false };
+  }
+
+  const hasEvening = dayHasEvening(schedule);
+  if (!isSameDay(date, now)) {
+    return { showPranzo: true, showCena: hasEvening };
+  }
+
+  const morningClose = timeToMinutes(schedule.slots[0].close);
+  const overlapStart = morningClose - MEAL_OVERLAP_MINUTES;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  if (nowMin < overlapStart) {
+    return { showPranzo: true, showCena: false };
+  }
+  if (nowMin <= morningClose) {
+    return { showPranzo: true, showCena: hasEvening };
+  }
+  return { showPranzo: false, showCena: hasEvening };
+}
+

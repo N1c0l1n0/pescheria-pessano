@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getMealPresetOptionsForDate, getQuickTimeOptionsForDate } from './openingHours';
+import {
+  getMealPresetOptionsForDate,
+  getQuickTimeOptionsForDate,
+  getVisibleMealGroups,
+} from './openingHours';
 
 describe('getQuickTimeOptionsForDate 20-minute grid', () => {
   it('starts at 08:30 and steps 20 minutes on a Tuesday far in the future', () => {
@@ -58,5 +62,61 @@ describe('getMealPresetOptionsForDate', () => {
   it('returns empty lists on Monday', () => {
     const date = new Date(2030, 8, 2, 10, 0, 0); // Mon Sep 2 2030
     expect(getMealPresetOptionsForDate(date)).toEqual({ pranzo: [], cena: [] });
+  });
+});
+
+describe('getVisibleMealGroups', () => {
+  it('shows only pranzo on Friday morning', () => {
+    const today = new Date(2030, 8, 6, 10, 0, 0);
+    expect(getVisibleMealGroups(today, today)).toEqual({
+      showPranzo: true,
+      showCena: false,
+    });
+  });
+
+  it('shows pranzo and cena in the last 30 minutes before Friday morning close', () => {
+    const today = new Date(2030, 8, 6, 14, 20, 0);
+    expect(getVisibleMealGroups(today, today)).toEqual({
+      showPranzo: true,
+      showCena: true,
+    });
+  });
+
+  it('shows only cena after Friday morning close', () => {
+    const today = new Date(2030, 8, 6, 15, 0, 0);
+    expect(getVisibleMealGroups(today, today)).toEqual({
+      showPranzo: false,
+      showCena: true,
+    });
+  });
+
+  it('ignores device phase for Domani', () => {
+    const now = new Date(2030, 8, 6, 15, 0, 0); // Fri 15:00
+    const tomorrow = new Date(2030, 8, 7, 15, 0, 0); // Sat
+    expect(getVisibleMealGroups(tomorrow, now)).toEqual({
+      showPranzo: true,
+      showCena: true,
+    });
+  });
+
+  it('never shows cena on Wednesday', () => {
+    const morning = new Date(2030, 8, 4, 10, 0, 0);
+    const afternoon = new Date(2030, 8, 4, 15, 0, 0);
+    expect(getVisibleMealGroups(morning, morning)).toEqual({
+      showPranzo: true,
+      showCena: false,
+    });
+    expect(getVisibleMealGroups(afternoon, afternoon)).toEqual({
+      showPranzo: false,
+      showCena: false,
+    });
+  });
+
+  it('hides both groups on Monday', () => {
+    const monday = new Date(2030, 8, 2, 10, 0, 0);
+    expect(getVisibleMealGroups(monday, monday)).toEqual({
+      showPranzo: false,
+      showCena: false,
+    });
   });
 });
