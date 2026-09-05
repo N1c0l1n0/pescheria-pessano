@@ -21,6 +21,7 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  MessageCircle,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getLocalOrders, updateLocalOrderStatus, subscribeToLocalOrders } from '../utils/orderStore';
@@ -557,7 +558,7 @@ export const KdsBoard: React.FC = () => {
   }, [boardView, historyPeriod, historySearch, fetchHistoryOrders]);
 
   // Update order status handler
-  const handleUpdateStatus = async (orderId: string, newStatus: 'IN_PREPARAZIONE' | 'PRONTO' | 'COMPLETATO') => {
+  const handleUpdateStatus = useCallback(async (orderId: string, newStatus: 'IN_PREPARAZIONE' | 'PRONTO' | 'COMPLETATO') => {
     if (newStatus === 'COMPLETATO') {
       clearFocus();
       setCheckedIngredients((prev) => {
@@ -599,7 +600,15 @@ export const KdsBoard: React.FC = () => {
     } catch (e) {
       console.warn('Status DB update exception:', e);
     }
-  };
+  }, [clearFocus, focusOrder]);
+
+  const handleMarkReadyAndNotify = useCallback(
+    (order: KdsOrder) => {
+      handleUpdateStatus(order.id, 'PRONTO');
+      openOrderReadyWhatsApp(order);
+    },
+    [handleUpdateStatus]
+  );
 
   // Helper to compute timer status relative to requested time or order creation
   const calculateOrderTimer = (createdAtStr: string, requestedTimeText: string, isAsap: boolean) => {
@@ -1373,35 +1382,80 @@ export const KdsBoard: React.FC = () => {
                       </button>
                     )}
 
-                    {ord.status === 'IN_PREPARAZIONE' && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUpdateStatus(ord.id, 'PRONTO');
-                        }}
-                        style={{
-                          width: '100%',
-                          minHeight: '54px',
-                          borderRadius: '12px',
-                          backgroundColor: '#10B981',
-                          color: 'white',
-                          border: 'none',
-                          fontSize: '1.05rem',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.5rem',
-                          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        <CheckCircle2 size={22} />
-                        SEGNALA PRONTO
-                      </button>
-                    )}
+                    {ord.status === 'IN_PREPARAZIONE' && (() => {
+                      const whatsAppUrl = buildOrderReadyWhatsAppUrl(ord);
+                      const canNotify = Boolean(whatsAppUrl);
+
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            disabled={!canNotify}
+                            title={canNotify ? undefined : 'Telefono non disponibile'}
+                            aria-label={
+                              canNotify
+                                ? `Segna pronto e invia WhatsApp a ${ord.customer_name}`
+                                : 'Telefono non disponibile per WhatsApp'
+                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (canNotify) handleMarkReadyAndNotify(ord);
+                            }}
+                            style={{
+                              width: '100%',
+                              minHeight: '54px',
+                              borderRadius: '12px',
+                              backgroundColor: canNotify ? '#25D366' : '#334155',
+                              color: 'white',
+                              border: 'none',
+                              fontSize: '1.05rem',
+                              fontWeight: 800,
+                              cursor: canNotify ? 'pointer' : 'not-allowed',
+                              opacity: canNotify ? 1 : 0.4,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.5rem',
+                              boxShadow: canNotify ? '0 4px 15px rgba(37, 211, 102, 0.4)' : 'none',
+                              transition: 'all 0.2s',
+                            }}
+                          >
+                            <MessageCircle size={22} />
+                            AVVISA CLIENTE
+                          </button>
+
+                          {!canNotify && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUpdateStatus(ord.id, 'PRONTO');
+                              }}
+                              style={{
+                                width: '100%',
+                                minHeight: '54px',
+                                borderRadius: '12px',
+                                backgroundColor: '#10B981',
+                                color: 'white',
+                                border: 'none',
+                                fontSize: '1.05rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem',
+                                boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)',
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              <CheckCircle2 size={22} />
+                              SEGNALA PRONTO
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                   </div>
                 </div>
