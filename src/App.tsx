@@ -10,6 +10,7 @@ import { Footer } from './components/Footer';
 import { OrderTracking } from './components/OrderTracking';
 import { PokeBuilderPage } from './pages/PokeBuilderPage';
 import { KdsBoard } from './components/KdsBoard';
+import { FishCatalogAdmin } from './components/FishCatalogAdmin';
 
 function ScrollToHash() {
   const { pathname, hash } = useLocation();
@@ -55,6 +56,7 @@ export function App() {
         <Route path="/componi-poke" element={<PokeBuilderPage />} />
         <Route path="/ordine/:id" element={<OrderTracking />} />
         <Route path="/admin/kds" element={<KdsBoard />} />
+        <Route path="/admin/banco" element={<FishCatalogAdmin />} />
       </Routes>
     </>
   );

@@ -135,6 +135,182 @@ export function occupancyBySlot(orders: CapacityOrder[]): Record<string, number>
   return map;
 }
 
+export type SlotSummaryVariant =
+  | 'available'
+  | 'low'
+  | 'full'
+  | 'overbooked'
+  | 'unavailable'
+  | 'loading';
+
+export type SlotSummary = {
+  variant: SlotSummaryVariant;
+  headline: string;
+  remaining: number;
+  inCart: number;
+  slotStart?: string;
+  slotEnd?: string;
+};
+
+export interface BuildSlotSummaryArgs {
+  pickupTime: string;
+  selectedDay: SlotDay;
+  dateKey: string;
+  slotStarts: string[];
+  slotOccupancy: Record<string, number>;
+  cartPokeCount: number;
+  occupancyLoaded: boolean;
+  isDayClosed?: boolean;
+  isCustomTime?: boolean;
+  customTimeValid?: boolean;
+}
+
+export function addMinutesToTime(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const total = h * 60 + m + minutes;
+  const hh = Math.floor(total / 60) % 24;
+  const mm = total % 60;
+  return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
+}
+
+export function findFirstAvailableSlot(args: {
+  slotStarts: string[];
+  occupancy: Record<string, number>;
+  dateKey: string;
+  minSeats: number;
+}): string | null {
+  for (const time of args.slotStarts) {
+    const booked = args.occupancy[occupancyKey(args.dateKey, time)] || 0;
+    const remaining = Math.max(0, MAX_POKE_PER_SLOT - booked);
+    if (remaining >= args.minSeats) return time;
+  }
+  return null;
+}
+
+function formatSlotRange(slotStart: string): string {
+  return `${slotStart}–${addMinutesToTime(slotStart, POKE_SLOT_MINUTES)}`;
+}
+
+function buildHeadline(args: {
+  prefix: string;
+  remaining: number;
+  inCart: number;
+  variant: SlotSummaryVariant;
+}): string {
+  if (args.variant === 'full') {
+    return `${args.prefix} · Esaurito (10/10)`;
+  }
+  if (args.variant === 'unavailable') {
+    return 'Nessuna fascia poke disponibile. Scegli un altro giorno o riduci le poke.';
+  }
+  const remainingLabel =
+    args.remaining === 1 ? '1 poke rimasta' : `${args.remaining} poke rimaste`;
+  const cartSuffix = args.inCart > 0 ? ` · ${args.inCart} nel tuo ordine` : '';
+  return `${args.prefix} · ${remainingLabel}${cartSuffix}`;
+}
+
+function variantForSlot(booked: number, cartPokeCount: number): SlotSummaryVariant {
+  const remaining = Math.max(0, MAX_POKE_PER_SLOT - booked);
+  if (remaining <= 0) return 'full';
+  if (cartPokeCount > remaining) return 'overbooked';
+  if (remaining <= 2) return 'low';
+  return 'available';
+}
+
+export function buildSlotSummary(args: BuildSlotSummaryArgs): SlotSummary | null {
+  if (args.isDayClosed) return null;
+  if (!args.occupancyLoaded) {
+    return {
+      variant: 'loading',
+      headline: 'Caricamento disponibilità…',
+      remaining: 0,
+      inCart: args.cartPokeCount,
+    };
+  }
+  if (args.slotStarts.length === 0) return null;
+  if (args.isCustomTime && args.customTimeValid === false) return null;
+
+  const raw = args.pickupTime.replace(/\s*\((Oggi|Domani|oggi|domani)\)/gi, '').trim();
+  const isAsap = /prima possibile|asap/i.test(raw);
+  const minSeats = Math.max(1, args.cartPokeCount);
+
+  if (isAsap) {
+    const slotStart = findFirstAvailableSlot({
+      slotStarts: args.slotStarts,
+      occupancy: args.slotOccupancy,
+      dateKey: args.dateKey,
+      minSeats,
+    });
+    if (!slotStart) {
+      return {
+        variant: 'unavailable',
+        headline: buildHeadline({
+          prefix: '',
+          remaining: 0,
+          inCart: args.cartPokeCount,
+          variant: 'unavailable',
+        }),
+        remaining: 0,
+        inCart: args.cartPokeCount,
+      };
+    }
+    const booked = args.slotOccupancy[occupancyKey(args.dateKey, slotStart)] || 0;
+    const remaining = Math.max(0, MAX_POKE_PER_SLOT - booked);
+    const variant = variantForSlot(booked, args.cartPokeCount);
+    return {
+      variant,
+      headline: buildHeadline({
+        prefix: `Prima fascia libera: ${formatSlotRange(slotStart)}`,
+        remaining,
+        inCart: args.cartPokeCount,
+        variant,
+      }),
+      remaining,
+      inCart: args.cartPokeCount,
+      slotStart,
+      slotEnd: addMinutesToTime(slotStart, POKE_SLOT_MINUTES),
+    };
+  }
+
+  const parsed = parseClockAndDay(`Orario: ${raw}`);
+  if (!parsed) return null;
+
+  const slotStart = containingSlotStart(parsed.time, args.slotStarts) || parsed.time;
+  const booked = args.slotOccupancy[occupancyKey(args.dateKey, slotStart)] || 0;
+  const remaining = Math.max(0, MAX_POKE_PER_SLOT - booked);
+  const variant = variantForSlot(booked, args.cartPokeCount);
+
+  return {
+    variant,
+    headline: buildHeadline({
+      prefix: `Fascia ${formatSlotRange(slotStart)}`,
+      remaining,
+      inCart: args.cartPokeCount,
+      variant,
+    }),
+    remaining,
+    inCart: args.cartPokeCount,
+    slotStart,
+    slotEnd: addMinutesToTime(slotStart, POKE_SLOT_MINUTES),
+  };
+}
+
+export function canAddPokeToSlot(
+  summary: SlotSummary | null,
+  addingOne: boolean
+): boolean {
+  if (!summary || summary.variant === 'loading') return true;
+  if (
+    summary.variant === 'full' ||
+    summary.variant === 'overbooked' ||
+    summary.variant === 'unavailable'
+  ) {
+    return false;
+  }
+  const needed = addingOne ? summary.inCart + 1 : summary.inCart;
+  return needed <= summary.remaining;
+}
+
 export function slotAvailability(
   booked: number,
   cartPokeCount: number
@@ -176,16 +352,14 @@ export function resolvePokeSubmitSlot(args: {
   const isAsap = /prima possibile|asap/i.test(raw);
   const parsed = parseClockAndDay(`Orario: ${raw}`);
 
-  const fits = (time: string) => {
-    const booked = args.occupancy[occupancyKey(args.dateKey, time)] || 0;
-    return !slotAvailability(booked, args.cartPokeCount).disabled;
-  };
-
   const fromIndex = (startIdx: number) => {
-    for (let i = startIdx; i < args.slotStarts.length; i++) {
-      const time = args.slotStarts[i];
-      if (fits(time)) return { time, day: args.selectedDay };
-    }
+    const time = findFirstAvailableSlot({
+      slotStarts: args.slotStarts.slice(startIdx),
+      occupancy: args.occupancy,
+      dateKey: args.dateKey,
+      minSeats: args.cartPokeCount,
+    });
+    if (time) return { time, day: args.selectedDay };
     return { error: ASAP_ERROR };
   };
 

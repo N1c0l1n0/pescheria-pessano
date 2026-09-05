@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   MAX_POKE_PER_SLOT,
+  buildSlotSummary,
+  canAddPokeToSlot,
   containingSlotStart,
   countPokeInOrder,
+  findFirstAvailableSlot,
   mergeCapacityOrders,
   occupancyBySlot,
   parseClockAndDay,
@@ -246,5 +249,191 @@ describe('resolvePokeSubmitSlot', () => {
     expect(result).toEqual({
       error: 'La pescheria è chiusa in questo giorno. Scegli un altro giorno.',
     });
+  });
+});
+
+describe('findFirstAvailableSlot', () => {
+  const dateKey = '2030-09-03';
+  const slots = ['12:00', '12:20', '12:40'];
+
+  it('returns the first slot with enough remaining seats', () => {
+    const occupancy = { [`${dateKey}|12:00`]: 10, [`${dateKey}|12:20`]: 7 };
+    expect(
+      findFirstAvailableSlot({ slotStarts: slots, occupancy, dateKey, minSeats: 3 })
+    ).toBe('12:20');
+  });
+
+  it('returns null when no slot fits', () => {
+    const occupancy = {
+      [`${dateKey}|12:00`]: 10,
+      [`${dateKey}|12:20`]: 10,
+      [`${dateKey}|12:40`]: 10,
+    };
+    expect(
+      findFirstAvailableSlot({ slotStarts: slots, occupancy, dateKey, minSeats: 1 })
+    ).toBeNull();
+  });
+});
+
+describe('buildSlotSummary', () => {
+  const dateKey = '2030-09-03';
+  const slots = ['12:00', '12:20', '12:40'];
+
+  it('returns loading when occupancy is not loaded', () => {
+    const summary = buildSlotSummary({
+      pickupTime: '12:20 (Oggi)',
+      selectedDay: 'oggi',
+      dateKey,
+      slotStarts: slots,
+      slotOccupancy: {},
+      cartPokeCount: 0,
+      occupancyLoaded: false,
+    });
+    expect(summary?.variant).toBe('loading');
+  });
+
+  it('shows remaining seats with empty cart', () => {
+    const summary = buildSlotSummary({
+      pickupTime: '12:20 (Oggi)',
+      selectedDay: 'oggi',
+      dateKey,
+      slotStarts: slots,
+      slotOccupancy: { [`${dateKey}|12:20`]: 7 },
+      cartPokeCount: 0,
+      occupancyLoaded: true,
+    });
+    expect(summary?.variant).toBe('available');
+    expect(summary?.remaining).toBe(3);
+    expect(summary?.headline).toContain('Fascia 12:20–12:40');
+    expect(summary?.headline).toContain('3 poke rimaste');
+    expect(summary?.headline).not.toContain('nel tuo ordine');
+  });
+
+  it('includes cart count in headline', () => {
+    const summary = buildSlotSummary({
+      pickupTime: '12:20 (Oggi)',
+      selectedDay: 'oggi',
+      dateKey,
+      slotStarts: slots,
+      slotOccupancy: { [`${dateKey}|12:20`]: 7 },
+      cartPokeCount: 1,
+      occupancyLoaded: true,
+    });
+    expect(summary?.headline).toContain('1 nel tuo ordine');
+  });
+
+  it('marks full slots', () => {
+    const summary = buildSlotSummary({
+      pickupTime: '12:20 (Oggi)',
+      selectedDay: 'oggi',
+      dateKey,
+      slotStarts: slots,
+      slotOccupancy: { [`${dateKey}|12:20`]: 10 },
+      cartPokeCount: 0,
+      occupancyLoaded: true,
+    });
+    expect(summary?.variant).toBe('full');
+    expect(summary?.headline).toContain('Esaurito (10/10)');
+  });
+
+  it('marks overbooked when cart exceeds remaining', () => {
+    const summary = buildSlotSummary({
+      pickupTime: '12:20 (Oggi)',
+      selectedDay: 'oggi',
+      dateKey,
+      slotStarts: slots,
+      slotOccupancy: { [`${dateKey}|12:20`]: 8 },
+      cartPokeCount: 3,
+      occupancyLoaded: true,
+    });
+    expect(summary?.variant).toBe('overbooked');
+  });
+
+  it('marks low stock when remaining is 2 or less but cart still fits', () => {
+    const summary = buildSlotSummary({
+      pickupTime: '12:20 (Oggi)',
+      selectedDay: 'oggi',
+      dateKey,
+      slotStarts: slots,
+      slotOccupancy: { [`${dateKey}|12:20`]: 8 },
+      cartPokeCount: 1,
+      occupancyLoaded: true,
+    });
+    expect(summary?.variant).toBe('low');
+    expect(summary?.remaining).toBe(2);
+  });
+
+  it('resolves Prima possibile to the first available slot', () => {
+    const summary = buildSlotSummary({
+      pickupTime: 'Prima possibile (Oggi)',
+      selectedDay: 'oggi',
+      dateKey,
+      slotStarts: slots,
+      slotOccupancy: { [`${dateKey}|12:00`]: 10, [`${dateKey}|12:20`]: 7 },
+      cartPokeCount: 0,
+      occupancyLoaded: true,
+    });
+    expect(summary?.variant).toBe('available');
+    expect(summary?.headline).toContain('Prima fascia libera: 12:20–12:40');
+    expect(summary?.remaining).toBe(3);
+  });
+
+  it('returns unavailable when ASAP has no fitting slot', () => {
+    const summary = buildSlotSummary({
+      pickupTime: 'Prima possibile (Oggi)',
+      selectedDay: 'oggi',
+      dateKey,
+      slotStarts: slots,
+      slotOccupancy: {
+        [`${dateKey}|12:00`]: 10,
+        [`${dateKey}|12:20`]: 10,
+        [`${dateKey}|12:40`]: 10,
+      },
+      cartPokeCount: 1,
+      occupancyLoaded: true,
+    });
+    expect(summary?.variant).toBe('unavailable');
+    expect(summary?.headline).toContain('Nessuna fascia poke disponibile');
+  });
+
+  it('returns null for closed day', () => {
+    const summary = buildSlotSummary({
+      pickupTime: '12:20 (Oggi)',
+      selectedDay: 'oggi',
+      dateKey,
+      slotStarts: [],
+      slotOccupancy: {},
+      cartPokeCount: 0,
+      occupancyLoaded: true,
+      isDayClosed: true,
+    });
+    expect(summary).toBeNull();
+  });
+});
+
+describe('canAddPokeToSlot', () => {
+  it('allows add while loading', () => {
+    expect(canAddPokeToSlot({ variant: 'loading', headline: '', remaining: 0, inCart: 0 }, true)).toBe(true);
+  });
+
+  it('blocks add on full, overbooked, and unavailable', () => {
+    expect(canAddPokeToSlot({ variant: 'full', headline: '', remaining: 0, inCart: 0 }, true)).toBe(false);
+    expect(canAddPokeToSlot({ variant: 'overbooked', headline: '', remaining: 1, inCart: 2 }, true)).toBe(false);
+    expect(canAddPokeToSlot({ variant: 'unavailable', headline: '', remaining: 0, inCart: 0 }, true)).toBe(false);
+  });
+
+  it('blocks add when one more poke would exceed remaining', () => {
+    expect(
+      canAddPokeToSlot({ variant: 'available', headline: '', remaining: 2, inCart: 2 }, true)
+    ).toBe(false);
+    expect(
+      canAddPokeToSlot({ variant: 'available', headline: '', remaining: 2, inCart: 1 }, true)
+    ).toBe(true);
+  });
+
+  it('allows edit without requiring an extra seat', () => {
+    expect(
+      canAddPokeToSlot({ variant: 'available', headline: '', remaining: 2, inCart: 2 }, false)
+    ).toBe(true);
   });
 });

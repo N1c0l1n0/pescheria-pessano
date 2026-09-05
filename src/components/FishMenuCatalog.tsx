@@ -1,161 +1,18 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Waves, Anchor, Sparkles, Search, Info, X, ShieldCheck } from 'lucide-react';
+import { useFishCatalog } from '../hooks/useFishCatalog';
+import type { FishItem } from '../types/fishCatalog';
 
-export interface FishItem {
-  id: string;
-  name: string;
-  origin: string; // 'Mar Ligure' | 'Medit. Occ.'
-  locationDetail: string;
-  pricePerKg: number;
-  image: string;
-  description: string;
-  cookingTip: string;
-  winePairing: string;
-  isPopular?: boolean;
-}
-
-export const FISH_CATALOG: FishItem[] = [
-  {
-    id: 'acciughe',
-    name: 'Acciughe del Golfo',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 18.00,
-    image: '/pesce/acciughe.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'tonno-pinna-gialla',
-    name: 'Tonno Pinna Gialla',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 44.00,
-    image: '/pesce/tonno_pinna_gialla.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'pescatrice',
-    name: 'Rana Pescatrice (Coda di Rospo)',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 28.00,
-    image: '/pesce/pescatrice.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'polpo',
-    name: 'Polpo Verace del Golfo',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 34.00,
-    image: '/pesce/polpo.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'triglia',
-    name: 'Triglia di Scoglio Nostrana',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 34.00,
-    image: '/pesce/triglia.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: false,
-  },
-  {
-    id: 'nasello',
-    name: 'Nasello Fresco di Paranza',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 38.00,
-    image: '/pesce/nasello.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: false,
-  },
-  {
-    id: 'calamari',
-    name: 'Calamari Veraci Nostrani',
-    origin: 'Medit. Occ.',
-    locationDetail: '',
-    pricePerKg: 42.00,
-    image: '/pesce/calamari.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'branzino',
-    name: 'Branzino Selvaggio del Golfo',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 50.00,
-    image: '/pesce/branzino.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'pesce-spada',
-    name: 'Pesce Spada del Golfo',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 50.00,
-    image: '/pesce/pesce_spada.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'orata',
-    name: 'Orata di Mare Nostrana',
-    origin: 'Mar Ligure',
-    locationDetail: '',
-    pricePerKg: 56.00,
-    image: '/pesce/orata.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-  {
-    id: 'rombo',
-    name: 'Rombo Chiodato del Mediterraneo',
-    origin: 'Medit. Occ.',
-    locationDetail: '',
-    pricePerKg: 58.00,
-    image: '/pesce/rombo.jpg',
-    description: '',
-    cookingTip: '',
-    winePairing: '',
-    isPopular: true,
-  },
-];
+export type { FishItem } from '../types/fishCatalog';
 
 export const FishMenuCatalog: React.FC = () => {
+  const { items, loading } = useFishCatalog();
   const [activeOrigin, setActiveOrigin] = useState<'all' | 'Mar Ligure' | 'Medit. Occ.'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFish, setSelectedFish] = useState<FishItem | null>(null);
 
-  const filteredItems = FISH_CATALOG.filter((item) => {
+  const filteredItems = items.filter((item) => {
     const matchesOrigin = activeOrigin === 'all' ? true : item.origin === activeOrigin;
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -208,7 +65,7 @@ export const FishMenuCatalog: React.FC = () => {
               onClick={() => setActiveOrigin('all')}
               style={filterBtnStyle(activeOrigin === 'all')}
             >
-              Tutto ({FISH_CATALOG.length})
+              Tutto ({items.length})
             </button>
             <button
               type="button"
@@ -251,6 +108,12 @@ export const FishMenuCatalog: React.FC = () => {
             />
           </div>
         </div>
+
+        {loading && (
+          <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginBottom: '2rem' }}>
+            Caricamento selezione del giorno...
+          </p>
+        )}
 
         {/* Clean Grid Layout */}
         <div className="fish-grid">
@@ -296,7 +159,6 @@ export const FishMenuCatalog: React.FC = () => {
                   }}
                   className="fish-card-img"
                   onError={(e) => {
-                    // Fallback image if file error
                     (e.target as HTMLElement).setAttribute('src', '/hero_pescheria.jpg');
                   }}
                 />
@@ -349,7 +211,6 @@ export const FishMenuCatalog: React.FC = () => {
               {/* Card Body */}
               <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
                 <div>
-                  {/* Nome del Pesce in evidenza */}
                   <h3
                     className="font-serif"
                     style={{
@@ -364,35 +225,15 @@ export const FishMenuCatalog: React.FC = () => {
                   </h3>
                 </div>
 
-                {/* Card Footer: Prezzo al Kg */}
                 <div
                   style={{
                     borderTop: '1px solid rgba(11, 37, 69, 0.08)',
                     paddingTop: '0.85rem',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
+                    justifyContent: 'flex-end',
                   }}
                 >
-                  <div>
-                    <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-muted)', display: 'block', fontWeight: 700 }}>
-                      Prezzo al Kg
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '1.3rem',
-                        fontWeight: 900,
-                        color: 'var(--color-ocean-dark)',
-                        letterSpacing: '-0.02em',
-                      }}
-                    >
-                      € {item.pricePerKg.toFixed(2).replace('.', ',')}
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-muted)', marginLeft: '3px' }}>
-                        / Kg
-                      </span>
-                    </span>
-                  </div>
-
                   <button
                     type="button"
                     style={{
@@ -595,12 +436,9 @@ export const FishMenuCatalog: React.FC = () => {
               >
                 {selectedFish.name}
               </h3>
-              <p style={{ color: 'var(--color-sea-blue)', fontSize: '0.875rem', margin: '0 0 0.75rem 0' }}>
+              <p style={{ color: 'var(--color-sea-blue)', fontSize: '0.875rem', margin: '0 0 1.25rem 0' }}>
                 {selectedFish.origin}
                 {selectedFish.isPopular ? ' • Prodotto popolare' : ''}
-              </p>
-              <p style={{ color: 'white', fontSize: '1.15rem', fontWeight: 800, margin: '0 0 1.25rem 0' }}>
-                € {selectedFish.pricePerKg.toFixed(2).replace('.', ',')} / Kg
               </p>
               <Link
                 to="/componi-poke?tab=pesce"

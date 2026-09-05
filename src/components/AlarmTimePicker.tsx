@@ -6,18 +6,39 @@ import {
   getMealPresetOptionsForDate,
   getVisibleMealGroups,
 } from '../utils/openingHours';
+import {
+  MAX_POKE_PER_SLOT,
+  POKE_SLOT_MINUTES,
+  addMinutesToTime,
+  occupancyKey,
+} from '../utils/pokeSlotCapacity';
 
 interface TimePickerProps {
   orderType: 'Ritiro' | 'Consegna';
   selectedTime: string;
   selectedDay: 'oggi' | 'domani';
+  slotOccupancy?: Record<string, number>;
+  dateKey?: string;
+  occupancyLoaded?: boolean;
   onTimeChange: (time: string, day: 'oggi' | 'domani') => void;
+}
+
+function presetRemainingLabel(booked: number): { text: string; tone: 'ok' | 'low' | 'full' } {
+  const remaining = Math.max(0, MAX_POKE_PER_SLOT - booked);
+  if (remaining <= 0) return { text: 'Esaurito', tone: 'full' };
+  if (remaining <= 2) {
+    return { text: remaining === 1 ? '1 poke' : `${remaining} poke`, tone: 'low' };
+  }
+  return { text: `${remaining} poke`, tone: 'ok' };
 }
 
 export const AlarmTimePicker: React.FC<TimePickerProps> = ({
   orderType,
   selectedTime,
   selectedDay,
+  slotOccupancy,
+  dateKey,
+  occupancyLoaded = false,
   onTimeChange,
 }) => {
   const [day, setDay] = useState<'oggi' | 'domani'>(selectedDay);
@@ -67,24 +88,47 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
 
   const renderPresetButton = (slotTime: string) => {
     const isSel = !isCustom && selectedTime.includes(slotTime);
+    const booked = dateKey ? (slotOccupancy?.[occupancyKey(dateKey, slotTime)] || 0) : 0;
+    const remaining = occupancyLoaded ? presetRemainingLabel(booked) : null;
+    const slotEnd = addMinutesToTime(slotTime, POKE_SLOT_MINUTES);
+    const toneColor = remaining?.tone === 'full'
+      ? (isSel ? '#FECACA' : '#B91C1C')
+      : remaining?.tone === 'low'
+        ? (isSel ? '#FDBA74' : '#C2410C')
+        : (isSel ? 'rgba(255,255,255,0.78)' : 'var(--color-text-muted)');
+
     return (
       <button
         key={slotTime}
         type="button"
         onClick={() => handlePresetSelect(slotTime)}
         style={{
-          padding: '0.45rem 0.75rem',
+          display: 'inline-flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '0.12rem',
+          padding: '0.55rem 0.8rem',
           borderRadius: 'var(--radius-sm)',
-          border: isSel ? '1.5px solid var(--color-ocean-medium)' : '1px solid rgba(11, 37, 69, 0.15)',
+          border: isSel
+            ? '1.5px solid var(--color-ocean-medium)'
+            : remaining?.tone === 'full'
+              ? '1px solid #FCA5A5'
+              : '1px solid rgba(11, 37, 69, 0.15)',
           backgroundColor: isSel ? 'var(--color-ocean-dark)' : 'white',
           color: isSel ? 'white' : 'var(--color-ocean-dark)',
           fontWeight: isSel ? 800 : 600,
           fontSize: '0.825rem',
           cursor: 'pointer',
           transition: 'all 0.15s ease',
+          minWidth: '6.4rem',
         }}
       >
-        {slotTime}
+        <span>{slotTime}–{slotEnd}</span>
+        {remaining ? (
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: toneColor }}>
+            {remaining.text}
+          </span>
+        ) : null}
       </button>
     );
   };

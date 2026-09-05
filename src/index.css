@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
 :root {
   --color-ocean-ink: #041221;
@@ -2520,5 +2520,564 @@ textarea:focus {
     flex: 1 1 calc(50% - 0.4rem);
     font-size: 0.8rem;
     padding: 0.7rem 0.55rem;
+  }
+}
+
+html:has(.fish-admin-shell),
+body:has(.fish-admin-shell) {
+  background: #e8eef0;
+}
+
+.fish-admin-shell {
+  --banco-ice: #e8eef0;
+  --banco-ice-deep: #d4dee3;
+  --banco-card: #f6fafb;
+  --banco-slate: #1a2428;
+  --banco-copper: #c47a4a;
+  --banco-copper-deep: #a86438;
+  --banco-kelp: #2f5c4f;
+  --banco-foam: #6e7e84;
+  --banco-coral: #c94a42;
+  --banco-line: rgba(26, 36, 40, 0.1);
+  --font-price: 'Barlow Condensed', 'Plus Jakarta Sans', sans-serif;
+
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--banco-slate);
+  background:
+    radial-gradient(900px 420px at 50% -8%, rgba(255, 255, 255, 0.72), transparent 58%),
+    linear-gradient(180deg, #f2f7f8 0%, var(--banco-ice) 42%, var(--banco-ice-deep) 100%);
+}
+
+.fish-admin-shell button,
+.fish-admin-shell input {
+  touch-action: manipulation;
+}
+
+.fish-admin-shell :focus-visible {
+  outline: 2px solid var(--banco-copper);
+  outline-offset: 2px;
+}
+
+.fish-admin-workspace {
+  width: min(34rem, 100%);
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.fish-admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: calc(0.85rem + env(safe-area-inset-top, 0px)) 1rem 0.85rem;
+  background: rgba(232, 238, 240, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--banco-line);
+}
+
+.fish-admin-header h1 {
+  margin: 0;
+  font-family: var(--font-price);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.fish-admin-header p {
+  margin: 0.2rem 0 0;
+  color: var(--banco-foam);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.fish-admin-header__actions,
+.fish-admin-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.fish-admin-menu {
+  position: relative;
+}
+
+.fish-admin-icon-btn {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--banco-line);
+  border-radius: 14px;
+  background: var(--banco-card);
+  color: var(--banco-slate);
+  cursor: pointer;
+}
+
+.fish-admin-icon-btn--accent {
+  background: var(--banco-copper);
+  border-color: var(--banco-copper);
+  color: #fffaf6;
+}
+
+.fish-admin-icon-btn--quiet {
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  color: var(--banco-foam);
+}
+
+.fish-admin-menu__panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  min-width: 12.5rem;
+  display: grid;
+  padding: 0.35rem;
+  border: 1px solid var(--banco-line);
+  border-radius: 14px;
+  background: var(--banco-card);
+  box-shadow: 0 16px 40px rgba(26, 36, 40, 0.12);
+}
+
+.fish-admin-menu__panel a,
+.fish-admin-menu__panel button {
+  display: block;
+  width: 100%;
+  padding: 0.8rem 0.85rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--banco-slate);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.fish-admin-menu__panel a:hover,
+.fish-admin-menu__panel button:hover {
+  background: rgba(196, 122, 74, 0.1);
+}
+
+.fish-admin-list {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.85rem 1rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.fish-admin-row {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 0.7rem;
+  padding: 0.7rem;
+  border: 1px solid var(--banco-line);
+  border-radius: 18px;
+  background: var(--banco-card);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+}
+
+.fish-admin-row--hidden {
+  opacity: 0.58;
+}
+
+.fish-admin-row__photo {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.fish-admin-row__photo img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+}
+
+.fish-admin-row__body {
+  min-width: 0;
+}
+
+.fish-admin-row__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.fish-admin-row__name {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--banco-slate);
+  font: inherit;
+  font-weight: 700;
+  font-size: 1rem;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.fish-admin-row__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-top: 0.55rem;
+}
+
+.fish-price-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.fish-price-stepper__btn {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--banco-line);
+  border-radius: 12px;
+  background: #eef4f6;
+  color: var(--banco-slate);
+  cursor: pointer;
+}
+
+.fish-price-stepper__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.fish-price-stepper__value,
+.fish-price-stepper__input {
+  min-width: 4.6rem;
+  height: 42px;
+  padding: 0 0.15rem;
+  border: 0;
+  background: transparent;
+  color: var(--banco-copper);
+  font-family: var(--font-price);
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.fish-price-stepper__value {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.fish-price-stepper__value small {
+  margin-top: 0.12rem;
+  color: var(--banco-foam);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fish-price-stepper__input {
+  font-size: 1.7rem;
+}
+
+.fish-admin-switch {
+  position: relative;
+  width: 52px;
+  min-width: 52px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--banco-line);
+  border-radius: 999px;
+  background: #d7e0e4;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fish-admin-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(26, 36, 40, 0.18);
+  transition: left 0.16s ease;
+}
+
+.fish-admin-switch--on {
+  background: var(--banco-kelp);
+  border-color: var(--banco-kelp);
+}
+
+.fish-admin-switch--on::after {
+  left: 23px;
+}
+
+.fish-admin-status {
+  margin: 0.45rem 0 0;
+  color: var(--banco-kelp);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.fish-admin-status--error {
+  color: var(--banco-coral);
+}
+
+.fish-admin-note,
+.fish-admin-empty {
+  margin: 0;
+  color: var(--banco-foam);
+  font-size: 0.92rem;
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+}
+
+.fish-admin-login {
+  width: min(22rem, calc(100% - 2rem));
+  margin: 18vh auto 0;
+  padding: 1.4rem 1.25rem 1.3rem;
+  border: 1px solid var(--banco-line);
+  border-radius: 20px;
+  background: var(--banco-card);
+}
+
+.fish-admin-login__mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(196, 122, 74, 0.14);
+  color: var(--banco-copper);
+  margin-bottom: 0.85rem;
+}
+
+.fish-admin-login h1 {
+  margin: 0;
+  font-family: var(--font-price);
+  font-size: 2.1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fish-admin-login p {
+  margin: 0.35rem 0 1.1rem;
+  color: var(--banco-foam);
+}
+
+.fish-admin-login form,
+.fish-admin-editor__body {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.fish-admin-field {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--banco-foam);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fish-admin-field input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--banco-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--banco-slate);
+  font: inherit;
+  font-size: 16px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.fish-admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--banco-line);
+  background: var(--banco-card);
+  color: var(--banco-slate);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fish-admin-btn--primary {
+  width: 100%;
+  background: var(--banco-copper);
+  border-color: var(--banco-copper);
+  color: #fffaf6;
+}
+
+.fish-admin-btn--primary:hover {
+  background: var(--banco-copper-deep);
+}
+
+.fish-admin-btn--ghost {
+  background: #eef4f6;
+}
+
+.fish-admin-btn--danger {
+  background: rgba(201, 74, 66, 0.08);
+  border-color: rgba(201, 74, 66, 0.28);
+  color: var(--banco-coral);
+}
+
+.fish-admin-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.fish-admin-editor {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.fish-admin-editor__header {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: calc(0.75rem + env(safe-area-inset-top, 0px)) 1rem 0.75rem;
+  background: rgba(232, 238, 240, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--banco-line);
+}
+
+.fish-admin-editor__header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.fish-admin-editor__body {
+  padding: 1rem 1rem 1.25rem;
+}
+
+.fish-admin-photo {
+  display: grid;
+  gap: 0.65rem;
+  justify-items: start;
+}
+
+.fish-admin-photo img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 1px solid var(--banco-line);
+}
+
+.fish-admin-text-btn {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--banco-copper);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fish-admin-origins {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.fish-admin-origins legend {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--banco-foam);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.fish-admin-origins div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.fish-admin-chip {
+  min-height: 48px;
+  padding: 0 0.45rem;
+  border: 1px solid var(--banco-line);
+  border-radius: 14px;
+  background: #eef4f6;
+  color: var(--banco-slate);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fish-admin-chip--on {
+  background: rgba(47, 92, 79, 0.14);
+  border-color: rgba(47, 92, 79, 0.3);
+  color: var(--banco-kelp);
+}
+
+.fish-admin-editor__bar {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding: 0.75rem 1rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, transparent, var(--banco-ice) 28%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fish-admin-shell {
+    scroll-behavior: auto;
+  }
+
+  .fish-admin-header,
+  .fish-admin-editor__header {
+    backdrop-filter: none;
+  }
+
+  .fish-admin-switch::after {
+    transition: none;
   }
 }

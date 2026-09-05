@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, Check, AlertCircle, Sparkles, MessageCircle, Info, Trash2, PlusCircle, Edit3, RotateCcw, Waves, Anchor, Search, User, Phone, MapPin, Store, Bike, X, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -7,9 +7,11 @@ import {
   mapLocalOrderToKdsOrder,
   mapSupabaseOrderToKdsOrder,
 } from '../utils/orderMappers';
-import { getQuickTimeOptionsForDate } from '../utils/openingHours';
+import { getDaySchedule, getQuickTimeOptionsForDate, isTimeInOpeningHours } from '../utils/openingHours';
 import {
   MAX_POKE_PER_SLOT,
+  buildSlotSummary,
+  canAddPokeToSlot,
   localDateKey,
   mergeCapacityOrders,
   occupancyBySlot,
@@ -18,7 +20,9 @@ import {
 } from '../utils/pokeSlotCapacity';
 import { friedArrivalMessage } from '../utils/friedArrival';
 import { AlarmTimePicker } from './AlarmTimePicker';
-import { FISH_CATALOG, FishItem } from './FishMenuCatalog';
+import { PokeSlotSummary } from './PokeSlotSummary';
+import type { FishItem } from '../types/fishCatalog';
+import { useFishCatalog } from '../hooks/useFishCatalog';
 
 type CategoryTabIconProps = {
   size?: number;
@@ -288,6 +292,7 @@ export const PokeBuilder: React.FC = () => {
   const [generalOrderNotes, setGeneralOrderNotes] = useState<string>('');
 
   const location = useLocation();
+  const { items: fishCatalog, loading: fishCatalogLoading } = useFishCatalog();
 
   // Navigation Tab State: Poke vs Fritti Espresso vs Pesce Fresco
   const getInitialTab = (): 'poke' | 'fritti' | 'pesce' => {
@@ -343,6 +348,7 @@ export const PokeBuilder: React.FC = () => {
   // List of added items (Pokes, Fritti & Pesce) for multi-item ordering
   const [orderList, setOrderList] = useState<OrderCartItem[]>([]);
   const [slotOccupancy, setSlotOccupancy] = useState<Record<string, number>>({});
+  const [occupancyLoaded, setOccupancyLoaded] = useState(false);
   const cartPokeCount = orderList.filter((item) => item.itemType === 'poke').length;
 
   const occupancyDate = selectedDay === 'oggi'
@@ -357,11 +363,46 @@ export const PokeBuilder: React.FC = () => {
   // State for editing an existing poke
   const [editingPokeId, setEditingPokeId] = useState<string | null>(null);
 
+  const slotSummary = useMemo(() => {
+    const schedule = getDaySchedule(occupancyDate);
+    const slotStarts = getQuickTimeOptionsForDate(occupancyDate);
+    const rawTime = pickupTime.replace(/\s*\((Oggi|Domani|oggi|domani)\)/gi, '').trim();
+    const isAsap = /prima possibile|asap/i.test(rawTime);
+    const isClockTime = /^\d{1,2}:\d{2}$/.test(rawTime);
+    const isCustomTime = !isAsap && isClockTime;
+
+    return buildSlotSummary({
+      pickupTime,
+      selectedDay,
+      dateKey: occupancyDateKey,
+      slotStarts,
+      slotOccupancy,
+      cartPokeCount,
+      occupancyLoaded,
+      isDayClosed: schedule.isClosedAllDay,
+      isCustomTime,
+      customTimeValid: isCustomTime
+        ? isTimeInOpeningHours(rawTime, occupancyDate)
+        : undefined,
+    });
+  }, [
+    occupancyDate,
+    pickupTime,
+    selectedDay,
+    occupancyDateKey,
+    slotOccupancy,
+    cartPokeCount,
+    occupancyLoaded,
+  ]);
+
+  const pokeAddBlocked = !canAddPokeToSlot(slotSummary, !editingPokeId);
+
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Client-side best effort: concurrent submits can still overbook; durable enforcement needs a server check.
   const loadOccupancy = useCallback(async (): Promise<Record<string, number>> => {
+    setOccupancyLoaded(false);
     let remote: CapacityOrder[] = [];
     const oldestOccupancyDate = new Date();
     oldestOccupancyDate.setHours(0, 0, 0, 0);
@@ -383,6 +424,7 @@ export const PokeBuilder: React.FC = () => {
 
     const occupancy = occupancyBySlot(mergeCapacityOrders(remote, local));
     setSlotOccupancy(occupancy);
+    setOccupancyLoaded(true);
     return occupancy;
   }, []);
 
@@ -558,6 +600,13 @@ export const PokeBuilder: React.FC = () => {
     }
     if (selectedProteine.length === 0) {
       triggerValidationError(`Seleziona almeno 1 Proteina per la Poke di "${trimmedName}"!`, 'stepProteine');
+      return;
+    }
+    if (!canAddPokeToSlot(slotSummary, !editingPokeId)) {
+      triggerValidationError(
+        'Fascia poke al completo. Scegli un altro orario.',
+        'ordine-invia'
+      );
       return;
     }
     if (!editingPokeId && cartPokeCount >= MAX_POKE_PER_SLOT) {
@@ -1153,8 +1202,8 @@ export const PokeBuilder: React.FC = () => {
                   selectedTime={pickupTime}
                   selectedDay={selectedDay}
                   slotOccupancy={slotOccupancy}
-                  cartPokeCount={cartPokeCount}
                   dateKey={occupancyDateKey}
+                  occupancyLoaded={occupancyLoaded}
                   onTimeChange={(timeStr, day) => {
                     setSelectedDay(day);
                     const clean = (timeStr || '').replace(/\s*\((Oggi|Domani|oggi|domani)\)/gi, '').trim();
@@ -1167,6 +1216,7 @@ export const PokeBuilder: React.FC = () => {
                     }
                   }}
                 />
+                <PokeSlotSummary summary={slotSummary} />
               </div>
             </div>
 
@@ -1437,12 +1487,15 @@ export const PokeBuilder: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleSavePokeToOrder}
+                      disabled={pokeAddBlocked}
                       className="btn btn-coral"
                       style={{
                         flex: '1 1 240px',
                         padding: '0.9rem 1.25rem',
                         fontSize: '0.95rem',
                         justifyContent: 'center',
+                        opacity: pokeAddBlocked ? 0.55 : 1,
+                        cursor: pokeAddBlocked ? 'not-allowed' : 'pointer',
                       }}
                     >
                       <PlusCircle size={18} />
@@ -1588,7 +1641,10 @@ export const PokeBuilder: React.FC = () => {
                 </div>
 
                 <div className="order-product-grid">
-                  {FISH_CATALOG
+                  {fishCatalogLoading && (
+                    <p className="order-hint" style={{ gridColumn: '1 / -1' }}>Caricamento selezione pesce...</p>
+                  )}
+                  {fishCatalog
                     .filter((item) => {
                       const matchOrigin = fishOriginFilter === 'all' ? true : item.origin === fishOriginFilter;
                       const matchSearch = item.name.toLowerCase().includes(fishSearchQuery.toLowerCase());
