@@ -2541,6 +2541,18 @@ body:has(.fish-admin-shell) {
 }
 
 .fish-admin-shell {
+  --banco-ice: #e8eef0;
+  --banco-ice-deep: #d4dee3;
+  --banco-card: #f6fafb;
+  --banco-slate: #1a2428;
+  --banco-copper: #c47a4a;
+  --banco-copper-deep: #a86438;
+  --banco-kelp: #2f5c4f;
+  --banco-foam: #6e7e84;
+  --banco-coral: #c94a42;
+  --banco-line: rgba(26, 36, 40, 0.1);
+  --font-price: 'Barlow Condensed', 'Plus Jakarta Sans', sans-serif;
+
   min-height: 100vh;
   min-height: 100dvh;
   color: var(--banco-slate);
@@ -2858,6 +2870,40 @@ body:has(.fish-admin-shell) {
 
 .fish-admin-switch--on::after {
   left: 23px;
+}
+
+@media (max-width: 420px) {
+  .fish-admin-row {
+    grid-template-columns: 40px 56px 1fr;
+    gap: 0.5rem;
+    padding: 0.6rem;
+  }
+
+  .fish-admin-shell .fish-admin-row__handle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .fish-admin-row__photo img {
+    width: 56px;
+    height: 56px;
+  }
+
+  .fish-admin-row__controls {
+    gap: 0.4rem;
+  }
+
+  .fish-price-stepper__btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .fish-price-stepper__value,
+  .fish-price-stepper__input {
+    min-width: 3.6rem;
+    height: 36px;
+    font-size: 1.45rem;
+  }
 }
 
 .fish-admin-status {

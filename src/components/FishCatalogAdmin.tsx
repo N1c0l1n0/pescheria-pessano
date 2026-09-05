@@ -84,8 +84,14 @@ export const FishCatalogAdmin: React.FC = () => {
         const latest = itemsRef.current.find((item) => item.id === next.id) ?? next;
         const saved = await upsertFishItem(latest);
         if (saveGeneration.current[next.id] !== generation) return;
-        itemsRef.current = itemsRef.current.map((item) => (item.id === saved.id ? saved : item));
-        replaceItem(saved);
+        const live = itemsRef.current.find((item) => item.id === saved.id);
+        const liveSort = live?.sortOrder ?? saved.sortOrder;
+        if ((saved.sortOrder ?? 0) !== (liveSort ?? 0) && live) {
+          await updateFishSortOrders([{ id: saved.id, sortOrder: liveSort ?? 0 }]);
+        }
+        const merged = { ...saved, sortOrder: liveSort };
+        itemsRef.current = itemsRef.current.map((item) => (item.id === merged.id ? merged : item));
+        replaceItem(merged);
         flashRowStatus(next.id, 'Salvato.');
       } catch (err) {
         if (saveGeneration.current[next.id] !== generation) return;
