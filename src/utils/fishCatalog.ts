@@ -107,6 +107,10 @@ export function slugifyFishId(name: string): string {
     .slice(0, 48);
 }
 
+export function digitsOnly(value: string): string {
+  return value.replace(/\D/g, '');
+}
+
 export function getAdminPin(): string {
   const env = (import.meta as ImportMeta & { env?: Record<string, string> }).env;
   return env?.VITE_FISH_ADMIN_PIN || 'pessano2026';
