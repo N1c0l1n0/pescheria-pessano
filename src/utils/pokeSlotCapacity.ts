@@ -154,6 +154,7 @@ export type SlotSummary = {
   inCart: number;
   slotStart?: string;
   slotEnd?: string;
+  title?: string;
 };
 
 export interface BuildSlotSummaryArgs {
@@ -333,6 +334,7 @@ export function buildSlotSummary(args: BuildSlotSummaryArgs): SlotSummary | null
       inCart: args.cartPokeCount,
       slotStart,
       slotEnd: addMinutesToTime(slotStart, POKE_SLOT_MINUTES),
+      title: 'Prima fascia libera',
     };
   }
 
@@ -356,6 +358,7 @@ export function buildSlotSummary(args: BuildSlotSummaryArgs): SlotSummary | null
     inCart: args.cartPokeCount,
     slotStart,
     slotEnd: addMinutesToTime(slotStart, POKE_SLOT_MINUTES),
+    title: 'Fascia',
   };
 }
 

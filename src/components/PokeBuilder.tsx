@@ -1330,26 +1330,28 @@ export const PokeBuilder: React.FC = () => {
                   <Clock size={14} />
                   Orario di {orderType.toLowerCase()}
                 </label>
-                <AlarmTimePicker
-                  orderType={orderType}
-                  selectedTime={pickupTime}
-                  selectedDay={selectedDay}
-                  slotOccupancy={slotOccupancy}
-                  dateKey={occupancyDateKey}
-                  occupancyLoaded={occupancyLoaded}
-                  onTimeChange={(timeStr, day) => {
-                    setSelectedDay(day);
-                    const clean = (timeStr || '').replace(/\s*\((Oggi|Domani|oggi|domani)\)/gi, '').trim();
-                    const formattedDay = day === 'oggi' ? 'Oggi' : 'Domani';
+                <div className="order-slot-section">
+                  <AlarmTimePicker
+                    orderType={orderType}
+                    selectedTime={pickupTime}
+                    selectedDay={selectedDay}
+                    slotOccupancy={slotOccupancy}
+                    dateKey={occupancyDateKey}
+                    occupancyLoaded={occupancyLoaded}
+                    onTimeChange={(timeStr, day) => {
+                      setSelectedDay(day);
+                      const clean = (timeStr || '').replace(/\s*\((Oggi|Domani|oggi|domani)\)/gi, '').trim();
+                      const formattedDay = day === 'oggi' ? 'Oggi' : 'Domani';
 
-                    if (clean === 'Prima possibile' || clean.includes('ASAP')) {
-                      setPickupTime(`Prima possibile (${formattedDay})`);
-                    } else {
-                      setPickupTime(`${clean} (${formattedDay})`);
-                    }
-                  }}
-                />
-                <PokeSlotSummary summary={slotSummary} />
+                      if (clean === 'Prima possibile' || clean.includes('ASAP')) {
+                        setPickupTime(`Prima possibile (${formattedDay})`);
+                      } else {
+                        setPickupTime(`${clean} (${formattedDay})`);
+                      }
+                    }}
+                  />
+                  <PokeSlotSummary summary={slotSummary} />
+                </div>
               </div>
             </div>
 

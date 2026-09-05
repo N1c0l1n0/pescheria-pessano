@@ -23,13 +23,8 @@ interface TimePickerProps {
   onTimeChange: (time: string, day: 'oggi' | 'domani') => void;
 }
 
-function presetRemainingLabel(booked: number): { text: string; tone: 'ok' | 'low' | 'full' } {
-  const remaining = Math.max(0, MAX_POKE_PER_SLOT - booked);
-  if (remaining <= 0) return { text: 'Esaurito', tone: 'full' };
-  if (remaining <= 2) {
-    return { text: remaining === 1 ? '1 poke' : `${remaining} poke`, tone: 'low' };
-  }
-  return { text: `${remaining} poke`, tone: 'ok' };
+function isSlotFull(booked: number): boolean {
+  return booked >= MAX_POKE_PER_SLOT;
 }
 
 export const AlarmTimePicker: React.FC<TimePickerProps> = ({
@@ -89,13 +84,8 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
   const renderPresetButton = (slotTime: string) => {
     const isSel = !isCustom && selectedTime.includes(slotTime);
     const booked = dateKey ? (slotOccupancy?.[occupancyKey(dateKey, slotTime)] || 0) : 0;
-    const remaining = occupancyLoaded ? presetRemainingLabel(booked) : null;
+    const isFull = occupancyLoaded && isSlotFull(booked);
     const slotEnd = addMinutesToTime(slotTime, POKE_SLOT_MINUTES);
-    const toneColor = remaining?.tone === 'full'
-      ? (isSel ? '#FECACA' : '#B91C1C')
-      : remaining?.tone === 'low'
-        ? (isSel ? '#FDBA74' : '#C2410C')
-        : (isSel ? 'rgba(255,255,255,0.78)' : 'var(--color-text-muted)');
 
     return (
       <button
@@ -111,7 +101,7 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
           borderRadius: 'var(--radius-sm)',
           border: isSel
             ? '1.5px solid var(--color-ocean-medium)'
-            : remaining?.tone === 'full'
+            : isFull
               ? '1px solid #FCA5A5'
               : '1px solid rgba(11, 37, 69, 0.15)',
           backgroundColor: isSel ? 'var(--color-ocean-dark)' : 'white',
@@ -124,9 +114,15 @@ export const AlarmTimePicker: React.FC<TimePickerProps> = ({
         }}
       >
         <span>{slotTime}–{slotEnd}</span>
-        {remaining ? (
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: toneColor }}>
-            {remaining.text}
+        {isFull ? (
+          <span
+            style={{
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              color: isSel ? '#FECACA' : '#B91C1C',
+            }}
+          >
+            Esaurito
           </span>
         ) : null}
       </button>
