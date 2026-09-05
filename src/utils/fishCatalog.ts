@@ -44,6 +44,23 @@ export async function upsertFishItem(item: FishItem): Promise<FishItem> {
   return rowToFishItem(data as FishItemRow);
 }
 
+export async function updateFishSortOrders(
+  updates: { id: string; sortOrder: number }[]
+): Promise<void> {
+  if (updates.length === 0) return;
+
+  const results = await Promise.all(
+    updates.map(({ id, sortOrder }) =>
+      supabase.from('fish_items').update({ sort_order: sortOrder }).eq('id', id)
+    )
+  );
+
+  const failed = results.find((result) => result.error);
+  if (failed?.error) {
+    throw new Error(failed.error.message);
+  }
+}
+
 export async function deleteFishItem(id: string): Promise<void> {
   const { error } = await supabase.from('fish_items').delete().eq('id', id);
   if (error) {

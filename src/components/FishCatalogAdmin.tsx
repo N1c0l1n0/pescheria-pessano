@@ -26,9 +26,10 @@ const STATUS_CLEAR_MS = 2200;
 
 export const FishCatalogAdmin: React.FC = () => {
   const [authed, setAuthed] = useState(isAdminAuthenticated());
-  const { items, loading, error, reload, replaceItem, removeItem } = useFishCatalog({
+  const { items, loading, error, reload, replaceItem, replaceAll, removeItem } = useFishCatalog({
     includeInactive: true,
   });
+  void replaceAll;
   const [screen, setScreen] = useState<'list' | 'edit'>('list');
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<FishItem>(EMPTY_FISH_ITEM);
@@ -72,7 +73,8 @@ export const FishCatalogAdmin: React.FC = () => {
       saveGeneration.current[next.id] = generation;
       setRowBusy(next.id, true);
       try {
-        const saved = await upsertFishItem(next);
+        const latest = itemsRef.current.find((item) => item.id === next.id) ?? next;
+        const saved = await upsertFishItem(latest);
         if (saveGeneration.current[next.id] !== generation) return;
         itemsRef.current = itemsRef.current.map((item) => (item.id === saved.id ? saved : item));
         replaceItem(saved);

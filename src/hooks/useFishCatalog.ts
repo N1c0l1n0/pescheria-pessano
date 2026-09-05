@@ -32,6 +32,10 @@ export function useFishCatalog(options: UseFishCatalogOptions = {}) {
     });
   }, []);
 
+  const replaceAll = useCallback((next: FishItem[]) => {
+    setItems(next);
+  }, []);
+
   const removeItem = useCallback((id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
   }, []);
@@ -40,5 +44,5 @@ export function useFishCatalog(options: UseFishCatalogOptions = {}) {
     reload();
   }, [reload]);
 
-  return { items, loading, error, reload, replaceItem, removeItem };
+  return { items, loading, error, reload, replaceItem, replaceAll, removeItem };
 }
