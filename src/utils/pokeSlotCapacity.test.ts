@@ -5,6 +5,7 @@ import {
   canAddPokeToSlot,
   containingSlotStart,
   countPokeInOrder,
+  countsTowardSlotCapacity,
   findFirstAvailableSlot,
   mergeCapacityOrders,
   occupancyBySlot,
@@ -104,6 +105,65 @@ describe('countPokeInOrder', () => {
       ],
     };
     expect(countPokeInOrder(order)).toBe(2);
+  });
+});
+
+describe('countsTowardSlotCapacity', () => {
+  it('returns true for active prep statuses', () => {
+    expect(countsTowardSlotCapacity('RICEVUTO')).toBe(true);
+    expect(countsTowardSlotCapacity('IN_PREPARAZIONE')).toBe(true);
+  });
+
+  it('returns false for PRONTO and COMPLETATO', () => {
+    expect(countsTowardSlotCapacity('PRONTO')).toBe(false);
+    expect(countsTowardSlotCapacity('COMPLETATO')).toBe(false);
+  });
+});
+
+describe('occupancyBySlot PRONTO exclusion', () => {
+  it('skips PRONTO orders when summing slot occupancy', () => {
+    const map = occupancyBySlot([
+      pokeOrder('a', 'Orario: 12:20 (Oggi)', 6),
+      pokeOrder('b', 'Orario: 12:20 (Oggi)', 3, 'PRONTO'),
+      pokeOrder('c', 'Orario: 12:20 (Oggi)', 4, 'COMPLETATO'),
+    ]);
+    const key = Object.keys(map).find((k) => k.endsWith('|12:10'));
+    expect(key).toBeTruthy();
+    expect(map[key!]).toBe(6);
+  });
+
+  it('frees capacity when orders move to PRONTO', () => {
+    const active = occupancyBySlot([
+      pokeOrder('a', 'Orario: 12:20 (Oggi)', 4),
+      pokeOrder('b', 'Orario: 12:20 (Oggi)', 3),
+      pokeOrder('c', 'Orario: 12:20 (Oggi)', 3),
+    ]);
+    const key = Object.keys(active).find((k) => k.endsWith('|12:10'))!;
+    expect(active[key]).toBe(10);
+
+    const afterPronto = occupancyBySlot([
+      pokeOrder('a', 'Orario: 12:20 (Oggi)', 4),
+      pokeOrder('b', 'Orario: 12:20 (Oggi)', 3, 'PRONTO'),
+      pokeOrder('c', 'Orario: 12:20 (Oggi)', 3, 'PRONTO'),
+    ]);
+    expect(afterPronto[key]).toBe(4);
+    expect(MAX_POKE_PER_SLOT - afterPronto[key]).toBe(6);
+  });
+});
+
+describe('mergeCapacityOrders PRONTO remote wins', () => {
+  it('excludes a remotely PRONTO order even when local copy is stale and active', () => {
+    const remote = [
+      pokeOrder('shared', 'Orario: 12:20 (Oggi)', 3, 'PRONTO'),
+    ];
+    const local = [pokeOrder('shared', 'Orario: 12:20 (Oggi)', 3, 'IN_PREPARAZIONE')];
+
+    const merged = mergeCapacityOrders(remote, local);
+    const key = Object.keys(occupancyBySlot(merged)).find((k) => k.endsWith('|12:10'));
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].status).toBe('PRONTO');
+    expect(key).toBeUndefined();
   });
 });
 

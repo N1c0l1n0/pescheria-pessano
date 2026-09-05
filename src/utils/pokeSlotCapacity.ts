@@ -19,6 +19,10 @@ export interface CapacityOrder {
   order_items: CapacityOrderItem[];
 }
 
+export function countsTowardSlotCapacity(status: string): boolean {
+  return status === 'RICEVUTO' || status === 'IN_PREPARAZIONE';
+}
+
 export function mergeCapacityOrders(
   remote: CapacityOrder[],
   local: CapacityOrder[]
@@ -119,7 +123,7 @@ export function containingSlotStart(timeHHMM: string, slotStarts: string[]): str
 export function occupancyBySlot(orders: CapacityOrder[]): Record<string, number> {
   const map: Record<string, number> = {};
   for (const order of orders) {
-    if (order.status === 'COMPLETATO') continue;
+    if (!countsTowardSlotCapacity(order.status)) continue;
     const poke = countPokeInOrder(order);
     if (poke <= 0) continue;
     const parsed = parseClockAndDay(order.notes);

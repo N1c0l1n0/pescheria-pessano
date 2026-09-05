@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, Check, AlertCircle, Sparkles, MessageCircle, Info, Trash2, PlusCircle, Edit3, RotateCcw, Waves, Anchor, Search, User, Phone, MapPin, Store, Bike, X, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { getLocalOrders, saveLocalOrder } from '../utils/orderStore';
+import { getLocalOrders, saveLocalOrder, subscribeToLocalOrders } from '../utils/orderStore';
 import {
   mapLocalOrderToKdsOrder,
   mapSupabaseOrderToKdsOrder,
@@ -431,6 +431,42 @@ export const PokeBuilder: React.FC = () => {
   useEffect(() => {
     void loadOccupancy();
   }, [loadOccupancy, selectedDay]);
+
+  const occupancyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleOccupancyReload = useCallback(() => {
+    if (occupancyDebounceRef.current) {
+      clearTimeout(occupancyDebounceRef.current);
+    }
+    occupancyDebounceRef.current = setTimeout(() => {
+      void loadOccupancy();
+    }, 300);
+  }, [loadOccupancy]);
+
+  useEffect(() => {
+    const unsubLocal = subscribeToLocalOrders(() => {
+      scheduleOccupancyReload();
+    });
+
+    const channel = supabase
+      .channel('poke_occupancy_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          scheduleOccupancyReload();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      unsubLocal();
+      if (occupancyDebounceRef.current) {
+        clearTimeout(occupancyDebounceRef.current);
+      }
+      supabase.removeChannel(channel);
+    };
+  }, [scheduleOccupancyReload]);
 
   const updateCardQty = (id: string, delta: number) => {
     setCardQuantities((prev) => {
