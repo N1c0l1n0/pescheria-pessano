@@ -2691,7 +2691,7 @@ body:has(.fish-admin-shell) {
   opacity: 0.58;
 }
 
-.fish-admin-row__handle {
+.fish-admin-shell .fish-admin-row__handle {
   width: 48px;
   height: 48px;
   align-self: center;
@@ -2707,7 +2707,7 @@ body:has(.fish-admin-shell) {
   touch-action: none;
 }
 
-.fish-admin-row__handle:active {
+.fish-admin-shell .fish-admin-row__handle:active {
   cursor: grabbing;
 }
 
