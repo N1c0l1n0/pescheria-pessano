@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { FishItem } from '../types/fishCatalog';
 import { useFishCatalog } from '../hooks/useFishCatalog';
 import {
@@ -7,19 +7,27 @@ import {
   logoutAdmin,
   seedFishCatalogFromDefaults,
   slugifyFishId,
+  updateFishSortOrders,
   uploadFishImage,
   upsertFishItem,
 } from '../utils/fishCatalog';
 import {
   EMPTY_FISH_ITEM,
   canSaveFishDraft,
+  changedSortOrders,
   patchFishItem,
+  reorderFishItems,
   stepFishPrice,
 } from '../utils/fishAdmin';
 import { FishAdminEditor } from './fish-admin/FishAdminEditor';
 import { FishAdminHeader } from './fish-admin/FishAdminHeader';
 import { FishAdminLogin } from './fish-admin/FishAdminLogin';
-import { FishAdminRow } from './fish-admin/FishAdminRow';
+
+const FishAdminSortableList = lazy(() =>
+  import('./fish-admin/FishAdminSortableList').then((module) => ({
+    default: module.FishAdminSortableList,
+  }))
+);
 
 const PRICE_SAVE_MS = 400;
 const STATUS_CLEAR_MS = 2200;
@@ -29,7 +37,6 @@ export const FishCatalogAdmin: React.FC = () => {
   const { items, loading, error, reload, replaceItem, replaceAll, removeItem } = useFishCatalog({
     includeInactive: true,
   });
-  void replaceAll;
   const [screen, setScreen] = useState<'list' | 'edit'>('list');
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<FishItem>(EMPTY_FISH_ITEM);
@@ -45,6 +52,7 @@ export const FishCatalogAdmin: React.FC = () => {
   const priceTimers = useRef<Record<string, number>>({});
   const statusTimers = useRef<Record<string, number>>({});
   const saveGeneration = useRef<Record<string, number>>({});
+  const reorderGeneration = useRef(0);
 
   useEffect(() => {
     const priceMap = priceTimers.current;
@@ -123,6 +131,33 @@ export const FishCatalogAdmin: React.FC = () => {
     const next = patchFishItem(current, { isActive: current.isActive === false });
     commitLocal(next);
     void persistRow(next);
+  };
+
+  const handleReorder = (activeId: string, overId: string) => {
+    const current = itemsRef.current;
+    const next = reorderFishItems(current, activeId, overId);
+    if (next === current) return;
+
+    const generation = reorderGeneration.current + 1;
+    reorderGeneration.current = generation;
+    itemsRef.current = next;
+    replaceAll(next);
+
+    const updates = changedSortOrders(current, next);
+    void (async () => {
+      try {
+        await updateFishSortOrders(updates);
+        if (reorderGeneration.current !== generation) return;
+        flashRowStatus(activeId, 'Salvato.');
+      } catch (err) {
+        if (reorderGeneration.current !== generation) return;
+        await reload({ silent: true });
+        flashRowStatus(
+          activeId,
+          err instanceof Error ? err.message : 'Errore durante il salvataggio.'
+        );
+      }
+    })();
   };
 
   const startCreate = () => {
@@ -285,18 +320,20 @@ export const FishCatalogAdmin: React.FC = () => {
             <p className="fish-admin-empty">Nessun pesce. Tocca + per aggiungerne uno.</p>
           ) : null}
 
-          {items.map((item) => (
-            <FishAdminRow
-              key={item.id}
-              item={item}
-              busy={Boolean(busyIds[item.id])}
-              status={rowStatus[item.id] ?? null}
-              onStep={(direction) => handleStep(item.id, direction)}
-              onPriceCommit={(price) => handlePriceCommit(item.id, price)}
-              onToggleActive={() => handleToggle(item.id)}
-              onEdit={() => startEdit(item)}
-            />
-          ))}
+          {items.length > 0 ? (
+            <Suspense fallback={<p className="fish-admin-note">Caricamento…</p>}>
+              <FishAdminSortableList
+                items={items}
+                busyIds={busyIds}
+                rowStatus={rowStatus}
+                onStep={handleStep}
+                onPriceCommit={handlePriceCommit}
+                onToggleActive={handleToggle}
+                onEdit={startEdit}
+                onReorder={handleReorder}
+              />
+            </Suspense>
+          ) : null}
         </main>
       </div>
     </div>
