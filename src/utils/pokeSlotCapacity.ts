@@ -388,45 +388,83 @@ export function slotAvailability(
   };
 }
 
-export function resolvePokeSubmitSlot(args: {
+export type ValidatePokeSubmitResult =
+  | { ok: true; time: string; day: SlotDay }
+  | { ok: false; error: string; alternatives?: SlotAlternative[] };
+
+export function validatePokeSubmitSlot(args: {
   pickupTime: string;
   selectedDay: SlotDay;
   slotStarts: string[];
   occupancy: Record<string, number>;
   dateKey: string;
   cartPokeCount: number;
-}): { time: string; day: SlotDay } | { error: string } {
+}): ValidatePokeSubmitResult {
   if (args.cartPokeCount <= 0) {
     const parsed = parseClockAndDay(`Orario: ${args.pickupTime}`);
-    return { time: parsed?.time || args.pickupTime, day: args.selectedDay };
+    return { ok: true, time: parsed?.time || args.pickupTime, day: args.selectedDay };
   }
   if (args.cartPokeCount > MAX_POKE_PER_SLOT) {
-    return { error: ASAP_ERROR };
+    return { ok: false, error: ASAP_ERROR };
   }
   if (args.slotStarts.length === 0) {
-    return { error: CLOSED_DAY_ERROR };
+    return { ok: false, error: CLOSED_DAY_ERROR };
   }
 
   const raw = args.pickupTime;
   const isAsap = /prima possibile|asap/i.test(raw);
-  const parsed = parseClockAndDay(`Orario: ${raw}`);
 
-  const fromIndex = (startIdx: number) => {
+  if (isAsap) {
     const time = findFirstAvailableSlot({
-      slotStarts: args.slotStarts.slice(startIdx),
+      slotStarts: args.slotStarts,
       occupancy: args.occupancy,
       dateKey: args.dateKey,
       minSeats: args.cartPokeCount,
     });
-    if (time) return { time, day: args.selectedDay };
-    return { error: ASAP_ERROR };
-  };
-
-  if (isAsap || !parsed) {
-    return fromIndex(0);
+    if (!time) {
+      return {
+        ok: false,
+        error: formatSlotFullError({
+          slotStart: '',
+          slotEnd: '',
+          cartPokeCount: args.cartPokeCount,
+          alternatives: [],
+        }),
+      };
+    }
+    return { ok: true, time, day: args.selectedDay };
   }
 
-  const start = containingSlotStart(parsed.time, args.slotStarts) || parsed.time;
-  const idx = args.slotStarts.indexOf(start);
-  return fromIndex(idx >= 0 ? idx : 0);
+  const parsed = parseClockAndDay(`Orario: ${raw}`);
+  if (!parsed) {
+    return { ok: false, error: 'Orario non valido. Scegli un orario dal picker.' };
+  }
+
+  const slotStart = containingSlotStart(parsed.time, args.slotStarts) || parsed.time;
+  const booked = args.occupancy[occupancyKey(args.dateKey, slotStart)] || 0;
+  const remaining = Math.max(0, MAX_POKE_PER_SLOT - booked);
+
+  if (args.cartPokeCount > remaining) {
+    const slotEnd = addMinutesToTime(slotStart, POKE_SLOT_MINUTES);
+    const alternatives = findNextAvailableSlots({
+      slotStarts: args.slotStarts,
+      occupancy: args.occupancy,
+      dateKey: args.dateKey,
+      minSeats: args.cartPokeCount,
+      afterSlot: slotStart,
+      limit: 3,
+    });
+    return {
+      ok: false,
+      error: formatSlotFullError({
+        slotStart,
+        slotEnd,
+        cartPokeCount: args.cartPokeCount,
+        alternatives,
+      }),
+      alternatives,
+    };
+  }
+
+  return { ok: true, time: slotStart, day: args.selectedDay };
 }

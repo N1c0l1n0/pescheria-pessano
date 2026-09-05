@@ -12,7 +12,7 @@ import {
   mergeCapacityOrders,
   occupancyBySlot,
   parseClockAndDay,
-  resolvePokeSubmitSlot,
+  validatePokeSubmitSlot,
   slotDateKeyForOrder,
   slotAvailability,
   type CapacityOrder,
@@ -248,13 +248,13 @@ describe('order note parsing', () => {
   });
 });
 
-describe('resolvePokeSubmitSlot', () => {
+describe('validatePokeSubmitSlot', () => {
   const slots = ['12:00', '12:20', '12:40'];
   const dateKey = '2030-09-03';
 
-  it('assigns Prima possibile to the first slot with enough seats', () => {
+  it('accepts Prima possibile when first fitting slot exists', () => {
     const occupancy = { [`${dateKey}|12:00`]: 10, [`${dateKey}|12:20`]: 2 };
-    const result = resolvePokeSubmitSlot({
+    const result = validatePokeSubmitSlot({
       pickupTime: 'Prima possibile (Oggi)',
       selectedDay: 'oggi',
       slotStarts: slots,
@@ -262,12 +262,12 @@ describe('resolvePokeSubmitSlot', () => {
       dateKey,
       cartPokeCount: 3,
     });
-    expect(result).toEqual({ time: '12:20', day: 'oggi' });
+    expect(result).toEqual({ ok: true, time: '12:20', day: 'oggi' });
   });
 
-  it('moves a full chosen slot to the next fit', () => {
-    const occupancy = { [`${dateKey}|12:20`]: 10 };
-    const result = resolvePokeSubmitSlot({
+  it('rejects a full chosen slot without auto-shift', () => {
+    const occupancy = { [`${dateKey}|12:20`]: 10, [`${dateKey}|12:40`]: 2 };
+    const result = validatePokeSubmitSlot({
       pickupTime: '12:20 (Oggi)',
       selectedDay: 'oggi',
       slotStarts: slots,
@@ -275,16 +275,20 @@ describe('resolvePokeSubmitSlot', () => {
       dateKey,
       cartPokeCount: 2,
     });
-    expect(result).toEqual({ time: '12:40', day: 'oggi' });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain('Fascia 12:20–12:40 esaurita per 2 poke.');
+    expect(result.error).toContain('12:40–13:00');
+    expect(result.alternatives).toEqual([{ time: '12:40', end: '13:00', remaining: 8 }]);
   });
 
-  it('returns the blocking error when no slot fits', () => {
+  it('returns error when no slot fits for ASAP', () => {
     const occupancy = {
       [`${dateKey}|12:00`]: 10,
       [`${dateKey}|12:20`]: 10,
       [`${dateKey}|12:40`]: 10,
     };
-    const result = resolvePokeSubmitSlot({
+    const result = validatePokeSubmitSlot({
       pickupTime: 'Prima possibile (Oggi)',
       selectedDay: 'oggi',
       slotStarts: slots,
@@ -293,13 +297,14 @@ describe('resolvePokeSubmitSlot', () => {
       cartPokeCount: 1,
     });
     expect(result).toEqual({
+      ok: false,
       error:
-        'Non ci sono più fasce con abbastanza posti per le poke. Scegli un altro orario o riduci il numero di poke.',
+        'Nessuna fascia con abbastanza posti per 1 poke. Scegli un altro giorno o riduci le poke.',
     });
   });
 
-  it('returns the closed-day error when no slots are available', () => {
-    const result = resolvePokeSubmitSlot({
+  it('returns closed-day error when no slots exist', () => {
+    const result = validatePokeSubmitSlot({
       pickupTime: 'Prima possibile (Oggi)',
       selectedDay: 'oggi',
       slotStarts: [],
@@ -307,10 +312,19 @@ describe('resolvePokeSubmitSlot', () => {
       dateKey,
       cartPokeCount: 1,
     });
+    expect(result).toEqual({ ok: false, error: 'La pescheria è chiusa in questo giorno. Scegli un altro giorno.' });
+  });
 
-    expect(result).toEqual({
-      error: 'La pescheria è chiusa in questo giorno. Scegli un altro giorno.',
+  it('accepts chosen slot when enough remaining', () => {
+    const result = validatePokeSubmitSlot({
+      pickupTime: '12:20 (Oggi)',
+      selectedDay: 'oggi',
+      slotStarts: slots,
+      occupancy: { [`${dateKey}|12:20`]: 7 },
+      dateKey,
+      cartPokeCount: 2,
     });
+    expect(result).toEqual({ ok: true, time: '12:20', day: 'oggi' });
   });
 });
 
