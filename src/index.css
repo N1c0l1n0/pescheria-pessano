@@ -1748,6 +1748,36 @@ textarea:focus {
   line-height: 1.4;
 }
 
+.order-hint--next-poke {
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.75rem 0.55rem 0.85rem;
+  border-radius: 10px;
+  background: rgba(201, 162, 39, 0.08);
+  border: 1px solid rgba(201, 162, 39, 0.22);
+  border-left: 3px solid var(--color-gold);
+  color: var(--color-ocean-dark);
+  font-weight: 600;
+  line-height: 1.45;
+  animation: order-hint-enter 0.15s ease-out;
+}
+
+@keyframes order-hint-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-hint--next-poke {
+    animation: none;
+  }
+}
+
 .order-segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;

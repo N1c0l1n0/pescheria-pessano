@@ -362,6 +362,7 @@ export const PokeBuilder: React.FC = () => {
 
   // State for editing an existing poke
   const [editingPokeId, setEditingPokeId] = useState<string | null>(null);
+  const isNextPokeName = cartPokeCount > 0 && editingPokeId === null;
 
   const slotSummary = useMemo(() => {
     const schedule = getDaySchedule(occupancyDate);
@@ -1147,7 +1148,8 @@ export const PokeBuilder: React.FC = () => {
               <div className="order-fields">
                 <div className="order-field">
                   <label htmlFor="customerNameInput" className="order-label">
-                    Nome e cognome <span className="req">*</span>
+                    {isNextPokeName ? 'Nome per questa poke' : 'Nome e cognome'}{' '}
+                    <span className="req">*</span>
                   </label>
                   <div className="order-input-wrap">
                     <User size={16} />
@@ -1163,7 +1165,11 @@ export const PokeBuilder: React.FC = () => {
                       }}
                     />
                   </div>
-                  <p className="order-hint">Referente principale per il ritiro o la consegna.</p>
+                  <p className={isNextPokeName ? 'order-hint order-hint--next-poke' : 'order-hint'}>
+                    {isNextPokeName
+                      ? 'Inserisci un nome diverso per distinguere la poke successiva.'
+                      : 'Referente principale per il ritiro o la consegna.'}
+                  </p>
                 </div>
 
                 <div className="order-field">
