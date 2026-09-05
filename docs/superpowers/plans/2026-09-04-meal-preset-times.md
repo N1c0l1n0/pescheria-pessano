@@ -1,5 +1,7 @@
 # Meal Preset Times Implementation Plan
 
+> **Superseded** by `docs/superpowers/plans/2026-09-05-meal-preset-visible-phases.md`. Do not execute this plan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the full 20-minute slot button grid with grouped pranzo/cena meal presets that map 1:1 to poke slot starts, keeping Prima possibile and Altro Orario unchanged.
