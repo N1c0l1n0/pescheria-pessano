@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
@@ -11,6 +11,23 @@ import { OrderTracking } from './components/OrderTracking';
 import { PokeBuilderPage } from './pages/PokeBuilderPage';
 import { KdsBoard } from './components/KdsBoard';
 import { FishCatalogAdmin } from './components/FishCatalogAdmin';
+import { CookieConsentProvider, useCookieConsent } from './context/CookieConsentContext';
+import { CookieBanner } from './components/CookieBanner';
+import { CookiePolicyModal } from './components/CookiePolicyModal';
+import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
+
+function CookieConsentShell({ children }: { children: ReactNode }) {
+  const { cookiePolicyOpen, closeCookiePolicy, privacyPolicyOpen, closePrivacyPolicy } = useCookieConsent();
+
+  return (
+    <>
+      {children}
+      <CookieBanner />
+      <CookiePolicyModal open={cookiePolicyOpen} onClose={closeCookiePolicy} />
+      <PrivacyPolicyModal open={privacyPolicyOpen} onClose={closePrivacyPolicy} />
+    </>
+  );
+}
 
 function ScrollToHash() {
   const { pathname, hash } = useLocation();
@@ -32,9 +49,10 @@ function ScrollToHash() {
 
 export function App() {
   return (
-    <>
-      <ScrollToHash />
-      <Routes>
+    <CookieConsentProvider>
+      <CookieConsentShell>
+        <ScrollToHash />
+        <Routes>
         <Route
           path="/"
           element={
@@ -58,7 +76,8 @@ export function App() {
         <Route path="/admin/kds" element={<KdsBoard />} />
         <Route path="/admin/banco" element={<FishCatalogAdmin />} />
       </Routes>
-    </>
+      </CookieConsentShell>
+    </CookieConsentProvider>
   );
 }
 

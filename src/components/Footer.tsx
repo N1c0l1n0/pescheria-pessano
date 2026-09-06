@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, ShieldCheck, Info, X } from 'lucide-react';
+import { Phone, ShieldCheck } from 'lucide-react';
 import { useSectionNavigate } from '../utils/navigation';
+import { useCookieConsent } from '../context/CookieConsentContext';
 
 export const Footer: React.FC = () => {
-  const [modalType, setModalType] = useState<'privacy' | 'cookie' | null>(null);
   const { navigateToSection } = useSectionNavigate();
+  const { reopenBanner, openCookiePolicy, openPrivacyPolicy } = useCookieConsent();
 
   return (
     <footer
@@ -120,17 +121,24 @@ export const Footer: React.FC = () => {
           {/* Privacy & Cookie Links */}
           <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
             <button
-              onClick={() => setModalType('privacy')}
+              onClick={openPrivacyPolicy}
               style={policyBtnStyle}
             >
               Privacy Policy
             </button>
             <span>•</span>
             <button
-              onClick={() => setModalType('cookie')}
+              onClick={openCookiePolicy}
               style={policyBtnStyle}
             >
               Cookie Policy
+            </button>
+            <span>•</span>
+            <button
+              onClick={reopenBanner}
+              style={policyBtnStyle}
+            >
+              Gestisci cookie
             </button>
           </div>
         </div>
@@ -152,108 +160,11 @@ export const Footer: React.FC = () => {
         >
           <ShieldCheck size={16} color="var(--color-sea-blue)" style={{ flexShrink: 0 }} />
           <span>
-            Questo sito ha scopo puramente informativo e di configurazione ordini. Non utilizza cookie di profilazione o tracciamento utenti.
+            Utilizza solo cookie tecnici. Google Maps viene caricato solo previo consenso.
           </span>
         </div>
 
       </div>
-
-      {/* Modal for Privacy / Cookie Policy */}
-      {modalType && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(11, 37, 69, 0.85)',
-            backdropFilter: 'blur(8px)',
-            zIndex: 2500,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1.5rem',
-          }}
-          onClick={() => setModalType(null)}
-        >
-          <div
-            style={{
-              backgroundColor: 'white',
-              borderRadius: 'var(--radius-lg)',
-              maxWidth: '550px',
-              width: '100%',
-              padding: '2rem',
-              color: 'var(--color-text-dark)',
-              boxShadow: 'var(--shadow-lg)',
-              position: 'relative',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setModalType(null)}
-              style={{
-                position: 'absolute',
-                top: '1rem',
-                right: '1rem',
-                background: 'none',
-                border: 'none',
-                color: 'var(--color-text-muted)',
-                cursor: 'pointer',
-              }}
-            >
-              <X size={22} />
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1rem' }}>
-              <Info color="var(--color-ocean-medium)" size={24} />
-              <h3 className="font-serif" style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-ocean-dark)', margin: 0 }}>
-                {modalType === 'privacy' ? 'Informativa sulla Privacy' : 'Informativa sui Cookie'}
-              </h3>
-            </div>
-
-            {modalType === 'privacy' ? (
-              <div style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
-                <p style={{ marginBottom: '0.75rem' }}>
-                  La <strong>Pescheria Pessano</strong> (Via Avvocato Emanuele Rossi, 17, Finale Ligure — SV) rispetta la tua privacy in conformità al Regolamento UE 2016/679 (GDPR).
-                </p>
-                <p style={{ marginBottom: '0.75rem' }}>
-                  <strong>Dati Raccolti:</strong> Durante la composizione dell'ordine vengono richiesti il <strong>Nome referente</strong> ed il <strong>Numero di telefono</strong>.
-                </p>
-                <p style={{ marginBottom: '0.75rem' }}>
-                  <strong>Finalità del Trattamento:</strong> I dati personali sono utilizzati <strong>esclusivamente per la gestione ed esecuzione dell'ordine</strong> (identificazione dell'ordine al banco, aggiornamento dello stato di preparazione tramite Live Tracker ed invio di notifiche di avviso per il ritiro).
-                </p>
-                <p style={{ marginBottom: '0.75rem' }}>
-                  <strong>Nessuna Profilazione:</strong> I dati non vengono ceduti a terzi né usati per inviare pubblicità o comunicazioni di marketing. Sono conservati in sicurezza per il tempo strettamente necessario all'evasione dell'ordine.
-                </p>
-                <p style={{ margin: 0 }}>
-                  Per qualsiasi chiarimento o richiesta di cancellazione dati puoi contattare la pescheria al numero <strong>019 692623</strong>.
-                </p>
-              </div>
-            ) : (
-              <div style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
-                <p style={{ marginBottom: '0.75rem' }}>
-                  Questo sito web <strong>NON utilizza alcun cookie di profilazione</strong>, tracciamento pubblicitario o strumenti di monitoraggio comportamentale (Google Analytics, Meta Pixel, ecc.).
-                </p>
-                <p style={{ marginBottom: '0.75rem' }}>
-                  Viene impiegata unicamente l'archiviazione tecnica locale (<strong>localStorage</strong>) per salvare lo stato di avanzamento dell'ordine ed abilitare il servizio di notifiche Push in tempo reale.
-                </p>
-                <p style={{ margin: 0 }}>
-                  Ai sensi delle direttive del Garante Privacy e del GDPR, l'uso di soli strumenti tecnici indispensabili all'erogazione del servizio <strong>non richiede alcun banner di consenso o blocco dei cookie</strong>.
-                </p>
-              </div>
-            )}
-
-            <button
-              onClick={() => setModalType(null)}
-              className="btn btn-ocean"
-              style={{ width: '100%', marginTop: '1.5rem', padding: '0.75rem' }}
-            >
-              Ho capito
-            </button>
-          </div>
-        </div>
-      )}
     </footer>
   );
 };
