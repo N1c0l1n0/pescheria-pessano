@@ -2205,6 +2205,31 @@ textarea:focus {
   }
 }
 
+.order-privacy-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.order-privacy-label input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.order-privacy-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-ocean-medium);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+
 .order-segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;

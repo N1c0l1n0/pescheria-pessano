@@ -24,6 +24,7 @@ import { AlarmTimePicker } from './AlarmTimePicker';
 import { PokeSlotSummary } from './PokeSlotSummary';
 import type { FishItem } from '../types/fishCatalog';
 import { useFishCatalog } from '../hooks/useFishCatalog';
+import { useCookieConsent } from '../context/CookieConsentContext';
 
 type CategoryTabIconProps = {
   size?: number;
@@ -469,6 +470,8 @@ export const PokeBuilder: React.FC = () => {
 
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const { openPrivacyPolicy } = useCookieConsent();
 
   // Client-side best effort: concurrent submits can still overbook; durable enforcement needs a server check.
   const loadOccupancy = useCallback(async (): Promise<Record<string, number>> => {
@@ -841,6 +844,14 @@ export const PokeBuilder: React.FC = () => {
   // Direct KDS Order Submission & Live Tracking Redirect
   const handleDirectOrderSubmit = async () => {
     let finalItems: OrderCartItem[] = [...orderList];
+
+    if (!privacyAccepted) {
+      triggerValidationError(
+        'Devi confermare di aver letto l\'informativa privacy prima di inviare l\'ordine.',
+        'privacyAcceptCheckbox',
+      );
+      return;
+    }
 
     if (!customerPhone.trim()) {
       triggerValidationError('Inserisci il tuo Numero di Telefono prima di inviare l\'ordine!', 'customerPhoneInput');
@@ -1281,6 +1292,30 @@ export const PokeBuilder: React.FC = () => {
                       }}
                     />
                   </div>
+                </div>
+
+                <div className="order-field order-privacy-notice">
+                  <p className="order-hint" style={{ marginBottom: '0.65rem' }}>
+                    I dati richiesti servono esclusivamente a gestire il tuo ordine (identificazione al banco, aggiornamento stato e
+                    comunicazioni di ritiro/consegna). Base giuridica: esecuzione del contratto (Art. 6(1)(b) GDPR).
+                  </p>
+                  <label htmlFor="privacyAcceptCheckbox" className="order-privacy-label">
+                    <input
+                      id="privacyAcceptCheckbox"
+                      type="checkbox"
+                      checked={privacyAccepted}
+                      onChange={(e) => {
+                        setPrivacyAccepted(e.target.checked);
+                        if (validationError) setValidationError(null);
+                      }}
+                    />
+                    <span>
+                      Ho letto l&apos;{' '}
+                      <button type="button" className="order-privacy-link" onClick={openPrivacyPolicy}>
+                        Informativa sulla Privacy
+                      </button>
+                    </span>
+                  </label>
                 </div>
               </div>
 
