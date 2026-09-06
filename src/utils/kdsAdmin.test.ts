@@ -17,9 +17,16 @@ describe('kdsAdmin', () => {
     expect(getKdsPin()).toBe('5678');
   });
 
-  it('getKdsPin returns empty string when env missing', () => {
+  it('getKdsPin falls back to VITE_FISH_ADMIN_PIN', () => {
     vi.stubEnv('VITE_KDS_ADMIN_PIN', '');
-    expect(getKdsPin()).toBe('');
+    vi.stubEnv('VITE_FISH_ADMIN_PIN', '2134');
+    expect(getKdsPin()).toBe('2134');
+  });
+
+  it('getKdsPin falls back to default 2134', () => {
+    vi.stubEnv('VITE_KDS_ADMIN_PIN', '');
+    vi.stubEnv('VITE_FISH_ADMIN_PIN', '');
+    expect(getKdsPin()).toBe('2134');
   });
 
   it('authenticateKds stores session on correct pin', () => {

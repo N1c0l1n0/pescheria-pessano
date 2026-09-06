@@ -1,7 +1,13 @@
+import { digitsOnly } from './fishCatalog';
+
 const KDS_AUTH_KEY = 'kds_admin_auth';
 
 export function getKdsPin(): string {
-  return import.meta.env.VITE_KDS_ADMIN_PIN?.trim() || '';
+  return (
+    import.meta.env.VITE_KDS_ADMIN_PIN?.trim() ||
+    import.meta.env.VITE_FISH_ADMIN_PIN?.trim() ||
+    '2134'
+  );
 }
 
 export function isKdsAuthenticated(): boolean {
@@ -10,8 +16,7 @@ export function isKdsAuthenticated(): boolean {
 
 export function authenticateKds(pin: string): boolean {
   const expected = getKdsPin();
-  if (!expected) return false;
-  if (pin.trim() !== expected) return false;
+  if (digitsOnly(pin) !== digitsOnly(expected)) return false;
   sessionStorage.setItem(KDS_AUTH_KEY, '1');
   return true;
 }
