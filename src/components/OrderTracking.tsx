@@ -19,6 +19,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { getLocalOrderById, subscribeToLocalOrders } from '../utils/orderStore';
 import { friedArrivalMessage } from '../utils/friedArrival';
+import { verifyOrderPhoneAccess } from '../utils/orderAccess';
 import { mapKdsOrderItem } from '../utils/orderMappers';
 
 export interface OrderItem {
@@ -110,6 +111,9 @@ export const OrderTracking: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isProntoAlertOpen, setIsProntoAlertOpen] = useState<boolean>(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [phoneInput, setPhoneInput] = useState('');
+  const [phoneGateError, setPhoneGateError] = useState<string | null>(null);
 
   // Trigger sound, vibration & native notification for 'PRONTO' status
   const triggerProntoAlert = useCallback(() => {
@@ -240,33 +244,7 @@ export const OrderTracking: React.FC = () => {
         return;
       }
 
-      // Fallback demo mock order for testing if ID doesn't exist
-      const mockOrder: Order = {
-        id: id,
-        status: 'IN_PREPARAZIONE',
-        customer_name: 'Cliente Pessano',
-        phone: '+39 333 1234567',
-        order_type: 'Ritiro',
-        delivery_address: 'Via Avvocato Emanuele Rossi 17, Finale Ligure',
-        total_price: 14.50,
-        created_at: new Date().toISOString(),
-        estimated_time: '15-20 min',
-        order_items: [
-          {
-            id: 'item-1',
-            item_name: 'Poke Regular Pescheria',
-            size: 'Regular',
-            bases: ['Riso Venere'],
-            proteins: ['Salmone Fresco'],
-            toppings: ['Avocado', 'Edamame', 'Alghe Wakame'],
-            sauces: ['Salsa Ponzu Speciale'],
-            has_sesame: true,
-            price: 14.50,
-            quantity: 1
-          }
-        ]
-      };
-      setOrder(mockOrder);
+      setError('Ordine non trovato. Verifica il link o contatta la pescheria.');
     } catch (err: any) {
       console.error('Error fetching order:', err);
       const local = getLocalOrderById(id);
@@ -291,6 +269,12 @@ export const OrderTracking: React.FC = () => {
   useEffect(() => {
     fetchOrder();
   }, [fetchOrder]);
+
+  useEffect(() => {
+    setPhoneVerified(false);
+    setPhoneInput('');
+    setPhoneGateError(null);
+  }, [id]);
 
   // Realtime Supabase, Auto Polling (5s) & Tab Focus / Visibility Change Listener
   useEffect(() => {
@@ -528,8 +512,60 @@ export const OrderTracking: React.FC = () => {
           </div>
         )}
 
+        {/* PHONE VERIFICATION GATE */}
+        {!loading && !error && order && !phoneVerified && (
+          <div className="order-phone-gate tracker-card" style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', color: 'white' }}>
+              Verifica il tuo ordine
+            </h2>
+            <p style={{ color: '#8DA9C4', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+              Inserisci le ultime 4 cifre del telefono usato per l&apos;ordine.
+            </p>
+            <input
+              type="tel"
+              inputMode="numeric"
+              maxLength={4}
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              aria-label="Ultime 4 cifre del telefono"
+              style={{
+                width: '100%',
+                maxWidth: '160px',
+                padding: '0.75rem 1rem',
+                fontSize: '1.25rem',
+                textAlign: 'center',
+                letterSpacing: '0.25em',
+                borderRadius: '0.5rem',
+                border: '1px solid rgba(201, 162, 39, 0.32)',
+                backgroundColor: 'rgba(7, 21, 39, 0.6)',
+                color: 'white',
+                marginBottom: '1rem',
+              }}
+            />
+            {phoneGateError && (
+              <p role="alert" style={{ color: '#F87171', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                {phoneGateError}
+              </p>
+            )}
+            <button
+              type="button"
+              className="btn btn-coral"
+              onClick={() => {
+                if (verifyOrderPhoneAccess(order.phone || '', phoneInput)) {
+                  setPhoneVerified(true);
+                  setPhoneGateError(null);
+                  return;
+                }
+                setPhoneGateError('Numero non corrispondente. Riprova.');
+              }}
+            >
+              Continua
+            </button>
+          </div>
+        )}
+
         {/* MAIN ORDER LIVE TRACKING CONTENT */}
-        {!loading && !error && order && (
+        {!loading && !error && order && phoneVerified && (
           <div className="tracker-grid-layout">
             
             {/* LEFT COLUMN: REALTIME STATUS, PRONTO ALERT & ASSISTANCE */}
