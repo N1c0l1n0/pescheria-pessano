@@ -160,9 +160,10 @@ Renders iframe when `consent?.maps === true`.
 ### Cookie Policy modal — replace/add sections
 
 1. **Cookie tecnici (sempre attivi):** `localStorage` for order state and push notifications. No consent required.
-2. **Google Maps (consenso richiesto):** Google Ireland Limited provides interactive map. May set third-party cookies. Purpose: show store location. Legal basis: consent. Links to [Google Privacy Policy](https://policies.google.com/privacy) and [Google Cookie Info](https://policies.google.com/technologies/cookies).
-3. **Revoca consenso:** use "Gestisci cookie" link in footer.
-4. Remove claim that no consent banner is needed.
+2. **Font (sempre attivi, nessuna terza parte):** Playfair Display, Plus Jakarta Sans e Barlow Condensed sono self-hosted. Nessuna richiesta a Google Fonts.
+3. **Google Maps (consenso richiesto):** Google Ireland Limited provides interactive map. May set third-party cookies. Purpose: show store location. Legal basis: consent. Links to [Google Privacy Policy](https://policies.google.com/privacy) and [Google Cookie Info](https://policies.google.com/technologies/cookies).
+4. **Revoca consenso:** use "Gestisci cookie" link in footer.
+5. Remove claim that no consent banner is needed.
 
 ### Footer pill text
 

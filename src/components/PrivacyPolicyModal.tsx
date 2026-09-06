@@ -126,8 +126,9 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ open, on
             o chiama il <strong>{PRIVACY_CONTACT_PHONE}</strong>.
           </p>
           <p style={{ margin: 0 }}>
-            <strong>Sicurezza:</strong> accesso agli ordini da area staff protetta da credenziali; tracking ordine
-            protetto da verifica parziale del telefono.
+            <strong>Sicurezza:</strong> accesso agli ordini da area staff protetta da credenziali; il tracking
+            dell&apos;ordine è accessibile tramite link personale fornito al cliente dopo l&apos;ordine — la
+            riservatezza dei dati dipende dalla custodia del link, non condividerlo con terzi.
           </p>
         </div>
 
