@@ -42,6 +42,8 @@ import {
 } from '../utils/orderMappers';
 import { emptyWorkAreaCopy, matchesFulfillmentFilter } from '../utils/kdsFilters';
 import { groupActiveOrders, resolveOrderSlotKey, type SlotGroup } from '../utils/kdsSlotGroups';
+import { KdsAdminLogin } from './kds-admin/KdsAdminLogin';
+import { isKdsAuthenticated, logoutKds } from '../utils/kdsAdmin';
 
 export type { KdsOrder, KdsOrderItem };
 
@@ -270,6 +272,7 @@ function ReadyStrip({
 }
 
 export const KdsBoard: React.FC = () => {
+  const [kdsAuthed, setKdsAuthed] = useState(isKdsAuthenticated());
   const [orders, setOrders] = useState<KdsOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [boardView, setBoardView] = useState<'active' | 'history'>('active');
@@ -1462,6 +1465,11 @@ export const KdsBoard: React.FC = () => {
               );
             
   };
+
+  if (!kdsAuthed) {
+    return <KdsAdminLogin onSuccess={() => setKdsAuthed(true)} />;
+  }
+
   return (
     <div
       style={{
@@ -1560,6 +1568,26 @@ export const KdsBoard: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => {
+                logoutKds();
+                setKdsAuthed(false);
+              }}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                backgroundColor: '#1E293B',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                color: '#94A3B8',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+              }}
+            >
+              Esci
+            </button>
+
             <button
               type="button"
               onClick={() => {
