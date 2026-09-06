@@ -271,8 +271,7 @@ function ReadyStrip({
   );
 }
 
-export const KdsBoard: React.FC = () => {
-  const [kdsAuthed, setKdsAuthed] = useState(isKdsAuthenticated());
+const KdsBoardInner: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const [orders, setOrders] = useState<KdsOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [boardView, setBoardView] = useState<'active' | 'history'>('active');
@@ -1466,10 +1465,6 @@ export const KdsBoard: React.FC = () => {
             
   };
 
-  if (!kdsAuthed) {
-    return <KdsAdminLogin onSuccess={() => setKdsAuthed(true)} />;
-  }
-
   return (
     <div
       style={{
@@ -1570,10 +1565,7 @@ export const KdsBoard: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
             <button
               type="button"
-              onClick={() => {
-                logoutKds();
-                setKdsAuthed(false);
-              }}
+              onClick={onLogout}
               style={{
                 padding: '0.45rem 0.85rem',
                 borderRadius: '8px',
@@ -2230,6 +2222,23 @@ export const KdsBoard: React.FC = () => {
         )}
       </main>
     </div>
+  );
+};
+
+export const KdsBoard: React.FC = () => {
+  const [kdsAuthed, setKdsAuthed] = useState(isKdsAuthenticated());
+
+  if (!kdsAuthed) {
+    return <KdsAdminLogin onSuccess={() => setKdsAuthed(true)} />;
+  }
+
+  return (
+    <KdsBoardInner
+      onLogout={() => {
+        logoutKds();
+        setKdsAuthed(false);
+      }}
+    />
   );
 };
 
