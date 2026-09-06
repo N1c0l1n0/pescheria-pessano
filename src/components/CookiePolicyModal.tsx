@@ -78,9 +78,20 @@ export const CookiePolicyModal: React.FC<CookiePolicyModalProps> = ({ open, onCl
             strumenti di monitoraggio comportamentale (Google Analytics, Meta Pixel, ecc.).
           </p>
           <p style={{ marginBottom: '0.75rem' }}>
-            <strong>Cookie tecnici (sempre attivi):</strong> viene impiegata l&apos;archiviazione tecnica locale (
-            <strong>localStorage</strong>) per salvare lo stato di avanzamento dell&apos;ordine ed abilitare il servizio
-            di notifiche push in tempo reale. Non richiedono consenso.
+            <strong>Archiviazione locale tecnica (sempre attiva):</strong> utilizziamo{' '}
+            <strong>localStorage</strong> per:
+          </p>
+          <ul style={{ margin: '0 0 0.75rem 1.1rem', padding: 0 }}>
+            <li>
+              <code>pessano_cookie_consent</code> — preferenza cookie Maps (fino a revoca)
+            </li>
+            <li>
+              <code>pescheria_pessano_orders_store</code> — backup locale stato ordine per tracking e KDS (durata sessione/dispositivo)
+            </li>
+          </ul>
+          <p style={{ marginBottom: '0.75rem' }}>
+            Non impostiamo cookie di profilazione. Le notifiche browser compaiono solo se l&apos;utente ha già concesso il
+            permesso nelle impostazioni del dispositivo; il sito non richiede permessi push al primo accesso.
           </p>
           <p style={{ marginBottom: '0.75rem' }}>
             <strong>Font (sempre attivi, nessuna terza parte):</strong> Playfair Display, Plus Jakarta Sans e Barlow
@@ -108,6 +119,10 @@ export const CookiePolicyModal: React.FC<CookiePolicyModalProps> = ({ open, onCl
               informazioni sui cookie Google
             </a>
             .
+          </p>
+          <p style={{ marginBottom: '0.75rem' }}>
+            <strong>Link esterni:</strong> i link verso Google Maps o WhatsApp aprono servizi di terze parti solo dopo il tuo
+            click; in quel caso si applicano le rispettive informative privacy.
           </p>
           <p style={{ margin: 0 }}>
             Puoi revocare o modificare il consenso in qualsiasi momento tramite il link{' '}
