@@ -25,6 +25,7 @@ import { PokeSlotSummary } from './PokeSlotSummary';
 import type { FishItem } from '../types/fishCatalog';
 import { useFishCatalog } from '../hooks/useFishCatalog';
 import { useCookieConsent } from '../context/CookieConsentContext';
+import { FEATURES } from '../constants/features';
 
 type CategoryTabIconProps = {
   size?: number;
@@ -574,7 +575,7 @@ export const PokeBuilder: React.FC = () => {
   };
 
   const handleAddFriedCardDirectly = (item: FriedProductOption) => {
-    if (!customerPhone.trim()) {
+    if (FEATURES.ONLINE_ORDERING && !customerPhone.trim()) {
       triggerValidationError('Inserisci il tuo Numero di Telefono prima di proseguire!', 'customerPhoneInput');
       return;
     }
@@ -597,7 +598,7 @@ export const PokeBuilder: React.FC = () => {
   };
 
   const handleAddFishCardDirectly = (item: FishItem) => {
-    if (!customerPhone.trim()) {
+    if (FEATURES.ONLINE_ORDERING && !customerPhone.trim()) {
       triggerValidationError('Inserisci il tuo Numero di Telefono prima di proseguire!', 'customerPhoneInput');
       return;
     }
@@ -701,12 +702,12 @@ export const PokeBuilder: React.FC = () => {
 
   // Add or Update configured Poke in order list
   const handleSavePokeToOrder = () => {
-    const trimmedName = pokePersonName.trim();
-    if (!trimmedName) {
+    const trimmedName = pokePersonName.trim() || (FEATURES.ONLINE_ORDERING ? '' : 'La tua Poke');
+    if (FEATURES.ONLINE_ORDERING && !pokePersonName.trim()) {
       triggerValidationError('Inserisci il nome della persona per questa Poke!', 'customerNameInput');
       return;
     }
-    if (!customerPhone.trim()) {
+    if (FEATURES.ONLINE_ORDERING && !customerPhone.trim()) {
       triggerValidationError('Inserisci il tuo Numero di Telefono prima di proseguire!', 'customerPhoneInput');
       return;
     }
@@ -841,8 +842,33 @@ export const PokeBuilder: React.FC = () => {
     setOrderList(updated);
   };
 
+  const buildWhatsAppOrderUrl = () => {
+    let msg = 'Ciao Pescheria Pessano, vorrei ordinare dal vostro menù:\n\n';
+    if (orderList.length > 0) {
+      orderList.forEach((item, idx) => {
+        if (item.itemType === 'fritto') {
+          msg += `${idx + 1}. ${item.name} (x${item.quantity}) - €${(item.price * item.quantity).toFixed(2)}\n`;
+        } else if (item.itemType === 'pesce') {
+          msg += `${idx + 1}. ${item.name} (${item.weightGrams}g, ${item.preparation}) - ~€${item.price.toFixed(2)}\n`;
+        } else {
+          const p = item as ConfiguredPoke;
+          msg += `${idx + 1}. Poke ${p.format.name} (${p.pokePersonName}): Basi: ${p.basi.join(', ')} | Proteine: ${p.proteine.join(', ')} | Topping: ${p.ingredienti.join(', ') || 'Nessuno'} | Salse: ${p.salse.join(', ') || 'Nessuna'} - €${p.price.toFixed(2)}\n`;
+        }
+      });
+      msg += `\nTotale stimato: €${grandTotal.toFixed(2)}`;
+    } else {
+      msg += 'Vorrei informazioni sulla disponibilità del pescato e per ordinare d\'asporto.';
+    }
+    return `https://wa.me/${FEATURES.WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+  };
+
   // Direct KDS Order Submission & Live Tracking Redirect
   const handleDirectOrderSubmit = async () => {
+    if (!FEATURES.ONLINE_ORDERING) {
+      alert('Il servizio di ordinazione online sarà attivo a breve. Per ordinare subito chiama la pescheria al 019 692623!');
+      return;
+    }
+
     let finalItems: OrderCartItem[] = [...orderList];
 
     if (!privacyAccepted) {
@@ -1236,22 +1262,32 @@ export const PokeBuilder: React.FC = () => {
             <div id="ordine-dati" className="glass-panel poke-card-panel order-card">
               <OrderStepHeader
                 step={1}
-                title="I tuoi dati"
-                subtitle="Servono per identificare l'ordine al banco e aggiornarti sullo stato."
+                title={FEATURES.ONLINE_ORDERING ? 'I tuoi dati' : 'Personalizza e consulta'}
+                subtitle={
+                  FEATURES.ONLINE_ORDERING
+                    ? "Servono per identificare l'ordine al banco e aggiornarti sullo stato."
+                    : 'Esplora liberamente gli abbinamenti. Per ordinare oggi, siamo a tua disposizione al 019 692623.'
+                }
               />
 
               <div className="order-callout">
                 <Info size={18} />
                 <span>
-                  Il telefono è unico per tutto l'ordine. Il nome identifica il referente al ritiro o in consegna.
+                  {FEATURES.ONLINE_ORDERING
+                    ? "Il telefono è unico per tutto l'ordine. Il nome identifica il referente al ritiro o in consegna."
+                    : '💡 Modalità Vetrina: puoi comporre liberamente la tua Poke e scoprire ingredienti e prezzi. Per ordinare oggi chiamaci al 019 692623!'}
                 </span>
               </div>
 
               <div className="order-fields">
                 <div className="order-field">
                   <label htmlFor="customerNameInput" className="order-label">
-                    {isNextPokeName ? 'Nome per questa poke' : 'Nome e cognome'}{' '}
-                    <span className="req">*</span>
+                    {isNextPokeName
+                      ? 'Nome per questa poke'
+                      : FEATURES.ONLINE_ORDERING
+                        ? 'Nome e cognome'
+                        : 'Nome per la poke (facoltativo)'}{' '}
+                    {FEATURES.ONLINE_ORDERING && <span className="req">*</span>}
                   </label>
                   <div className="order-input-wrap">
                     <User size={16} />
@@ -1270,53 +1306,59 @@ export const PokeBuilder: React.FC = () => {
                   <p className={isNextPokeName ? 'order-hint order-hint--next-poke' : 'order-hint'}>
                     {isNextPokeName
                       ? 'Inserisci un nome diverso per distinguere la poke successiva.'
-                      : 'Referente principale per il ritiro o la consegna.'}
+                      : FEATURES.ONLINE_ORDERING
+                        ? 'Referente principale per il ritiro o la consegna.'
+                        : 'Utile per etichettare la tua composizione prima di ordinarla al telefono o al banco.'}
                   </p>
                 </div>
 
-                <div className="order-field">
-                  <label htmlFor="customerPhoneInput" className="order-label">
-                    Telefono <span className="req">*</span>
-                  </label>
-                  <div className="order-input-wrap">
-                    <Phone size={16} />
-                    <input
-                      id="customerPhoneInput"
-                      className="order-input"
-                      type="tel"
-                      placeholder="Es. 334 1234567"
-                      value={customerPhone}
-                      onChange={(e) => {
-                        setCustomerPhone(e.target.value);
-                        if (validationError) setValidationError(null);
-                      }}
-                    />
+                {FEATURES.ONLINE_ORDERING && (
+                  <div className="order-field">
+                    <label htmlFor="customerPhoneInput" className="order-label">
+                      Telefono <span className="req">*</span>
+                    </label>
+                    <div className="order-input-wrap">
+                      <Phone size={16} />
+                      <input
+                        id="customerPhoneInput"
+                        className="order-input"
+                        type="tel"
+                        placeholder="Es. 334 1234567"
+                        value={customerPhone}
+                        onChange={(e) => {
+                          setCustomerPhone(e.target.value);
+                          if (validationError) setValidationError(null);
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="order-field order-privacy-notice">
-                  <p className="order-hint" style={{ marginBottom: '0.65rem' }}>
-                    I dati richiesti servono esclusivamente a gestire il tuo ordine (identificazione al banco, aggiornamento stato e
-                    comunicazioni di ritiro/consegna). Base giuridica: esecuzione del contratto (Art. 6(1)(b) GDPR).
-                  </p>
-                  <label htmlFor="privacyAcceptCheckbox" className="order-privacy-label">
-                    <input
-                      id="privacyAcceptCheckbox"
-                      type="checkbox"
-                      checked={privacyAccepted}
-                      onChange={(e) => {
-                        setPrivacyAccepted(e.target.checked);
-                        if (validationError) setValidationError(null);
-                      }}
-                    />
-                    <span>
-                      Ho letto l&apos;{' '}
-                      <button type="button" className="order-privacy-link" onClick={openPrivacyPolicy}>
-                        Informativa sulla Privacy
-                      </button>
-                    </span>
-                  </label>
-                </div>
+                {FEATURES.ONLINE_ORDERING && (
+                  <div className="order-field order-privacy-notice">
+                    <p className="order-hint" style={{ marginBottom: '0.65rem' }}>
+                      I dati richiesti servono esclusivamente a gestire il tuo ordine (identificazione al banco, aggiornamento stato e
+                      comunicazioni di ritiro/consegna). Base giuridica: esecuzione del contratto (Art. 6(1)(b) GDPR).
+                    </p>
+                    <label htmlFor="privacyAcceptCheckbox" className="order-privacy-label">
+                      <input
+                        id="privacyAcceptCheckbox"
+                        type="checkbox"
+                        checked={privacyAccepted}
+                        onChange={(e) => {
+                          setPrivacyAccepted(e.target.checked);
+                          if (validationError) setValidationError(null);
+                        }}
+                      />
+                      <span>
+                        Ho letto l&apos;{' '}
+                        <button type="button" className="order-privacy-link" onClick={openPrivacyPolicy}>
+                          Informativa sulla Privacy
+                        </button>
+                      </span>
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: '1.25rem' }}>
@@ -2250,52 +2292,123 @@ export const PokeBuilder: React.FC = () => {
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={handleDirectOrderSubmit}
-                disabled={isSubmitting}
-                className="btn btn-coral"
-                style={{
-                  width: '100%',
-                  padding: '1rem 0.75rem',
-                  fontSize: '0.95rem',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                  lineHeight: 1.35,
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  opacity: isSubmitting ? 0.7 : 1,
-                }}
-              >
-                <Sparkles size={18} />
-                <span>
-                  {isSubmitting
-                    ? 'Invio in corso...'
-                    : orderList.length > 1
-                      ? `Invia ${orderList.length} articoli al banco`
-                      : 'Invia ordine al banco'}
-                </span>
-              </button>
+              {FEATURES.ONLINE_ORDERING ? (
+                <button
+                  type="button"
+                  onClick={handleDirectOrderSubmit}
+                  disabled={isSubmitting}
+                  className="btn btn-coral"
+                  style={{
+                    width: '100%',
+                    padding: '1rem 0.75rem',
+                    fontSize: '0.95rem',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    lineHeight: 1.35,
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    opacity: isSubmitting ? 0.7 : 1,
+                  }}
+                >
+                  <Sparkles size={18} />
+                  <span>
+                    {isSubmitting
+                      ? 'Invio in corso...'
+                      : orderList.length > 1
+                        ? `Invia ${orderList.length} articoli al banco`
+                        : 'Invia ordine al banco'}
+                  </span>
+                </button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '0.5rem' }}>
+                  <div
+                    style={{
+                      padding: '0.85rem 1rem',
+                      borderRadius: '12px',
+                      backgroundColor: 'rgba(232, 212, 154, 0.12)',
+                      border: '1px solid rgba(232, 212, 154, 0.35)',
+                      color: 'white',
+                      fontSize: '0.84rem',
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--color-gold-soft)', fontWeight: 700, marginBottom: '0.25rem' }}>
+                      <Sparkles size={16} />
+                      <span>Ordini Online in Attivazione</span>
+                    </div>
+                    <div>
+                      Il servizio di carrello online sarà attivo a breve. Per ordinare questa combinazione, chiamaci subito al banco o scrivici su WhatsApp:
+                    </div>
+                  </div>
+
+                  <a
+                    href={FEATURES.PHONE_TEL}
+                    className="btn btn-coral"
+                    style={{
+                      width: '100%',
+                      padding: '0.9rem 0.75rem',
+                      fontSize: '0.92rem',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <Phone size={18} />
+                    <span>Chiama per Ordinare ({FEATURES.PHONE_NUMBER})</span>
+                  </a>
+
+                  <a
+                    href={buildWhatsAppOrderUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      width: '100%',
+                      padding: '0.8rem 0.75rem',
+                      fontSize: '0.88rem',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      backgroundColor: 'rgba(37, 211, 102, 0.16)',
+                      border: '1px solid #25D366',
+                      color: '#4ADE80',
+                      fontWeight: 700,
+                      borderRadius: 'var(--radius-full)',
+                      transition: 'background-color 0.2s ease',
+                    }}
+                  >
+                    <MessageCircle size={18} />
+                    <span>Invia Selezione su WhatsApp</span>
+                  </a>
+                </div>
+              )}
 
               <div className="order-help">
                 <MessageCircle size={20} color="#25D366" style={{ flexShrink: 0 }} />
                 <div>
-                  <strong>Serve una mano?</strong>
+                  <strong>Serve una mano o consigli?</strong>
                   <div style={{ opacity: 0.9, marginTop: '0.15rem' }}>
                     WhatsApp Pescheria:{' '}
                     <a
-                      href="https://wa.me/393459485857"
+                      href={buildWhatsAppOrderUrl()}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{ color: '#4ADE80', fontWeight: 800 }}
                     >
-                      345 9485857
+                      390 19692623
                     </a>
                   </div>
                 </div>
               </div>
 
               <p className="order-fineprint">
-                Paghi al ritiro o in consegna. Dopo l'invio puoi seguire la preparazione in tempo reale.
+                {FEATURES.ONLINE_ORDERING
+                  ? "Paghi al ritiro o in consegna. Dopo l'invio puoi seguire la preparazione in tempo reale."
+                  : "Ordinazioni e prenotazioni attive telefonicamente o direttamente al banco in Via Rossi 17, Finale Ligure."}
               </p>
 
             </div>
@@ -2310,7 +2423,7 @@ export const PokeBuilder: React.FC = () => {
         <div className="floating-checkout-bar">
           <div style={{ color: 'white', display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
             <span style={{ fontSize: '0.68rem', color: 'var(--color-gold-soft)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Totale
+              {FEATURES.ONLINE_ORDERING ? 'Totale' : 'Totale stimato'}
             </span>
             <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'white', letterSpacing: '-0.02em' }}>
               €{grandTotal.toFixed(2)}{' '}
@@ -2320,34 +2433,54 @@ export const PokeBuilder: React.FC = () => {
             </span>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-coral"
-            disabled={isSubmitting}
-            onClick={() => {
-              if (!customerPhone.trim()) {
-                const el = document.getElementById('customerPhoneInput');
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  el.focus();
+          {FEATURES.ONLINE_ORDERING ? (
+            <button
+              type="button"
+              className="btn btn-coral"
+              disabled={isSubmitting}
+              onClick={() => {
+                if (!customerPhone.trim()) {
+                  const el = document.getElementById('customerPhoneInput');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.focus();
+                  }
+                  setValidationError('Inserisci il tuo Numero di Telefono prima di inviare l\'ordine!');
+                } else {
+                  handleDirectOrderSubmit();
                 }
-                setValidationError('Inserisci il tuo Numero di Telefono prima di inviare l\'ordine!');
-              } else {
-                handleDirectOrderSubmit();
-              }
-            }}
-            style={{
-              padding: '0.72rem 1.15rem',
-              fontSize: '0.88rem',
-              minWidth: '132px',
-              flexShrink: 0,
-              opacity: isSubmitting ? 0.7 : 1,
-              cursor: isSubmitting ? 'not-allowed' : 'pointer',
-            }}
-          >
-            <Sparkles size={15} />
-            <span>{isSubmitting ? 'Invio...' : 'Invia'}</span>
-          </button>
+              }}
+              style={{
+                padding: '0.72rem 1.15rem',
+                fontSize: '0.88rem',
+                minWidth: '132px',
+                flexShrink: 0,
+                opacity: isSubmitting ? 0.7 : 1,
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <Sparkles size={15} />
+              <span>{isSubmitting ? 'Invio...' : 'Invia'}</span>
+            </button>
+          ) : (
+            <a
+              href={FEATURES.PHONE_TEL}
+              className="btn btn-coral"
+              style={{
+                padding: '0.72rem 1.15rem',
+                fontSize: '0.88rem',
+                minWidth: '132px',
+                flexShrink: 0,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+              }}
+            >
+              <Phone size={15} />
+              <span>Chiama Ora</span>
+            </a>
+          )}
         </div>
       )}
     </section>

@@ -68,7 +68,8 @@ export const Footer: React.FC = () => {
           {/* Quick Links */}
           <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.9rem', flexWrap: 'wrap' }}>
             <Link to="/" onClick={(e) => navigateToSection('hero', e)} style={footerLinkStyle}>Home</Link>
-            <Link to="/componi-poke" style={footerLinkStyle}>Componi la tua poke</Link>
+            <a href="/#pesce-fresco" onClick={(e) => navigateToSection('pesce-fresco', e)} style={footerLinkStyle}>Banco Pesce</a>
+            <a href="/#poke-fritti" onClick={(e) => navigateToSection('poke-fritti', e)} style={footerLinkStyle}>Poke & Fritti</a>
             <a href="/#servizi" onClick={(e) => navigateToSection('servizi', e)} style={footerLinkStyle}>Servizi</a>
             <a href="/#recensioni" onClick={(e) => navigateToSection('recensioni', e)} style={footerLinkStyle}>Recensioni</a>
             <a href="/#orari" onClick={(e) => navigateToSection('orari', e)} style={footerLinkStyle}>Orari</a>

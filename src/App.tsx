@@ -1,15 +1,13 @@
 import { useEffect, type ReactNode } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { FishMenuCatalog } from './components/FishMenuCatalog';
+import { PokeAndFrittiShowcase } from './components/PokeAndFrittiShowcase';
 import { TrustSection } from './components/TrustSection';
 import { InfoSection } from './components/InfoSection';
 import { HoursAndLocation } from './components/HoursAndLocation';
 import { Footer } from './components/Footer';
-import { OrderTracking } from './components/OrderTracking';
-import { PokeBuilderPage } from './pages/PokeBuilderPage';
-import { KdsBoard } from './components/KdsBoard';
 import { FishCatalogAdmin } from './components/FishCatalogAdmin';
 import { CookieConsentProvider, useCookieConsent } from './context/CookieConsentContext';
 import { CookieBanner } from './components/CookieBanner';
@@ -62,6 +60,7 @@ export function App() {
               <main style={{ flex: 1 }}>
                 <Hero />
                 <FishMenuCatalog />
+                <PokeAndFrittiShowcase />
                 <TrustSection />
                 <InfoSection />
                 <HoursAndLocation />
@@ -71,9 +70,7 @@ export function App() {
             </div>
           }
         />
-        <Route path="/componi-poke" element={<PokeBuilderPage />} />
-        <Route path="/ordine/:id" element={<OrderTracking />} />
-        <Route path="/admin/kds" element={<KdsBoard />} />
+        <Route path="/componi-poke" element={<Navigate to="/#poke-fritti" replace />} />
         <Route path="/admin/banco" element={<FishCatalogAdmin />} />
       </Routes>
       </CookieConsentShell>

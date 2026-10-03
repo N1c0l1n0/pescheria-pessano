@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Waves, Anchor, Sparkles, Search, Info, X, ShieldCheck } from 'lucide-react';
+import { Waves, Anchor, Sparkles, Search, Info, X, ShieldCheck, Phone } from 'lucide-react';
 import { useFishCatalog } from '../hooks/useFishCatalog';
 import type { FishItem } from '../types/fishCatalog';
+import { FEATURES } from '../constants/features';
 
 export type { FishItem } from '../types/fishCatalog';
 
@@ -295,40 +295,66 @@ export const FishMenuCatalog: React.FC = () => {
             </div>
             <div>
               <h4 className="font-serif" style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.15rem', color: 'white' }}>
-                Ordina il Pesce Fresco del Giorno Online
+                {FEATURES.ONLINE_ORDERING
+                  ? 'Ordina il Pesce Fresco del Giorno Online'
+                  : 'Pesce Fresco del Giorno al Banco & Asporto'}
               </h4>
               <p style={{ fontSize: '0.85rem', color: 'var(--color-sea-blue)', margin: 0 }}>
-                Scegli la pezzatura, richiedi pulizia e sfilettatura gratuite e ritira al banco quando preferisci.
+                {FEATURES.ONLINE_ORDERING
+                  ? 'Scegli la pezzatura, richiedi pulizia e sfilettatura gratuite e ritira al banco quando preferisci.'
+                  : 'Scegli la pezzatura, richiedi pulizia e sfilettatura gratuite. Prenota al banco o chiamaci al 019 692623.'}
               </p>
             </div>
           </div>
 
-          <Link
-            to="/componi-poke?tab=pesce"
-            style={{
-              padding: '0.7rem 1.3rem',
-              borderRadius: 'var(--radius-full)',
-              backgroundColor: 'var(--color-coral)',
-              color: 'white',
-              fontWeight: 800,
-              fontSize: '0.875rem',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              boxShadow: 'var(--shadow-glow)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            <span>Ordina Pesce Fresco</span>
-            <Sparkles size={15} />
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <a
+              href="#poke-fritti"
+              style={{
+                padding: '0.7rem 1.3rem',
+                borderRadius: 'var(--radius-full)',
+                backgroundColor: 'var(--color-coral)',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.875rem',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                boxShadow: 'var(--shadow-glow)',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <span>Scopri Poke & Coni Fritti</span>
+              <Sparkles size={15} />
+            </a>
+
+            <a
+              href="tel:019692623"
+              style={{
+                padding: '0.7rem 1.25rem',
+                borderRadius: 'var(--radius-full)',
+                backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: 'white',
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+              }}
+            >
+              <Phone size={15} color="var(--color-sea-blue)" />
+              <span>Chiama 019 692623</span>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -440,14 +466,15 @@ export const FishMenuCatalog: React.FC = () => {
                 {selectedFish.origin}
                 {selectedFish.isPopular ? ' • Prodotto popolare' : ''}
               </p>
-              <Link
-                to="/componi-poke?tab=pesce"
+              <a
+                href="tel:019692623"
                 className="btn btn-coral"
-                style={{ textDecoration: 'none', fontSize: '0.875rem', padding: '0.7rem 1.25rem' }}
+                style={{ textDecoration: 'none', fontSize: '0.875rem', padding: '0.7rem 1.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
                 onClick={() => setSelectedFish(null)}
               >
-                Ordina questo pesce
-              </Link>
+                <Phone size={15} />
+                <span>Chiama per Prenotare (019 692623)</span>
+              </a>
             </div>
           </div>
         </div>

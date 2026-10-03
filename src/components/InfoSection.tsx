@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { ShieldCheck, Utensils, ShoppingBag, Anchor, Sparkles, ArrowRight } from 'lucide-react';
 
 export const InfoSection: React.FC = () => {
@@ -83,14 +82,14 @@ export const InfoSection: React.FC = () => {
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Filiera corta e pescato locale
               </li>
             </ul>
-            <Link
-              to="/componi-poke?tab=pesce"
+            <a
+              href="#pesce-fresco"
               className="service-link"
               style={{ color: 'var(--color-ocean-medium)' }}
             >
-              Ordina pesce fresco
+              Consulta il banco fresco
               <ArrowRight size={15} />
-            </Link>
+            </a>
           </div>
 
           {/* Card 2: Poke Bowl Artigianali */}
@@ -129,12 +128,12 @@ export const InfoSection: React.FC = () => {
                 minHeight: '4.5rem',
               }}
             >
-              Componi online la tua Poke Bowl personalizzata con pesce fresco a cubetti, riso, topping selezionati e salse artigianali.
+              Poke Bowl su misura con pescato freschissimo tagliato al momento, riso, topping selezionati e salse artigianali.
             </p>
 
             <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.84rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Composizione online su misura
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Ingredienti freschi e salutari
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Pesce fresco tagliato al momento
@@ -143,14 +142,14 @@ export const InfoSection: React.FC = () => {
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Basi, topping e salse a scelta
               </li>
             </ul>
-            <Link
-              to="/componi-poke"
+            <a
+              href="#poke-fritti"
               className="service-link"
               style={{ color: 'var(--color-coral)' }}
             >
-              Componi la tua poke
+              Scopri gli ingredienti poke
               <ArrowRight size={15} />
-            </Link>
+            </a>
           </div>
 
           {/* Card 3: Gastronomia Pronta */}
@@ -177,7 +176,7 @@ export const InfoSection: React.FC = () => {
                 lineHeight: 1.25,
               }}
             >
-              Gastronomia Pronta
+              Gastronomia & Coni Fritti
             </h3>
 
             <p
@@ -189,31 +188,31 @@ export const InfoSection: React.FC = () => {
                 minHeight: '4.5rem',
               }}
             >
-              Piatti pronti della tradizione marinara ligure preparati quotidianamente nel nostro laboratorio artigianale con ingredienti freschissimi.
+              Coni fritti espressi caldi e croccanti e piatti pronti della tradizione marinara preparati quotidianamente nel nostro laboratorio.
             </p>
 
             <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.84rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Fritto Misto croccante di Mare
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Fritto Misto croccante espresso
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Insalata di mare e primi piatti
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Coni di calamari e acciughe
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Specialità liguri preparate oggi
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Specialità liguri pronte
               </li>
             </ul>
-            <Link
-              to="/componi-poke?tab=fritti"
+            <a
+              href="#poke-fritti"
               className="service-link"
               style={{ color: 'var(--color-ocean-medium)' }}
             >
-              Scopri i fritti d'asporto
+              Scopri i coni fritti
               <ArrowRight size={15} />
-            </Link>
+            </a>
           </div>
 
-          {/* Card 4: Ordini Online & Tracciamento */}
+          {/* Card 4: Prenotazioni al banco e telefoniche */}
           <div
             className="glass-panel service-card"
           >
@@ -237,7 +236,7 @@ export const InfoSection: React.FC = () => {
                 lineHeight: 1.25,
               }}
             >
-              Ordini Online e Asporto
+              Prenotazioni & Asporto
             </h3>
 
             <p
@@ -249,7 +248,7 @@ export const InfoSection: React.FC = () => {
                 minHeight: '4.5rem',
               }}
             >
-              Ordina facilmente dal sito per un ritiro rapido senza attese. Segui lo stato di preparazione in tempo reale con notifiche dedicate.
+              Ordina comodamente chiamando il nostro banco al 019 692623 per farti riservare il pescato del mattino o concordare il ritiro d'asporto.
             </p>
 
             <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.84rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
@@ -257,20 +256,20 @@ export const InfoSection: React.FC = () => {
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Ritiro rapido zero attese
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Tracciamento ordine dal vivo
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Prenotazioni telefoniche dirette
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Confezionamento salvafreschezza
               </li>
             </ul>
-            <Link
-              to="/componi-poke"
+            <a
+              href="tel:019692623"
               className="service-link"
               style={{ color: 'var(--color-ocean-medium)' }}
             >
-              Inizia un ordine
+              Chiama il banco: 019 692623
               <ArrowRight size={15} />
-            </Link>
+            </a>
           </div>
 
         </div>

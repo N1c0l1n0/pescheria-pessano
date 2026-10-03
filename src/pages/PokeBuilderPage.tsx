@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Phone, Sparkles } from 'lucide-react';
 import { Header } from '../components/Header';
 import { PokeBuilder } from '../components/PokeBuilder';
 import { Footer } from '../components/Footer';
+import { FEATURES } from '../constants/features';
 
 const iconProps = {
   width: 30,
@@ -73,7 +74,7 @@ export const PokeBuilderPage: React.FC = () => {
             </Link>
 
             <div className="section-kicker" style={{ background: 'rgba(232, 212, 154, 0.12)', borderColor: 'rgba(232, 212, 154, 0.28)', color: 'var(--color-gold-soft)' }}>
-              Asporto & Consegna
+              {FEATURES.ONLINE_ORDERING ? 'Asporto & Consegna' : 'Menu Asporto & Gastronomia'}
             </div>
 
             <h1
@@ -84,15 +85,56 @@ export const PokeBuilderPage: React.FC = () => {
                 margin: '0.15rem 0 0 0',
                 lineHeight: 1.12,
                 letterSpacing: '-0.03em',
-                maxWidth: '16ch',
+                maxWidth: '18ch',
               }}
             >
-              Ordina dal banco, senza fila
+              {FEATURES.ONLINE_ORDERING ? 'Ordina dal banco, senza fila' : 'Menu Interattivo del Banco'}
             </h1>
 
             <p style={{ color: 'rgba(203, 213, 225, 0.92)', margin: '0.95rem 0 0 0', fontSize: '1.05rem', maxWidth: '38rem', lineHeight: 1.7 }}>
-              Componi la poke, scegli i coni fritti o prenota il pescato del giorno. Paghi al ritiro o in consegna e segui la preparazione in tempo reale.
+              {FEATURES.ONLINE_ORDERING
+                ? 'Componi la poke, scegli i coni fritti o prenota il pescato del giorno. Paghi al ritiro o in consegna e segui la preparazione in tempo reale.'
+                : 'Componi la poke personalizzata, consulta i coni fritti e scopri il pescato del giorno con prezzi e ingredienti sempre aggiornati.'}
             </p>
+
+            {!FEATURES.ONLINE_ORDERING && FEATURES.SHOW_COMING_SOON_NOTICE && (
+              <div
+                style={{
+                  marginTop: '1.5rem',
+                  padding: '1rem 1.35rem',
+                  borderRadius: '14px',
+                  backgroundColor: 'rgba(10, 35, 66, 0.65)',
+                  border: '1px solid rgba(232, 212, 154, 0.35)',
+                  backdropFilter: 'blur(12px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  flexWrap: 'wrap',
+                  maxWidth: '720px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-gold-soft)', fontWeight: 700, fontSize: '0.9rem' }}>
+                  <Sparkles size={18} />
+                  <span>Ordini Online in Arrivo</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.88)', lineHeight: 1.45, flex: 1, minWidth: '240px' }}>
+                  Puoi consultare e comporre il tuo piatto in anteprima! Per ordinare oggi, chiamaci direttamente al banco:
+                </div>
+                <a
+                  href={FEATURES.PHONE_TEL}
+                  className="btn btn-coral"
+                  style={{
+                    padding: '0.45rem 0.9rem',
+                    fontSize: '0.84rem',
+                    whiteSpace: 'nowrap',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <Phone size={14} />
+                  <span>019 692623</span>
+                </a>
+              </div>
+            )}
 
             <div className="order-process">
               <a
@@ -104,8 +146,12 @@ export const PokeBuilderPage: React.FC = () => {
                   <ProcessDatiIcon />
                 </div>
                 <div className="order-process-copy">
-                  <strong>I tuoi dati</strong>
-                  <span>Nome, telefono e orario di ritiro o consegna.</span>
+                  <strong>{FEATURES.ONLINE_ORDERING ? 'I tuoi dati' : 'Scegli il piatto'}</strong>
+                  <span>
+                    {FEATURES.ONLINE_ORDERING
+                      ? 'Nome, telefono e orario di ritiro o consegna.'
+                      : 'Poke bowl, coni fritti o pescato fresco.'}
+                  </span>
                 </div>
               </a>
               <a
@@ -117,21 +163,25 @@ export const PokeBuilderPage: React.FC = () => {
                   <ProcessPokeIcon />
                 </div>
                 <div className="order-process-copy">
-                  <strong>Componi l'ordine</strong>
-                  <span>Poke su misura, coni fritti o pesce fresco.</span>
+                  <strong>{FEATURES.ONLINE_ORDERING ? "Componi l'ordine" : 'Personalizza'}</strong>
+                  <span>Basi, proteine fresche, verdure e salse.</span>
                 </div>
               </a>
               <a
-                href="#ordine-invia"
+                href={FEATURES.ONLINE_ORDERING ? '#ordine-invia' : FEATURES.PHONE_TEL}
                 className="order-process-step"
-                onClick={scrollToOrderSection('ordine-invia')}
+                onClick={FEATURES.ONLINE_ORDERING ? scrollToOrderSection('ordine-invia') : undefined}
               >
                 <div className="order-process-icon">
                   <ProcessTrackIcon />
                 </div>
                 <div className="order-process-copy">
-                  <strong>Invia e segui</strong>
-                  <span>Il banco riceve l'ordine. Tu lo tracci dal vivo.</span>
+                  <strong>{FEATURES.ONLINE_ORDERING ? 'Invia e segui' : 'Ordina al telefono'}</strong>
+                  <span>
+                    {FEATURES.ONLINE_ORDERING
+                      ? "Il banco riceve l'ordine. Tu lo tracci dal vivo."
+                      : 'Chiama lo 019 692623 per il ritiro rapido.'}
+                  </span>
                 </div>
               </a>
             </div>

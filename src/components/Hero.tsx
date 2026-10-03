@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Phone, MapPin, Star, Clock, Anchor, Sparkles } from 'lucide-react';
 import { getStoreStatus } from '../utils/openingHours';
 
@@ -123,22 +122,23 @@ export const Hero: React.FC = () => {
                 marginBottom: '2.4rem',
               }}
             >
-              <Link
-                to="/componi-poke"
+              <a
+                href="#pesce-fresco"
                 className="btn btn-coral"
                 style={{ fontSize: '1rem', padding: '0.95rem 1.75rem', whiteSpace: 'nowrap', textDecoration: 'none' }}
               >
-                <Sparkles size={18} />
-                <span>Componi la tua Poke</span>
-              </Link>
+                <Anchor size={18} />
+                <span>Banco Pesce Fresco</span>
+              </a>
 
-              <Link
-                to="/componi-poke?tab=fritti"
+              <a
+                href="#poke-fritti"
                 className="btn btn-outline-light"
                 style={{ fontSize: '0.95rem', padding: '0.9rem 1.45rem', whiteSpace: 'nowrap', textDecoration: 'none' }}
               >
-                <span>Ordina Fritti d'Asporto</span>
-              </Link>
+                <Sparkles size={16} />
+                <span>Poke Bowl & Coni Fritti</span>
+              </a>
 
               <a
                 href="tel:019692623"

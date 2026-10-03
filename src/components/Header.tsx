@@ -99,7 +99,7 @@ export const Header: React.FC = () => {
           >
             <Link to="/" onClick={(e) => handleSectionNav('hero', e)} className="nav-link">Home</Link>
             <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} className="nav-link">Banco Pesce</a>
-            <Link to="/componi-poke" className="nav-link">Ordina d'Asporto</Link>
+            <a href="/#poke-fritti" onClick={(e) => handleSectionNav('poke-fritti', e)} className="nav-link">Poke & Fritti</a>
             <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} className="nav-link">Servizi</a>
             <a href="/#recensioni" onClick={(e) => handleSectionNav('recensioni', e)} className="nav-link">Recensioni</a>
             <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} className="nav-link">Orari</a>
@@ -189,7 +189,7 @@ export const Header: React.FC = () => {
 
             <Link to="/" onClick={(e) => handleSectionNav('hero', e)} style={mobileNavLinkStyle}>Home</Link>
             <a href="/#pesce-fresco" onClick={(e) => handleSectionNav('pesce-fresco', e)} style={mobileNavLinkStyle}>Banco del Pesce Fresco</a>
-            <Link to="/componi-poke" onClick={() => setMobileMenuOpen(false)} style={mobileNavLinkStyle}>Ordina d'Asporto</Link>
+            <a href="/#poke-fritti" onClick={(e) => handleSectionNav('poke-fritti', e)} style={mobileNavLinkStyle}>Poke Bowl & Coni Fritti</a>
             <a href="/#servizi" onClick={(e) => handleSectionNav('servizi', e)} style={mobileNavLinkStyle}>I Nostri Servizi</a>
             <a href="/#recensioni" onClick={(e) => handleSectionNav('recensioni', e)} style={mobileNavLinkStyle}>Recensioni</a>
             <a href="/#orari" onClick={(e) => handleSectionNav('orari', e)} style={mobileNavLinkStyle}>Orari di Apertura</a>
