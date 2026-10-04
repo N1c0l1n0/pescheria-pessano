@@ -29,78 +29,167 @@ const POKE_FORMATS: FormatInfo[] = [
   },
 ];
 
-const INGREDIENT_GROUPS = [
+interface PokeBaseItem {
+  id: string;
+  name: string;
+  tagline: string;
+  desc: string;
+}
+
+const POKE_BASES: PokeBaseItem[] = [
   {
-    title: 'Le Basi',
-    subtitle: 'Scegli la base fresca',
-    items: ['Riso Bianco per sushi', 'Riso Venere integrale', 'Insalata mista fresca', 'Metà Riso e Metà Insalata'],
+    id: 'riso-bianco',
+    name: 'Riso Bianco per Sushi',
+    tagline: 'Tradizionale al vapore',
+    desc: 'Chicco tondo compatto, condito delicatamente con aceto di riso naturale.',
   },
   {
-    title: 'Le Proteine del Banco',
-    subtitle: 'Pesce freschissimo e opzioni selezionate',
+    id: 'riso-venere',
+    name: 'Riso Venere Integrale',
+    tagline: 'Aromatico & Ricco di fibre',
+    desc: 'Pregiato riso nero italiano dal caratteristico aroma tostato e consistenza corposa.',
+  },
+  {
+    id: 'insalata',
+    name: 'Insalata Misticanza',
+    tagline: 'Leggera & Croccante',
+    desc: 'Selezione di foglie tenere e freschissime del giorno, per una base verde e dissetante.',
+  },
+  {
+    id: 'meta-meta',
+    name: 'Metà Riso e Metà Insalata',
+    tagline: 'Equilibrio perfetto',
+    desc: 'La freschezza delle foglie verdi unita alla morbidezza e alla pienezza del riso.',
+  },
+];
+
+interface PokeProteinItem {
+  name: string;
+  extraPrice?: number;
+  highlight?: boolean;
+}
+
+const POKE_PROTEINS: PokeProteinItem[] = [
+  { name: 'Salmone Norvegese Crudo', highlight: true },
+  { name: 'Salmone Scottato alla fiamma' },
+  { name: 'Tonno Rosso Crudo', highlight: true },
+  { name: 'Tonno Scottato alla fiamma' },
+  { name: 'Gambero Cotto del Mediterraneo' },
+  { name: 'Polpo Verace a vapore', extraPrice: 1 },
+  { name: 'Gambero in Tempura dorata', extraPrice: 1 },
+  { name: 'Salmone in Tempura', extraPrice: 2 },
+  { name: 'Tonno in Tempura', extraPrice: 2 },
+  { name: 'Pollo Grigliato alle erbe' },
+  { name: 'Tofu naturale marinato' },
+];
+
+interface ToppingSubcategory {
+  categoryName: string;
+  subtitle: string;
+  items: Array<{ name: string; extraPrice?: number; isLocal?: boolean }>;
+}
+
+const POKE_TOPPING_CATEGORIES: ToppingSubcategory[] = [
+  {
+    categoryName: 'Freschezza & Ortaggi del Giorno',
+    subtitle: 'Verdure selezionate al mattino, croccanti, idratanti e ricche di vitamine',
     items: [
-      'Salmone Norvegese Crudo',
-      'Salmone Scottato alla fiamma',
-      'Tonno Rosso Crudo',
-      'Tonno Scottato alla fiamma',
-      'Gambero Cotto del Mediterraneo',
-      'Polpo Verace cotto a vapore',
-      'Gambero dorato in Tempura',
-      'Salmone in Tempura croccante',
-      'Tonno in Tempura',
-      'Pollo Grigliato alle erbe',
-      'Tofu naturale',
+      { name: 'Avocado fresco a fette' },
+      { name: 'Alghe Wakame marinate' },
+      { name: 'Edamame al vapore' },
+      { name: 'Pomodorini Datterini' },
+      { name: 'Cetrioli a rondelle' },
+      { name: 'Carote a julienne' },
+      { name: 'Cipolla Rossa di Tropea' },
+      { name: 'Mais dolce' },
+      { name: 'Zucchine trifolate' },
+      { name: 'Zenzero rosa marinato' },
+      { name: 'Surimi sfilacciato' },
     ],
   },
   {
-    title: 'Topping & Ingredienti Freschi',
-    subtitle: 'Verdure, semi, frutta esotica e croccantezza',
+    categoryName: 'Croccanti, Semi & Frutta Secca',
+    subtitle: 'Per dare consistenza, texture e una nota tostata irresistibile ad ogni boccone',
     items: [
-      'Avocado fresco a fette',
-      'Alghe Wakame marinate',
-      'Edamame al vapore',
-      'Pomodorini Datterini',
-      'Cetrioli a rondelle',
-      'Carote a julienne',
-      'Cipolla Crispy croccante',
-      'Cipolla Rossa di Tropea',
-      'Cipolla Caramellata',
-      'Mais dolce',
-      'Mandorle tostate',
-      'Granella di Nocciole',
-      'Granella di Pistacchio',
-      'Nachos artigianali',
-      'Philadelphia',
-      'Mozzarelline fresche',
-      'Scaglie di Grana Padano',
-      'Scaglie di Cocco',
-      'Semi di Girasole e Papavero',
-      'Olive Taggiasche liguri',
-      'Mango a cubetti',
-      'Feta greca DOP',
-      'Zenzero rosa marinato',
-      'Zucchine trifolate',
+      { name: 'Cipolla Crispy croccante' },
+      { name: 'Granella di Nocciole' },
+      { name: 'Mandorle tostate' },
+      { name: 'Nachos artigianali' },
+      { name: 'Semi di Girasole e Papavero' },
+      { name: 'Scaglie di Cocco' },
     ],
   },
   {
-    title: 'Salse Artigianali',
-    subtitle: 'Per esaltare ogni combinazione di sapore',
+    categoryName: 'Creme & Latticini',
+    subtitle: 'Morbidezza e sapidità per avvolgere gli ingredienti con delicatezza',
     items: [
-      'Salsa di Soia classica',
-      'Glassa di Aceto Balsamico',
-      'Crema di Avocado e lime',
-      'Salsa Teriyaki giapponese',
-      'Maionese classica',
-      'Spicy Mayo piccante',
-      'Maio Tabasco decisa',
-      'Salsa Rosa delicata',
-      'Salsa allo Yogurt fresco',
-      'Spicy Mango agrodolce',
-      'Pesto fresco alla Genovese',
-      'Olio EVO ligure & Olio piccante',
+      { name: 'Philadelphia fresco' },
+      { name: 'Mozzarelline fresche' },
+      { name: 'Scaglie di Grana Padano DOP' },
+    ],
+  },
+  {
+    categoryName: 'I Nostri Extra Gourmet (+1,00€)',
+    subtitle: 'Ingredienti speciali e tipicità del territorio per un tocco ricercato',
+    items: [
+      { name: 'Olive Taggiasche liguri', extraPrice: 1, isLocal: true },
+      { name: 'Granella di Pistacchio', extraPrice: 1 },
+      { name: 'Mango a cubetti fresco', extraPrice: 1 },
+      { name: 'Feta greca DOP', extraPrice: 1 },
+      { name: 'Cipolla Caramellata', extraPrice: 1 },
     ],
   },
 ];
+
+interface SauceSubcategory {
+  categoryName: string;
+  subtitle: string;
+  items: Array<{ name: string; spicy?: boolean; extraPrice?: number }>;
+}
+
+const POKE_SAUCE_CATEGORIES: SauceSubcategory[] = [
+  {
+    categoryName: 'Le Classiche & Delicate',
+    subtitle: 'Equilibrate e pulite, studiate per rispettare il sapore autentico del pesce',
+    items: [
+      { name: 'Salsa di Soia classica' },
+      { name: 'Olio EVO Riviera Ligure' },
+      { name: 'Glassa di Aceto Balsamico' },
+      { name: 'Maionese classica' },
+      { name: 'Salsa Rosa delicata' },
+      { name: 'Salsa allo Yogurt fresco' },
+      { name: 'Miele millefiori' },
+    ],
+  },
+  {
+    categoryName: 'Esotiche & Fruttate',
+    subtitle: 'Armonie agrodolci, agrumate e orientali',
+    items: [
+      { name: 'Crema di Avocado e lime' },
+      { name: 'Salsa Teriyaki giapponese' },
+      { name: 'Salsa Agrodolce' },
+      { name: 'Spicy Mango agrodolce' },
+    ],
+  },
+  {
+    categoryName: 'Note Piccanti & Decise',
+    subtitle: 'Sferzate di intensità calibrate per chi ama il gusto vivo',
+    items: [
+      { name: 'Spicy Mayo artigianale', spicy: true },
+      { name: 'Maio Tabasco decisa', spicy: true },
+      { name: 'Salsa Agropiccante', spicy: true },
+      { name: 'Olio Piccante aromatizzato', spicy: true },
+    ],
+  },
+  {
+    categoryName: 'L’Eccellenza del Nostro Territorio',
+    subtitle: 'Il profumo inconfondibile della Liguria nella tua poke bowl',
+    items: [
+      { name: 'Pesto fresco alla Genovese DOP', extraPrice: 1 },
+    ],
+  },
+];
+
 
 const FRITTI_ITEMS = [
   {
@@ -185,34 +274,11 @@ export const PokeAndFrittiShowcase: React.FC = () => {
           </p>
 
           {/* Tab Switcher */}
-          <div
-            style={{
-              display: 'inline-flex',
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              borderRadius: 'var(--radius-full)',
-              padding: '0.35rem',
-              marginTop: '1.75rem',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              gap: '0.35rem',
-            }}
-          >
+          <div className="poke-showcase-tabs">
             <button
               type="button"
               onClick={() => setActiveTab('poke')}
-              style={{
-                padding: '0.65rem 1.45rem',
-                borderRadius: 'var(--radius-full)',
-                border: 'none',
-                backgroundColor: activeTab === 'poke' ? 'var(--color-coral)' : 'transparent',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.92rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}
+              className={`poke-showcase-tab${activeTab === 'poke' ? ' poke-showcase-tab--active' : ''}`}
             >
               <Sparkles size={16} />
               <span>Poke Bowl Artigianale</span>
@@ -220,20 +286,7 @@ export const PokeAndFrittiShowcase: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('fritti')}
-              style={{
-                padding: '0.65rem 1.45rem',
-                borderRadius: 'var(--radius-full)',
-                border: 'none',
-                backgroundColor: activeTab === 'fritti' ? 'var(--color-coral)' : 'transparent',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.92rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}
+              className={`poke-showcase-tab${activeTab === 'fritti' ? ' poke-showcase-tab--active' : ''}`}
             >
               <Flame size={16} />
               <span>I Coni Fritti d'Asporto</span>
@@ -245,31 +298,12 @@ export const PokeAndFrittiShowcase: React.FC = () => {
         {activeTab === 'poke' && (
           <div>
             {/* Top Poke Hero & Formats Card */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                gap: '2rem',
-                alignItems: 'center',
-                backgroundColor: 'rgba(16, 44, 76, 0.65)',
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid rgba(232, 212, 154, 0.25)',
-                padding: '2rem',
-                backdropFilter: 'blur(10px)',
-                marginBottom: '2.5rem',
-              }}
-            >
-              <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+            <div className="poke-hero-card">
+              <div className="poke-hero-image-wrap">
                 <img
                   src="/poke/poke_bowl.jpg"
                   alt="Poke Bowl Fresca Pescheria Pessano"
-                  style={{
-                    width: '100%',
-                    height: '340px',
-                    objectFit: 'cover',
-                    display: 'block',
-                    borderRadius: 'var(--radius-md)',
-                  }}
+                  className="poke-hero-image"
                 />
                 <div
                   style={{
@@ -316,17 +350,7 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                   {POKE_FORMATS.map((fmt) => (
                     <div
                       key={fmt.name}
-                      style={{
-                        padding: '1rem 1.15rem',
-                        borderRadius: 'var(--radius-md)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: '0.5rem',
-                      }}
+                      className="poke-format-item"
                     >
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -360,88 +384,452 @@ export const PokeAndFrittiShowcase: React.FC = () => {
               </div>
             </div>
 
-            {/* List of Possible Ingredients (Non-clickable visual catalogue) */}
-            <div style={{ marginTop: '3rem' }}>
-              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                <h3 className="font-serif" style={{ fontSize: '1.65rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                  Tutti gli Ingredienti Disponibili
+            {/* List of Possible Ingredients (Sequential step-by-step showcase) */}
+            <div style={{ marginTop: '3.5rem' }}>
+              <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+                <span
+                  style={{
+                    fontSize: '0.74rem',
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-gold-soft)',
+                    fontWeight: 800,
+                  }}
+                >
+                  Architettura del Gusto
+                </span>
+                <h3 className="font-serif" style={{ fontSize: '1.9rem', fontWeight: 700, margin: '0.4rem 0 0.5rem 0', color: 'white' }}>
+                  Guida agli Ingredienti della Poke
                 </h3>
-                <p style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '0.9rem' }}>
-                  Una vasta selezione di ingredienti sempre freschi, preparati al mattino per offrirti qualità e gusto autentico.
+                <p style={{ color: 'rgba(255, 255, 255, 0.78)', fontSize: '0.94rem', maxWidth: '38rem', margin: '0 auto' }}>
+                  Dalla base ai condimenti d'autore: esplora le opzioni fresche del nostro banco preparate ogni mattina a Finale Ligure.
                 </p>
               </div>
 
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
-                  gap: '1.5rem',
-                }}
-              >
-                {INGREDIENT_GROUPS.map((group) => (
-                  <div
-                    key={group.title}
+              {/* SEZIONE 01: LE BASI */}
+              <div className="poke-section-card">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    flexWrap: 'wrap',
+                    gap: '1rem',
+                    marginBottom: '1.5rem',
+                    paddingBottom: '1.25rem',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  <div>
+                    <span
+                      style={{
+                        backgroundColor: 'rgba(232, 212, 154, 0.12)',
+                        border: '1px solid rgba(232, 212, 154, 0.3)',
+                        color: 'var(--color-gold-soft)',
+                        fontSize: '0.76rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.08em',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: 'var(--radius-full)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                      }}
+                    >
+                      01 / LE BASI
+                    </span>
+                    <h4 className="font-serif" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', margin: '0.5rem 0 0.25rem 0' }}>
+                      Scegli il Fondo della Ciotola
+                    </h4>
+                    <p style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.72)', margin: 0 }}>
+                      Chicchi selezionati a cottura vapore o insalata fresca per creare il fondo ideale.
+                    </p>
+                  </div>
+
+                  <span
                     style={{
-                      padding: '1.4rem',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'rgba(11, 37, 69, 0.75)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      display: 'flex',
-                      flexDirection: 'column',
+                      fontSize: '0.8rem',
+                      padding: '0.35rem 0.85rem',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(255, 255, 255, 0.14)',
+                      color: 'var(--color-gold-soft)',
+                      fontWeight: 600,
                     }}
                   >
-                    <div style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '0.75rem' }}>
-                      <h4 className="font-serif" style={{ fontSize: '1.18rem', fontWeight: 700, color: 'var(--color-gold-soft)', margin: 0 }}>
-                        {group.title}
-                      </h4>
-                      <p style={{ fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.65)', margin: '0.2rem 0 0 0' }}>
-                        {group.subtitle}
+                    1 base per Regular · Fino a 2 per XL
+                  </span>
+                </div>
+
+                <div className="poke-subgrid-bases">
+                  {POKE_BASES.map((b) => (
+                    <div
+                      key={b.id}
+                      style={{
+                        padding: '1.2rem',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.45rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-gold-soft)', fontWeight: 700 }}>
+                          {b.tagline}
+                        </span>
+                        <Check size={14} color="var(--color-gold-soft)" />
+                      </div>
+                      <strong style={{ fontSize: '1.05rem', color: 'white' }}>{b.name}</strong>
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.45 }}>
+                        {b.desc}
                       </p>
                     </div>
+                  ))}
+                </div>
+              </div>
 
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
-                      {group.items.map((item) => (
+              {/* SEZIONE 02: LE PROTEINE */}
+              <div className="poke-section-card">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    flexWrap: 'wrap',
+                    gap: '1rem',
+                    marginBottom: '1.5rem',
+                    paddingBottom: '1.25rem',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  <div>
+                    <span
+                      style={{
+                        backgroundColor: 'rgba(232, 212, 154, 0.12)',
+                        border: '1px solid rgba(232, 212, 154, 0.3)',
+                        color: 'var(--color-gold-soft)',
+                        fontSize: '0.76rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.08em',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: 'var(--radius-full)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                      }}
+                    >
+                      02 / LE PROTEINE DEL BANCO
+                    </span>
+                    <h4 className="font-serif" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', margin: '0.5rem 0 0.25rem 0' }}>
+                      Il Cuore Marinaro della Pescheria
+                    </h4>
+                    <p style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.72)', margin: 0 }}>
+                      Pesce freschissimo sfilettato al momento, crudi nobili abbattuti a norma e preparazioni calde espresse.
+                    </p>
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: '0.8rem',
+                      padding: '0.35rem 0.85rem',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(255, 255, 255, 0.14)',
+                      color: 'var(--color-gold-soft)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    1 proteina per Regular · 2 per Regular+ · 3 per XL
+                  </span>
+                </div>
+
+                <div className="poke-subgrid-proteins">
+                  {POKE_PROTEINS.map((p) => (
+                    <div
+                      key={p.name}
+                      style={{
+                        padding: '1rem 1.15rem',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                        border: p.highlight ? '1px solid rgba(232, 212, 154, 0.35)' : '1px solid rgba(255, 255, 255, 0.1)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                      }}
+                    >
+                      <strong style={{ fontSize: '0.98rem', color: 'white', lineHeight: 1.35 }}>{p.name}</strong>
+                      {p.extraPrice ? (
                         <span
-                          key={item}
                           style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            padding: '0.35rem 0.75rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 800,
+                            padding: '0.15rem 0.5rem',
                             borderRadius: 'var(--radius-full)',
-                            backgroundColor: 'rgba(255, 255, 255, 0.07)',
-                            border: '1px solid rgba(255, 255, 255, 0.14)',
-                            fontSize: '0.82rem',
-                            color: 'rgba(255, 255, 255, 0.92)',
-                            cursor: 'default',
-                            userSelect: 'none',
+                            backgroundColor: 'rgba(201, 162, 39, 0.22)',
+                            border: '1px solid rgba(201, 162, 39, 0.5)',
+                            color: 'var(--color-gold-soft)',
+                            whiteSpace: 'nowrap',
                           }}
                         >
-                          <Check size={12} color="var(--color-gold-soft)" style={{ flexShrink: 0 }} />
-                          <span>{item}</span>
+                          +{p.extraPrice.toFixed(2)}€
                         </span>
-                      ))}
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* SEZIONE 03: I TOPPING */}
+              <div className="poke-section-card">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    flexWrap: 'wrap',
+                    gap: '1rem',
+                    marginBottom: '1.75rem',
+                    paddingBottom: '1.25rem',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  <div>
+                    <span
+                      style={{
+                        backgroundColor: 'rgba(232, 212, 154, 0.12)',
+                        border: '1px solid rgba(232, 212, 154, 0.3)',
+                        color: 'var(--color-gold-soft)',
+                        fontSize: '0.76rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.08em',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: 'var(--radius-full)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                      }}
+                    >
+                      03 / I TOPPING & LE FRESCHEZZE
+                    </span>
+                    <h4 className="font-serif" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', margin: '0.5rem 0 0.25rem 0' }}>
+                      Texture, Ortaggi & Tocchi Gourmet
+                    </h4>
+                    <p style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.72)', margin: 0 }}>
+                      Organizzati per note sensoriali: croccantezza, freschezza vegetale, morbidezza e tipicità locali.
+                    </p>
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: '0.8rem',
+                      padding: '0.35rem 0.85rem',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(255, 255, 255, 0.14)',
+                      color: 'var(--color-gold-soft)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    3 topping per Regular · 5 topping per XL
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  {POKE_TOPPING_CATEGORIES.map((cat, idx) => (
+                    <div
+                      key={cat.categoryName}
+                      style={{
+                        padding: '1.35rem',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: idx === 3 ? 'rgba(201, 162, 39, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                        border: idx === 3 ? '1px solid rgba(201, 162, 39, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                        <div>
+                          <h5 style={{ fontSize: '1.02rem', fontWeight: 700, color: idx === 3 ? 'var(--color-gold-soft)' : 'white', margin: 0 }}>
+                            {cat.categoryName}
+                          </h5>
+                          <p style={{ fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.65)', margin: '0.15rem 0 0 0' }}>
+                            {cat.subtitle}
+                          </p>
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: 'rgba(255, 255, 255, 0.55)', fontWeight: 600 }}>
+                          {cat.items.length} opzioni
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
+                        {cat.items.map((item) => (
+                          <span
+                            key={item.name}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.45rem',
+                              padding: '0.45rem 0.85rem',
+                              borderRadius: 'var(--radius-full)',
+                              backgroundColor: item.extraPrice ? 'rgba(201, 162, 39, 0.16)' : 'rgba(255, 255, 255, 0.06)',
+                              border: item.extraPrice ? '1px solid rgba(201, 162, 39, 0.45)' : '1px solid rgba(255, 255, 255, 0.12)',
+                              fontSize: '0.85rem',
+                              color: 'rgba(255, 255, 255, 0.95)',
+                            }}
+                          >
+                            <Check size={12} color={item.extraPrice ? 'var(--color-gold-soft)' : 'var(--color-sea-blue)'} style={{ flexShrink: 0 }} />
+                            <span>{item.name}</span>
+                            {item.extraPrice && (
+                              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-gold-soft)' }}>
+                                +{item.extraPrice.toFixed(2)}€
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* SEZIONE 04: LE SALSE */}
+              <div className="poke-section-card">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    flexWrap: 'wrap',
+                    gap: '1rem',
+                    marginBottom: '1.75rem',
+                    paddingBottom: '1.25rem',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  <div>
+                    <span
+                      style={{
+                        backgroundColor: 'rgba(232, 212, 154, 0.12)',
+                        border: '1px solid rgba(232, 212, 154, 0.3)',
+                        color: 'var(--color-gold-soft)',
+                        fontSize: '0.76rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.08em',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: 'var(--radius-full)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                      }}
+                    >
+                      04 / LE SALSE ARTIGIANALI
+                    </span>
+                    <h4 className="font-serif" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', margin: '0.5rem 0 0.25rem 0' }}>
+                      Emulsioni & Condimenti di Mare
+                    </h4>
+                    <p style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.72)', margin: 0 }}>
+                      Preparate fresche per legare gli ingredienti, con profili delicati, agrodolci, speziati e liguri.
+                    </p>
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: '0.8rem',
+                      padding: '0.35rem 0.85rem',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(255, 255, 255, 0.14)',
+                      color: 'var(--color-gold-soft)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    2 salse per Regular · Fino a 4 per XL
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
+                  {POKE_SAUCE_CATEGORIES.map((cat, idx) => (
+                    <div
+                      key={cat.categoryName}
+                      style={{
+                        padding: '1.25rem',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: idx === 3 ? 'rgba(34, 197, 94, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                        border: idx === 3 ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      }}
+                    >
+                      <div style={{ marginBottom: '0.85rem' }}>
+                        <h5 style={{ fontSize: '0.98rem', fontWeight: 700, color: idx === 3 ? '#86efac' : 'white', margin: 0 }}>
+                          {cat.categoryName}
+                        </h5>
+                        <p style={{ fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.65)', margin: '0.15rem 0 0 0' }}>
+                          {cat.subtitle}
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
+                        {cat.items.map((item) => (
+                          <span
+                            key={item.name}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.45rem',
+                              padding: '0.42rem 0.85rem',
+                              borderRadius: 'var(--radius-full)',
+                              backgroundColor: item.spicy
+                                ? 'rgba(239, 68, 68, 0.14)'
+                                : item.extraPrice
+                                ? 'rgba(201, 162, 39, 0.16)'
+                                : 'rgba(255, 255, 255, 0.06)',
+                              border: item.spicy
+                                ? '1px solid rgba(239, 68, 68, 0.35)'
+                                : item.extraPrice
+                                ? '1px solid rgba(201, 162, 39, 0.45)'
+                                : '1px solid rgba(255, 255, 255, 0.12)',
+                              fontSize: '0.85rem',
+                              color: 'rgba(255, 255, 255, 0.95)',
+                            }}
+                          >
+                            {item.spicy && <Flame size={13} color="#f87171" style={{ flexShrink: 0 }} />}
+                            {!item.spicy && <Check size={12} color="var(--color-gold-soft)" style={{ flexShrink: 0 }} />}
+                            <span>{item.name}</span>
+                            {item.extraPrice && (
+                              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-gold-soft)' }}>
+                                +{item.extraPrice.toFixed(2)}€
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Sesamo Footnote Bar */}
+                  <div
+                    style={{
+                      padding: '1.1rem 1.35rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'rgba(232, 212, 154, 0.08)',
+                      border: '1px dashed rgba(232, 212, 154, 0.35)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.85rem',
+                      marginTop: '0.5rem',
+                    }}
+                  >
+                    <Sparkles size={18} color="var(--color-gold-soft)" style={{ flexShrink: 0 }} />
+                    <div style={{ fontSize: '0.86rem', color: 'rgba(255, 255, 255, 0.88)', lineHeight: 1.5 }}>
+                      <strong style={{ color: 'var(--color-gold-soft)' }}>Tocco finale: Semi di Sesamo Tostato</strong> — Sempre disponibili su richiesta: aggiungiamo una spolverata di sesamo tostato per completare il sapore e l’estetica della tua poke bowl.
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
 
             {/* Poke Call to action banner */}
-            <div
-              style={{
-                marginTop: '3rem',
-                padding: '1.4rem 1.85rem',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'rgba(16, 44, 76, 0.85)',
-                border: '1px solid rgba(232, 212, 154, 0.3)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1.25rem',
-              }}
-            >
+            <div className="poke-cta-card">
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div
                   style={{
@@ -488,13 +876,7 @@ export const PokeAndFrittiShowcase: React.FC = () => {
         {/* TAB 2: CONI FRITTI SHOWCASE */}
         {activeTab === 'fritti' && (
           <div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
-                gap: '2rem',
-              }}
-            >
+            <div className="fritti-grid">
               {FRITTI_ITEMS.map((item) => (
                 <div
                   key={item.id}
@@ -596,20 +978,7 @@ export const PokeAndFrittiShowcase: React.FC = () => {
             </div>
 
             {/* Fritti Callout */}
-            <div
-              style={{
-                marginTop: '3rem',
-                padding: '1.5rem 2rem',
-                borderRadius: 'var(--radius-lg)',
-                backgroundColor: 'rgba(16, 44, 76, 0.85)',
-                border: '1px solid rgba(232, 212, 154, 0.3)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1.25rem',
-              }}
-            >
+            <div className="poke-cta-card">
               <div style={{ maxWidth: '620px' }}>
                 <h4 className="font-serif" style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 0 0.3rem 0', color: 'white' }}>
                   Fritti sempre espressi: caldi e croccanti al momento

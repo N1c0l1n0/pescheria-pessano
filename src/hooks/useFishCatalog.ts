@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FishItem } from '../types/fishCatalog';
 import { fetchFishCatalog } from '../utils/fishCatalog';
+import { FISH_CATALOG_DEFAULTS } from '../data/fishCatalogDefaults';
 
 interface UseFishCatalogOptions {
   includeInactive?: boolean;
@@ -8,12 +9,14 @@ interface UseFishCatalogOptions {
 
 export function useFishCatalog(options: UseFishCatalogOptions = {}) {
   const { includeInactive = false } = options;
-  const [items, setItems] = useState<FishItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<FishItem[]>(() =>
+    FISH_CATALOG_DEFAULTS.filter((item) => includeInactive || item.isActive !== false)
+  );
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async (options?: { silent?: boolean }) => {
-    if (!options?.silent) setLoading(true);
+    if (!options?.silent && items.length === 0) setLoading(true);
     setError(null);
     try {
       const catalog = await fetchFishCatalog(includeInactive);
@@ -23,7 +26,7 @@ export function useFishCatalog(options: UseFishCatalogOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [includeInactive]);
+  }, [includeInactive, items.length]);
 
   const replaceItem = useCallback((next: FishItem) => {
     setItems((prev) => {

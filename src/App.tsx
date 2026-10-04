@@ -35,9 +35,7 @@ function ScrollToHash() {
       const id = hash.replace('#', '');
       const element = document.getElementById(id);
       if (element) {
-        setTimeout(() => {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+        element.scrollIntoView({ behavior: 'smooth' });
       }
     }
   }, [pathname, hash]);
