@@ -227,7 +227,7 @@ function markAdminAuthenticated(): void {
 
 /** Local fallback for Vite dev when the Cloudflare worker is not running. */
 function authenticateAdminLocally(pin: string): boolean {
-  if (pin === getAdminPin()) {
+  if (digitsOnly(pin) === digitsOnly(getAdminPin())) {
     markAdminAuthenticated();
     return true;
   }
@@ -239,7 +239,7 @@ function authenticateAdminLocally(pin: string): boolean {
  * Falls back to build-time VITE_FISH_ADMIN_PIN only in local dev.
  */
 export async function authenticateAdmin(pin: string): Promise<boolean> {
-  const trimmed = pin.trim();
+  const trimmed = digitsOnly(pin);
   if (!trimmed) return false;
 
   try {

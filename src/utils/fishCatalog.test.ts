@@ -7,6 +7,10 @@ import {
   upsertFishItem,
   updateFishSortOrders,
   deleteFishItem,
+  authenticateAdmin,
+  isAdminAuthenticated,
+  logoutAdmin,
+  getAdminPin,
 } from './fishCatalog';
 import type { FishItem } from '../types/fishCatalog';
 
@@ -107,6 +111,84 @@ describe('local storage persistence and synchronization', () => {
     saveLocalFishCatalog([{ ...testItem, pricePerKg: 99 }]);
     const catalog = await fetchFishCatalog(true);
     expect(catalog.find((i) => i.id === 'test-fish')?.pricePerKg).toBe(99);
+  });
+});
+
+describe('authenticateAdmin', () => {
+  const mockSession: Record<string, string> = {};
+
+  beforeEach(() => {
+    for (const key in mockSession) delete mockSession[key];
+    vi.stubGlobal('sessionStorage', {
+      getItem: (key: string) => mockSession[key] ?? null,
+      setItem: (key: string, val: string) => {
+        mockSession[key] = val;
+      },
+      removeItem: (key: string) => {
+        delete mockSession[key];
+      },
+      clear: () => {
+        for (const key in mockSession) delete mockSession[key];
+      },
+    });
+    vi.restoreAllMocks();
+  });
+
+  it('getAdminPin defaults to 2134', () => {
+    expect(getAdminPin()).toBe('2134');
+  });
+
+  it('authenticates with remote verify endpoint when worker returns ok: true', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      json: async () => ({ ok: true }),
+    }));
+
+    const result = await authenticateAdmin('2134');
+    expect(result).toBe(true);
+    expect(isAdminAuthenticated()).toBe(true);
+  });
+
+  it('fails authentication when worker returns 401 invalid_pin', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 401,
+      ok: false,
+      json: async () => ({ ok: false, error: 'invalid_pin' }),
+    }));
+
+    const result = await authenticateAdmin('9999');
+    expect(result).toBe(false);
+    expect(isAdminAuthenticated()).toBe(false);
+  });
+
+  it('falls back to local verification when endpoint is 404', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 404,
+      ok: false,
+    }));
+
+    const result = await authenticateAdmin('2134');
+    expect(result).toBe(true);
+    expect(isAdminAuthenticated()).toBe(true);
+  });
+
+  it('rejects wrong PIN on 404 local fallback', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 404,
+      ok: false,
+    }));
+
+    const result = await authenticateAdmin('0000');
+    expect(result).toBe(false);
+    expect(isAdminAuthenticated()).toBe(false);
+  });
+
+  it('logoutAdmin clears authentication', async () => {
+    mockSession.fish_admin_auth = '1';
+    expect(isAdminAuthenticated()).toBe(true);
+    logoutAdmin();
+    expect(isAdminAuthenticated()).toBe(false);
   });
 });
 

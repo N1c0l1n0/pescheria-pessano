@@ -2,12 +2,26 @@ interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> };
   FISH_ADMIN_PIN?: string;
   VITE_FISH_ADMIN_PIN?: string;
+  KDS_ADMIN_PIN?: string;
+  VITE_KDS_ADMIN_PIN?: string;
 }
 
-const DEFAULT_PIN = 'pessano2026';
+const DEFAULT_PIN = '2134';
+
+function digitsOnly(value: string): string {
+  return value.replace(/\D/g, '');
+}
 
 function resolveAdminPin(env: Env): string {
-  return env.FISH_ADMIN_PIN?.trim() || env.VITE_FISH_ADMIN_PIN?.trim() || DEFAULT_PIN;
+  return (
+    digitsOnly(
+      env.FISH_ADMIN_PIN ||
+      env.VITE_FISH_ADMIN_PIN ||
+      env.KDS_ADMIN_PIN ||
+      env.VITE_KDS_ADMIN_PIN ||
+      DEFAULT_PIN
+    )
+  );
 }
 
 async function verifyFishAdminPin(request: Request, env: Env): Promise<Response> {
@@ -18,7 +32,7 @@ async function verifyFishAdminPin(request: Request, env: Env): Promise<Response>
     return Response.json({ ok: false, error: 'invalid_payload' }, { status: 400 });
   }
 
-  const submitted = String(body.pin ?? '').trim();
+  const submitted = digitsOnly(String(body.pin ?? ''));
   if (!submitted) {
     return Response.json({ ok: false, error: 'missing_pin' }, { status: 400 });
   }
