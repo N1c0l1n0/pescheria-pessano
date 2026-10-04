@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FishItem } from '../types/fishCatalog';
-import { fetchFishCatalog } from '../utils/fishCatalog';
+import {
+  fetchFishCatalog,
+  getLocalFishCatalog,
+  FISH_CATALOG_UPDATE_EVENT,
+} from '../utils/fishCatalog';
 import { FISH_CATALOG_DEFAULTS } from '../data/fishCatalogDefaults';
 
 interface UseFishCatalogOptions {
@@ -9,14 +13,17 @@ interface UseFishCatalogOptions {
 
 export function useFishCatalog(options: UseFishCatalogOptions = {}) {
   const { includeInactive = false } = options;
-  const [items, setItems] = useState<FishItem[]>(() =>
-    FISH_CATALOG_DEFAULTS.filter((item) => includeInactive || item.isActive !== false)
-  );
+  const [items, setItems] = useState<FishItem[]>(() => {
+    const local = getLocalFishCatalog();
+    const source = local && local.length > 0 ? local : FISH_CATALOG_DEFAULTS;
+    const sorted = [...source].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    return sorted.filter((item) => includeInactive || item.isActive !== false);
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async (options?: { silent?: boolean }) => {
-    if (!options?.silent && items.length === 0) setLoading(true);
+    if (!options?.silent) setLoading(true);
     setError(null);
     try {
       const catalog = await fetchFishCatalog(includeInactive);
@@ -26,7 +33,7 @@ export function useFishCatalog(options: UseFishCatalogOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [includeInactive, items.length]);
+  }, [includeInactive]);
 
   const replaceItem = useCallback((next: FishItem) => {
     setItems((prev) => {
@@ -46,6 +53,27 @@ export function useFishCatalog(options: UseFishCatalogOptions = {}) {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      const local = getLocalFishCatalog();
+      if (local && local.length > 0) {
+        const sorted = [...local].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+        setItems(sorted.filter((item) => includeInactive || item.isActive !== false));
+      } else {
+        void reload({ silent: true });
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener(FISH_CATALOG_UPDATE_EVENT, handleUpdate);
+      window.addEventListener('storage', handleUpdate);
+      return () => {
+        window.removeEventListener(FISH_CATALOG_UPDATE_EVENT, handleUpdate);
+        window.removeEventListener('storage', handleUpdate);
+      };
+    }
+  }, [includeInactive, reload]);
 
   return { items, loading, error, reload, replaceItem, replaceAll, removeItem };
 }

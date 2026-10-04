@@ -1,5 +1,14 @@
-import { describe, expect, it } from 'vitest';
-import { digitsOnly } from './fishCatalog';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  digitsOnly,
+  getLocalFishCatalog,
+  saveLocalFishCatalog,
+  fetchFishCatalog,
+  upsertFishItem,
+  updateFishSortOrders,
+  deleteFishItem,
+} from './fishCatalog';
+import type { FishItem } from '../types/fishCatalog';
 
 describe('digitsOnly', () => {
   it('keeps an already numeric PIN', () => {
@@ -14,3 +23,90 @@ describe('digitsOnly', () => {
     expect(digitsOnly('')).toBe('');
   });
 });
+
+describe('local storage persistence and synchronization', () => {
+  const mockStorage: Record<string, string> = {};
+
+  beforeEach(() => {
+    for (const key in mockStorage) delete mockStorage[key];
+
+    // Mock localStorage and window events for node environment
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => mockStorage[key] ?? null,
+      setItem: (key: string, val: string) => {
+        mockStorage[key] = val;
+      },
+      removeItem: (key: string) => {
+        delete mockStorage[key];
+      },
+      clear: () => {
+        for (const key in mockStorage) delete mockStorage[key];
+      },
+    });
+
+    vi.stubGlobal('window', {
+      localStorage: globalThis.localStorage,
+      dispatchEvent: vi.fn(),
+    });
+  });
+
+  const testItem: FishItem = {
+    id: 'test-fish',
+    name: 'Pesce Prova',
+    origin: 'Mar Ligure',
+    locationDetail: '',
+    pricePerKg: 35.5,
+    image: '/pesce/test.jpg',
+    description: 'Ottimo fresco',
+    cookingTip: 'In padella',
+    winePairing: 'Pigato',
+    isPopular: true,
+    isActive: true,
+    sortOrder: 0,
+  };
+
+  it('saves and reads catalog from local storage', () => {
+    saveLocalFishCatalog([testItem]);
+    const loaded = getLocalFishCatalog();
+    expect(loaded).toEqual([testItem]);
+    expect(window.dispatchEvent).toHaveBeenCalled();
+  });
+
+  it('upsertFishItem updates local catalog and persists modifications', async () => {
+    saveLocalFishCatalog([testItem]);
+    const updated = { ...testItem, pricePerKg: 40 };
+    await upsertFishItem(updated);
+
+    const loaded = getLocalFishCatalog();
+    expect(loaded?.[0].pricePerKg).toBe(40);
+  });
+
+  it('updateFishSortOrders updates sort order in local catalog', async () => {
+    const item2 = { ...testItem, id: 'test-fish-2', sortOrder: 1 };
+    saveLocalFishCatalog([testItem, item2]);
+
+    await updateFishSortOrders([
+      { id: 'test-fish', sortOrder: 1 },
+      { id: 'test-fish-2', sortOrder: 0 },
+    ]);
+
+    const loaded = getLocalFishCatalog();
+    expect(loaded?.find((i) => i.id === 'test-fish')?.sortOrder).toBe(1);
+    expect(loaded?.find((i) => i.id === 'test-fish-2')?.sortOrder).toBe(0);
+  });
+
+  it('deleteFishItem removes item from local catalog', async () => {
+    saveLocalFishCatalog([testItem]);
+    await deleteFishItem(testItem.id);
+
+    const loaded = getLocalFishCatalog();
+    expect(loaded?.find((i) => i.id === testItem.id)).toBeUndefined();
+  });
+
+  it('fetchFishCatalog falls back to local storage when remote is empty or offline', async () => {
+    saveLocalFishCatalog([{ ...testItem, pricePerKg: 99 }]);
+    const catalog = await fetchFishCatalog(true);
+    expect(catalog.find((i) => i.id === 'test-fish')?.pricePerKg).toBe(99);
+  });
+});
+
