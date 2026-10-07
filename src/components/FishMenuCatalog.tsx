@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Waves, Anchor, Sparkles, Search, Info, X, ShieldCheck, MessageCircle } from 'lucide-react';
+import { Waves, Anchor, Sparkles, Search, Info, X, ShieldCheck, MessageCircle, ZoomIn } from 'lucide-react';
 import { useFishCatalog } from '../hooks/useFishCatalog';
 import type { FishItem } from '../types/fishCatalog';
 import { FEATURES } from '../constants/features';
@@ -145,17 +145,15 @@ export const FishMenuCatalog: React.FC = () => {
               />
 
               {/* Card Image Container */}
-              <div style={{ position: 'relative', height: '220px', overflow: 'hidden', backgroundColor: '#0B2545' }}>
+              <div className="fish-card-media">
                 <img
                   src={item.image}
                   alt={item.name}
                   loading="lazy"
                   decoding="async"
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    transition: 'transform 0.5s ease',
+                    objectPosition:
+                      item.id === 'nasello' ? 'center 22%' : item.id === 'polpo' ? 'center 32%' : 'center',
                   }}
                   className="fish-card-img"
                   onError={(e) => {
@@ -163,21 +161,12 @@ export const FishMenuCatalog: React.FC = () => {
                   }}
                 />
 
-                {/* Gradient overlay for text contrast */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'linear-gradient(to top, rgba(11, 37, 69, 0.7) 0%, transparent 60%)',
-                  }}
-                />
-
                 {/* Top Left Origin Badge */}
                 <div
                   style={{
                     position: 'absolute',
-                    top: '1rem',
-                    left: '1rem',
+                    top: '0.85rem',
+                    left: '0.85rem',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.35rem',
@@ -190,6 +179,7 @@ export const FishMenuCatalog: React.FC = () => {
                     fontWeight: 800,
                     border: '1px solid rgba(255, 255, 255, 0.2)',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 2,
                   }}
                 >
                   {item.origin === 'Mar Ligure' ? (
@@ -205,7 +195,15 @@ export const FishMenuCatalog: React.FC = () => {
                   )}
                 </div>
 
-
+                {/* Top Right Zoom Badge */}
+                <div
+                  className="fish-card-zoom-badge"
+                  title="Visualizza foto completa"
+                  aria-hidden="true"
+                  style={{ zIndex: 2 }}
+                >
+                  <ZoomIn size={15} />
+                </div>
               </div>
 
               {/* Card Body */}

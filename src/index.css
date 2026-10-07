@@ -1265,21 +1265,66 @@ textarea:focus {
   }
 }
 
-/* Fish Card Hover Effects */
+/* Fish Card Styles */
 .fish-card-hover {
-  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease, border-color 0.3s ease;
-  background: var(--color-cream) !important;
-  border-color: rgba(10, 35, 66, 0.07) !important;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.3s ease;
+  background: #ffffff !important;
+  border-color: rgba(10, 35, 66, 0.08) !important;
 }
 
 .fish-card-hover:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 44px rgba(10, 35, 66, 0.16) !important;
-  border-color: rgba(201, 162, 39, 0.3) !important;
+  transform: translateY(-6px);
+  box-shadow: 0 16px 36px rgba(10, 35, 66, 0.12) !important;
+  border-color: rgba(201, 162, 39, 0.35) !important;
+}
+
+.fish-card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: linear-gradient(145deg, #f8fafc 0%, #e8eef5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fish-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .fish-card-hover:hover .fish-card-img {
-  transform: scale(1.07);
+  transform: scale(1.03);
+}
+
+.fish-card-zoom-badge {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: rgba(11, 37, 69, 0.65);
+  backdrop-filter: blur(8px);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.25s ease;
+  opacity: 0.85;
+}
+
+.fish-card-hover:hover .fish-card-zoom-badge {
+  opacity: 1;
+  background: rgba(19, 64, 116, 0.9);
+  transform: scale(1.08);
 }
 
 /* Mobile Responsive Adjustments for Fish Catalog */
@@ -3930,7 +3975,7 @@ body:has(.fish-admin-shell) {
 
 .fish-admin-photo img {
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
   border-radius: 16px;
   border: 1px solid var(--banco-line);
