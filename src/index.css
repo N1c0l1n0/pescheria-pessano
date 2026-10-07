@@ -144,6 +144,13 @@
   --radius-full: 9999px;
 
   --header-height: 78px;
+
+  /* transitions-dev: 06-modal motion tokens */
+  --modal-open-dur: 250ms;
+  --modal-close-dur: 150ms;
+  --modal-scale: 0.96;
+  --modal-scale-close: 0.96;
+  --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * {
@@ -1380,6 +1387,103 @@ textarea:focus {
     max-height: 85vh !important;
     overflow-y: auto !important;
     border-radius: var(--radius-md) !important;
+  }
+}
+
+/* ==========================================================================
+   transitions-dev: 06-modal (Modal open / close)
+   ========================================================================== */
+.t-modal {
+  transform-origin: center;
+  transform: scale(var(--modal-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--modal-open-dur) var(--modal-ease),
+    opacity   var(--modal-open-dur) var(--modal-ease);
+  will-change: transform, opacity;
+}
+
+.t-modal.is-open {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.t-modal.is-closing {
+  transform: scale(var(--modal-scale-close));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--modal-close-dur) var(--modal-ease),
+    opacity   var(--modal-close-dur) var(--modal-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-modal { transition: none !important; }
+}
+
+/* Modal backdrop overlay transition */
+.t-modal-backdrop {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--modal-open-dur) var(--modal-ease);
+  will-change: opacity;
+}
+
+.t-modal-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.t-modal-backdrop.is-closing {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--modal-close-dur) var(--modal-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-modal-backdrop { transition: none !important; }
+}
+
+/* Fish modal specific image zoom & reveal */
+.fish-modal-image-wrap {
+  position: relative;
+  max-height: 65vh;
+  background-color: #05101F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  overflow: hidden;
+}
+
+.fish-modal-image {
+  max-width: 100%;
+  max-height: 60vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  border-radius: var(--radius-sm);
+  transition: transform var(--modal-open-dur) var(--modal-ease);
+  transform: scale(0.97);
+  will-change: transform;
+}
+
+.t-modal.is-open .fish-modal-image {
+  transform: scale(1);
+}
+
+.t-modal.is-closing .fish-modal-image {
+  transform: scale(0.97);
+  transition: transform var(--modal-close-dur) var(--modal-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fish-modal-image {
+    transition: none !important;
+    transform: none !important;
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Waves, Anchor, Sparkles, Search, Info, X, ShieldCheck, MessageCircle, ZoomIn } from 'lucide-react';
 import { useFishCatalog } from '../hooks/useFishCatalog';
 import type { FishItem } from '../types/fishCatalog';
@@ -11,6 +11,63 @@ export const FishMenuCatalog: React.FC = () => {
   const [activeOrigin, setActiveOrigin] = useState<'all' | 'Mar Ligure' | 'Medit. Occ.'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFish, setSelectedFish] = useState<FishItem | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const closeTimeoutRef = useRef<number | null>(null);
+
+  const handleOpenFish = (item: FishItem) => {
+    if (closeTimeoutRef.current) {
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setSelectedFish(item);
+    setIsClosing(false);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsModalOpen(true);
+      });
+    });
+  };
+
+  const handleCloseFish = useCallback(() => {
+    if (!selectedFish || isClosing) return;
+    setIsClosing(true);
+    setIsModalOpen(false);
+
+    const closeMs =
+      parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--modal-close-dur')
+      ) || 150;
+
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setSelectedFish(null);
+      setIsClosing(false);
+      closeTimeoutRef.current = null;
+    }, closeMs);
+  }, [selectedFish, isClosing]);
+
+  useEffect(() => {
+    if (!selectedFish) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCloseFish();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedFish, handleCloseFish]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const filteredItems = items.filter((item) => {
     const matchesOrigin = activeOrigin === 'all' ? true : item.origin === activeOrigin;
@@ -120,7 +177,7 @@ export const FishMenuCatalog: React.FC = () => {
           {filteredItems.map((item) => (
             <div
               key={item.id}
-              onClick={() => setSelectedFish(item)}
+              onClick={() => handleOpenFish(item)}
               style={{
                 backgroundColor: 'white',
                 borderRadius: 'var(--radius-lg)',
@@ -373,25 +430,29 @@ export const FishMenuCatalog: React.FC = () => {
         </div>
       </div>
 
-      {/* Clean Full-Image Lightbox Modal (Full image + Name ONLY) */}
+      {/* Clean Full-Image Lightbox Modal (transitions-dev 06-modal) */}
       {selectedFish && (
         <div
-          className="fish-modal-container"
+          className={`t-modal-backdrop fish-modal-container ${isModalOpen && !isClosing ? 'is-open' : ''} ${isClosing ? 'is-closing' : ''}`}
           style={{
             position: 'fixed',
             inset: 0,
             zIndex: 2000,
             backgroundColor: 'rgba(11, 37, 69, 0.85)',
             backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '1rem',
           }}
-          onClick={() => setSelectedFish(null)}
+          onClick={handleCloseFish}
         >
           <div
-            className="fish-modal-content"
+            className={`t-modal fish-modal-content ${isModalOpen && !isClosing ? 'is-open' : ''} ${isClosing ? 'is-closing' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label={selectedFish.name}
             style={{
               backgroundColor: 'var(--color-ocean-dark)',
               borderRadius: 'var(--radius-lg)',
@@ -407,7 +468,8 @@ export const FishMenuCatalog: React.FC = () => {
             {/* Modal Close Button */}
             <button
               type="button"
-              onClick={() => setSelectedFish(null)}
+              onClick={handleCloseFish}
+              aria-label="Chiudi dettaglio pesce"
               style={{
                 position: 'absolute',
                 top: '0.85rem',
@@ -430,28 +492,13 @@ export const FishMenuCatalog: React.FC = () => {
             </button>
 
             {/* Modal Full Uncropped Image */}
-            <div
-              style={{
-                position: 'relative',
-                maxHeight: '65vh',
-                backgroundColor: '#05101F',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.5rem',
-              }}
-            >
+            <div className="fish-modal-image-wrap">
               <img
                 src={selectedFish.image}
                 alt={selectedFish.name}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '60vh',
-                  width: 'auto',
-                  height: 'auto',
-                  objectFit: 'contain',
-                  display: 'block',
-                  borderRadius: 'var(--radius-sm)',
+                className="fish-modal-image"
+                onError={(e) => {
+                  (e.target as HTMLElement).setAttribute('src', '/hero_pescheria.jpg');
                 }}
               />
             </div>
@@ -566,7 +613,7 @@ export const FishMenuCatalog: React.FC = () => {
                   gap: '0.45rem',
                   width: '100%',
                 }}
-                onClick={() => setSelectedFish(null)}
+                onClick={handleCloseFish}
               >
                 <MessageCircle size={15} />
                 <span>Prenota su WhatsApp ({FEATURES.WHATSAPP_DISPLAY})</span>

@@ -22,6 +22,22 @@ describe('FishMenuCatalog and Banco sync', () => {
     expect(componentContent).toContain('selectedFish.cookingTip');
   });
 
+  it('integrates transitions-dev 06-modal classes and orchestration hooks', () => {
+    expect(componentContent).toContain('t-modal');
+    expect(componentContent).toContain('t-modal-backdrop');
+    expect(componentContent).toContain('handleOpenFish');
+    expect(componentContent).toContain('handleCloseFish');
+    expect(componentContent).toContain('--modal-close-dur');
+
+    const cssContent = fs.readFileSync(new URL('../index.css', import.meta.url), 'utf-8');
+    expect(cssContent).toContain('--modal-open-dur: 250ms;');
+    expect(cssContent).toContain('--modal-close-dur: 150ms;');
+    expect(cssContent).toContain('.t-modal');
+    expect(cssContent).toContain('.t-modal.is-open');
+    expect(cssContent).toContain('.t-modal.is-closing');
+    expect(cssContent).toContain('prefers-reduced-motion: reduce');
+  });
+
   it('reflects updated prices and sort order from admin banco in catalog query', async () => {
     const mockStorage: Record<string, string> = {};
     vi.stubGlobal('localStorage', {
