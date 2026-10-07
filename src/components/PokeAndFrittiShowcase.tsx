@@ -341,7 +341,7 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                   Formati Disponibili
                 </span>
                 <h3 className="font-serif" style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0.4rem 0 1rem 0' }}>
-                  Componi la Tua Ciotola Ideale
+                  Componi la Tua Poke Ideale
                 </h3>
                 <p style={{ color: 'rgba(255, 255, 255, 0.82)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
                   Scegli il formato, seleziona la base e unisci il pesce freschissimo del nostro banco ai tuoi topping preferiti,
@@ -745,13 +745,13 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                               backgroundColor: item.spicy
                                 ? 'rgba(239, 68, 68, 0.14)'
                                 : item.extraPrice
-                                ? 'rgba(201, 162, 39, 0.16)'
-                                : 'rgba(255, 255, 255, 0.06)',
+                                  ? 'rgba(201, 162, 39, 0.16)'
+                                  : 'rgba(255, 255, 255, 0.06)',
                               border: item.spicy
                                 ? '1px solid rgba(239, 68, 68, 0.35)'
                                 : item.extraPrice
-                                ? '1px solid rgba(201, 162, 39, 0.45)'
-                                : '1px solid rgba(255, 255, 255, 0.12)',
+                                  ? '1px solid rgba(201, 162, 39, 0.45)'
+                                  : '1px solid rgba(255, 255, 255, 0.12)',
                               fontSize: '0.85rem',
                               color: 'rgba(255, 255, 255, 0.95)',
                             }}
