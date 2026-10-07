@@ -295,11 +295,18 @@ export const PokeAndFrittiShowcase: React.FC = () => {
             {/* Top Poke Hero & Formats Card */}
             <div className="poke-hero-card">
               <div className="poke-hero-image-wrap">
-                <img
-                  src="/poke/poke_bowl.jpg"
-                  alt="Poke Bowl Fresca Pescheria Pessano"
-                  className="poke-hero-image"
-                />
+                <picture className="poke-hero-picture">
+                  <source srcSet="/poke/poke_bowl.webp" type="image/webp" />
+                  <img
+                    src="/poke/poke_bowl.jpg"
+                    alt="Poke Bowl Fresca Pescheria Pessano"
+                    className="poke-hero-image"
+                    loading="lazy"
+                    decoding="async"
+                    width={1024}
+                    height={571}
+                  />
+                </picture>
                 <div
                   style={{
                     position: 'absolute',
