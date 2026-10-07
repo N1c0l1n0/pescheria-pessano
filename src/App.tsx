@@ -57,8 +57,8 @@ export function App() {
               
               <main style={{ flex: 1 }}>
                 <Hero />
-                <FishMenuCatalog />
                 <PokeAndFrittiShowcase />
+                <FishMenuCatalog />
                 <TrustSection />
                 <InfoSection />
                 <HoursAndLocation />
