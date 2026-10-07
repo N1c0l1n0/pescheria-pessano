@@ -32,7 +32,6 @@ const POKE_FORMATS: FormatInfo[] = [
 interface PokeBaseItem {
   id: string;
   name: string;
-  tagline: string;
   desc: string;
 }
 
@@ -40,25 +39,21 @@ const POKE_BASES: PokeBaseItem[] = [
   {
     id: 'riso-bianco',
     name: 'Riso Bianco per Sushi',
-    tagline: 'Tradizionale al vapore',
     desc: 'Chicco tondo compatto, condito delicatamente con aceto di riso naturale.',
   },
   {
     id: 'riso-venere',
     name: 'Riso Venere Integrale',
-    tagline: 'Aromatico & Ricco di fibre',
     desc: 'Pregiato riso nero italiano dal caratteristico aroma tostato e consistenza corposa.',
   },
   {
     id: 'insalata',
     name: 'Insalata Misticanza',
-    tagline: 'Leggera & Croccante',
     desc: 'Selezione di foglie tenere e freschissime del giorno, per una base verde e dissetante.',
   },
   {
     id: 'meta-meta',
     name: 'Metà Riso e Metà Insalata',
-    tagline: 'Equilibrio perfetto',
     desc: 'La freschezza delle foglie verdi unita alla morbidezza e alla pienezza del riso.',
   },
 ];
@@ -467,12 +462,6 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                         gap: '0.45rem',
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-gold-soft)', fontWeight: 700 }}>
-                          {b.tagline}
-                        </span>
-                        <Check size={14} color="var(--color-gold-soft)" />
-                      </div>
                       <strong style={{ fontSize: '1.05rem', color: 'white' }}>{b.name}</strong>
                       <p style={{ margin: 0, fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.45 }}>
                         {b.desc}
