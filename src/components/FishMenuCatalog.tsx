@@ -477,7 +477,9 @@ export const FishMenuCatalog: React.FC = () => {
                 width: '38px',
                 height: '38px',
                 borderRadius: '50%',
-                backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                backgroundColor: 'rgba(11, 37, 69, 0.7)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
                 color: 'white',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
                 display: 'flex',
@@ -491,8 +493,14 @@ export const FishMenuCatalog: React.FC = () => {
               <X size={20} />
             </button>
 
-            {/* Modal Full Uncropped Image */}
+            {/* Modal Full Uncropped Image with Ambient Blur */}
             <div className="fish-modal-image-wrap">
+              <div
+                className="fish-modal-ambient-bg"
+                style={{ backgroundImage: `url(${selectedFish.image})` }}
+                aria-hidden="true"
+              />
+              <div className="fish-modal-ambient-overlay" aria-hidden="true" />
               <img
                 src={selectedFish.image}
                 alt={selectedFish.name}

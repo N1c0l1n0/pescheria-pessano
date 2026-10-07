@@ -28,6 +28,8 @@ describe('FishMenuCatalog and Banco sync', () => {
     expect(componentContent).toContain('handleOpenFish');
     expect(componentContent).toContain('handleCloseFish');
     expect(componentContent).toContain('--modal-close-dur');
+    expect(componentContent).toContain('fish-modal-ambient-bg');
+    expect(componentContent).toContain('fish-modal-ambient-overlay');
 
     const cssContent = fs.readFileSync(new URL('../index.css', import.meta.url), 'utf-8');
     expect(cssContent).toContain('--modal-open-dur: 250ms;');
@@ -36,6 +38,8 @@ describe('FishMenuCatalog and Banco sync', () => {
     expect(cssContent).toContain('.t-modal.is-open');
     expect(cssContent).toContain('.t-modal.is-closing');
     expect(cssContent).toContain('prefers-reduced-motion: reduce');
+    expect(cssContent).toContain('.fish-modal-ambient-bg');
+    expect(cssContent).toContain('.fish-modal-ambient-overlay');
   });
 
   it('reflects updated prices and sort order from admin banco in catalog query', async () => {
