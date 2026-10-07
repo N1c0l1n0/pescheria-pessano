@@ -14,7 +14,7 @@ export const DeliveryInfoSection: React.FC = () => {
       }}
     >
       <div className="container">
-        
+
         <div
           style={{
             display: 'grid',
@@ -60,7 +60,7 @@ export const DeliveryInfoSection: React.FC = () => {
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2.5rem' }}>
-              
+
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <div style={iconBoxStyle}>
                   <ThermometerSnowflake size={22} color="var(--color-ocean-medium)" />
@@ -112,7 +112,7 @@ export const DeliveryInfoSection: React.FC = () => {
                 rel="noopener noreferrer"
                 className="btn btn-whatsapp"
                 style={{ padding: '0.9rem 1.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-                title="Prenota su WhatsApp (+39 345 948 5857)"
+                title="Prenota su WhatsApp"
               >
                 <MessageCircle size={18} />
                 <span>Ordina a Domicilio via WhatsApp</span>

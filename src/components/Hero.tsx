@@ -14,20 +14,47 @@ export const Hero: React.FC = () => {
         minHeight: '92vh',
         display: 'flex',
         alignItems: 'center',
-        background: 'linear-gradient(160deg, #041221 0%, #0A2342 48%, #123A66 100%)',
+        backgroundColor: '#041221',
+        backgroundImage: 'linear-gradient(160deg, #041221 0%, #0A2342 50%, #071A30 100%)',
         color: 'white',
         paddingTop: '8.75rem',
         paddingBottom: '6.5rem',
         overflow: 'hidden',
       }}
     >
+      {/* Background artwork with stylized fish, poke & fritti */}
+      <picture
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 1,
+        }}
+      >
+        <source srcSet="/hero_background.webp" type="image/webp" />
+        <img
+          src="/hero_background.jpg"
+          alt=""
+          aria-hidden="true"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center',
+            opacity: 0.82,
+          }}
+        />
+      </picture>
+
+      {/* Atmospheric lighting & contrast vignette for optimal text readability */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           backgroundImage:
-            'radial-gradient(circle at 85% 15%, rgba(141, 169, 196, 0.14) 0%, transparent 45%), radial-gradient(circle at 15% 85%, rgba(232, 93, 82, 0.06) 0%, transparent 45%)',
+            'radial-gradient(ellipse 70% 65% at 50% 48%, rgba(4, 18, 33, 0.52) 0%, rgba(4, 18, 33, 0.8) 65%, rgba(4, 18, 33, 0.96) 100%), radial-gradient(circle at 85% 15%, rgba(141, 169, 196, 0.12) 0%, transparent 45%), radial-gradient(circle at 15% 85%, rgba(232, 93, 82, 0.08) 0%, transparent 45%)',
           pointerEvents: 'none',
+          zIndex: 1,
         }}
       />
 

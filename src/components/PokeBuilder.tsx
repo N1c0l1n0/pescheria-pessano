@@ -2356,9 +2356,11 @@ export const PokeBuilder: React.FC = () => {
                       alignItems: 'center',
                       gap: '0.5rem',
                     }}
+                    title="Prenota su WhatsApp"
+                    aria-label="Prenota su WhatsApp"
                   >
                     <MessageCircle size={18} />
-                    <span>Prenota su WhatsApp ({FEATURES.WHATSAPP_DISPLAY})</span>
+                    <span>Prenota su WhatsApp</span>
                   </a>
 
                   <a

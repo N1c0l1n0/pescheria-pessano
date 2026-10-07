@@ -420,11 +420,11 @@ export const FishMenuCatalog: React.FC = () => {
               target="_blank"
               rel="noopener noreferrer"
               className="btn-whatsapp-banner"
-              title="Prenota su WhatsApp (+39 345 948 5857)"
+              title="Prenota con WhatsApp"
               aria-label="Invia messaggio WhatsApp per prenotare il pescato del giorno"
             >
               <MessageCircle size={16} color="#25D366" strokeWidth={2.2} />
-              <span>Prenota su WhatsApp</span>
+              <span>Prenota con WhatsApp</span>
             </a>
           </div>
         </div>
@@ -621,10 +621,12 @@ export const FishMenuCatalog: React.FC = () => {
                   gap: '0.45rem',
                   width: '100%',
                 }}
+                title="Prenota su WhatsApp"
+                aria-label="Prenota su WhatsApp"
                 onClick={handleCloseFish}
               >
                 <MessageCircle size={15} />
-                <span>Prenota su WhatsApp ({FEATURES.WHATSAPP_DISPLAY})</span>
+                <span>Prenota su WhatsApp</span>
               </a>
             </div>
           </div>

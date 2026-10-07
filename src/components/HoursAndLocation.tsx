@@ -226,10 +226,11 @@ export const HoursAndLocation: React.FC = () => {
                   rel="noopener noreferrer"
                   className="btn btn-whatsapp"
                   style={{ width: '100%', padding: '0.85rem 1.25rem', fontSize: '0.95rem', justifyContent: 'center' }}
-                  title="Prenota su WhatsApp (+39 345 948 5857)"
+                  title="Prenota su WhatsApp"
+                  aria-label="Prenota su WhatsApp"
                 >
                   <MessageCircle size={18} />
-                  <span>Prenota su WhatsApp ({FEATURES.WHATSAPP_DISPLAY})</span>
+                  <span>Prenota su WhatsApp</span>
                 </a>
 
                 <a

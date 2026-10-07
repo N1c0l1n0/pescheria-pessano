@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Phone, ShieldCheck, Flame, Utensils, Check, MessageCircle } from 'lucide-react';
+import { Sparkles, Flame, Utensils, Check, MessageCircle } from 'lucide-react';
 import { FEATURES } from '../constants/features';
 
 interface FormatInfo {
@@ -794,44 +794,50 @@ export const PokeAndFrittiShowcase: React.FC = () => {
 
             {/* Poke Call to action banner */}
             <div className="poke-cta-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', maxWidth: '620px' }}>
                 <div
                   style={{
                     width: '44px',
                     height: '44px',
                     borderRadius: '50%',
-                    backgroundColor: 'rgba(232, 93, 82, 0.2)',
-                    border: '1px solid rgba(232, 93, 82, 0.4)',
+                    backgroundColor: 'rgba(37, 211, 102, 0.18)',
+                    border: '1px solid rgba(37, 211, 102, 0.4)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}
                 >
-                  <ShieldCheck size={22} color="var(--color-coral)" />
+                  <MessageCircle size={22} color="#22C55E" />
                 </div>
                 <div>
                   <h4 className="font-serif" style={{ fontSize: '1.12rem', fontWeight: 700, margin: 0, color: 'white' }}>
                     Vuoi prenotare la tua Poke personalizzata?
                   </h4>
-                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.78)' }}>
-                    Chiamaci al mattino per indicare i tuoi ingredienti preferiti: la troverai pronta e freschissima al tuo arrivo.
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.82)', lineHeight: 1.55 }}>
+                    Inviaci un messaggio WhatsApp al{' '}
+                    <strong style={{ color: 'var(--color-gold-soft)' }}>{FEATURES.WHATSAPP_DISPLAY}</strong>{' '}
+                    al mattino per indicare i tuoi ingredienti preferiti: la troverai pronta e freschissima al tuo arrivo.
                   </p>
                 </div>
               </div>
 
               <a
-                href={FEATURES.PHONE_TEL}
-                className="btn btn-coral"
+                href={`https://wa.me/${FEATURES.WHATSAPP_NUMBER}?text=${encodeURIComponent('Ciao Pescheria Pessano, vorrei prenotare una Poke personalizzata:')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-whatsapp"
                 style={{
-                  padding: '0.75rem 1.45rem',
-                  fontSize: '0.9rem',
+                  padding: '0.8rem 1.6rem',
+                  fontSize: '0.92rem',
                   whiteSpace: 'nowrap',
                   textDecoration: 'none',
                 }}
+                title="Prenota su WhatsApp"
+                aria-label="Prenota su WhatsApp"
               >
-                <Phone size={16} />
-                <span>Chiama {FEATURES.PHONE_NUMBER}</span>
+                <MessageCircle size={16} />
+                <span>Prenota su WhatsApp</span>
               </a>
             </div>
           </div>
@@ -964,9 +970,11 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                   whiteSpace: 'nowrap',
                   textDecoration: 'none',
                 }}
+                title="Prenota su WhatsApp"
+                aria-label="Prenota su WhatsApp"
               >
                 <MessageCircle size={16} />
-                <span>Prenota su WhatsApp ({FEATURES.WHATSAPP_DISPLAY})</span>
+                <span>Prenota su WhatsApp</span>
               </a>
             </div>
           </div>
