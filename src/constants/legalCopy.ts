@@ -1,6 +1,7 @@
 export const PRIVACY_CONTROLLER_NAME = 'Pescheria Pessano';
 export const PRIVACY_CONTROLLER_ADDRESS =
   'Via Avvocato Emanuele Rossi, 17, 17024 Finale Ligure (SV)';
+export const COMPANY_VAT_NUMBER = '01454940097';
 export const PRIVACY_CONTACT_PHONE = '019 692623';
 export const PRIVACY_CONTACT_EMAIL = 'privacy@pescheriapessano.it';
 

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bot, X, Send, Sparkles } from 'lucide-react';
 import { getStoreStatus } from '../utils/openingHours';
+import { FEATURES } from '../constants/features';
 
 interface Message {
   id: string;
@@ -74,7 +75,7 @@ export const PesceBotWidget: React.FC<PesceBotWidgetProps> = ({ isOpen, onToggle
     }
 
     if (q.includes('consegna') || q.includes('domicilio') || q.includes('spedizione') || q.includes('portate')) {
-      return `🚚 Consegniamo a domicilio a Finale Ligure (Marina, Pia, Borgo), Varigotti, Borgio Verezzi, Pietra Ligure e Calice Ligure!\n\nI pesci arrivano in box isotermici refrigerati. Consegna gratuita a Finale Ligure per ordini superiori a € 30! Puoi ordinare via WhatsApp al numero 019 692623.`;
+      return `🚚 Consegniamo a domicilio a Finale Ligure (Marina, Pia, Borgo), Varigotti, Borgio Verezzi, Pietra Ligure e Calice Ligure!\n\nI pesci arrivano in box isotermici refrigerati. Consegna gratuita a Finale Ligure per ordini superiori a € 30! Puoi ordinare via WhatsApp al numero ${FEATURES.WHATSAPP_DISPLAY}.`;
     }
 
     if (q.includes('fresco') || q.includes('pescato') || q.includes('oggi') || q.includes('orate') || q.includes('spigole')) {
@@ -90,10 +91,10 @@ export const PesceBotWidget: React.FC<PesceBotWidgetProps> = ({ isOpen, onToggle
     }
 
     if (q.includes('dove') || q.includes('indirizzo') || q.includes('trovate') || q.includes('telefono')) {
-      return `📍 Ci trovi a Finale Ligure in Via Avvocato Emanuele Rossi, 17 (17024 SV).\nTelefono: 019 692623.\nValutazione clienti: 4.4 su 5 stelle con 197 recensioni Google!`;
+      return `📍 Ci trovi a Finale Ligure in Via Avvocato Emanuele Rossi, 17 (17024 SV).\nTelefono Negozio: ${FEATURES.PHONE_NUMBER}.\nWhatsApp Prenotazioni: ${FEATURES.WHATSAPP_DISPLAY}.\nValutazione clienti: 4.4 su 5 stelle con 197 recensioni Google!`;
     }
 
-    return `Grazie per la domanda! Alla Pescheria Pessano selezioniamo solo il miglior pesce fresco del Mar Ligure e piatti di gastronomia pronti. Puoi contattarci direttamente via telefono allo 019 692623 o scriverci su WhatsApp per ordinare subito!`;
+    return `Grazie per la domanda! Alla Pescheria Pessano selezioniamo solo il miglior pesce fresco del Mar Ligure e piatti di gastronomia pronti. Puoi scriverci su WhatsApp al ${FEATURES.WHATSAPP_DISPLAY} per prenotare subito, oppure contattare il negozio al ${FEATURES.PHONE_NUMBER}!`;
   };
 
   return (

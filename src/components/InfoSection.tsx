@@ -1,5 +1,6 @@
 import React from 'react';
-import { ShieldCheck, Utensils, ShoppingBag, Anchor, Sparkles, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Utensils, ShoppingBag, Anchor, Sparkles, ArrowRight, MessageCircle } from 'lucide-react';
+import { FEATURES } from '../constants/features';
 
 export const InfoSection: React.FC = () => {
   return (
@@ -248,7 +249,7 @@ export const InfoSection: React.FC = () => {
                 minHeight: '4.5rem',
               }}
             >
-              Ordina comodamente chiamando il nostro banco al 019 692623 per farti riservare il pescato del mattino o concordare il ritiro d'asporto.
+              Prenota comodamente inviando un messaggio WhatsApp a {FEATURES.WHATSAPP_DISPLAY} per farti riservare il pescato del mattino o concordare il ritiro d'asporto.
             </p>
 
             <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.84rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
@@ -256,18 +257,21 @@ export const InfoSection: React.FC = () => {
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Ritiro rapido zero attese
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Prenotazioni telefoniche dirette
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Prenotazioni WhatsApp dirette
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Confezionamento salvafreschezza
               </li>
             </ul>
             <a
-              href="tel:019692623"
+              href={FEATURES.WHATSAPP_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
               className="service-link"
-              style={{ color: 'var(--color-ocean-medium)' }}
+              style={{ color: '#16A34A', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
             >
-              Chiama il banco: 019 692623
+              <MessageCircle size={16} />
+              <span>Prenota su WhatsApp: {FEATURES.WHATSAPP_DISPLAY}</span>
               <ArrowRight size={15} />
             </a>
           </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Phone, ShieldCheck, Flame, Utensils, Check } from 'lucide-react';
+import { Sparkles, Phone, ShieldCheck, Flame, Utensils, Check, MessageCircle } from 'lucide-react';
 import { FEATURES } from '../constants/features';
 
 interface FormatInfo {
@@ -412,39 +412,31 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'flex-start',
+                    alignItems: 'center',
                     flexWrap: 'wrap',
                     gap: '1rem',
-                    marginBottom: '1.5rem',
-                    paddingBottom: '1.25rem',
+                    marginBottom: '1.25rem',
+                    paddingBottom: '1rem',
                     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                   }}
                 >
-                  <div>
-                    <span
-                      style={{
-                        backgroundColor: 'rgba(232, 212, 154, 0.12)',
-                        border: '1px solid rgba(232, 212, 154, 0.3)',
-                        color: 'var(--color-gold-soft)',
-                        fontSize: '0.76rem',
-                        fontWeight: 800,
-                        letterSpacing: '0.08em',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: 'var(--radius-full)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                      }}
-                    >
-                      01 / LE BASI
-                    </span>
-                    <h4 className="font-serif" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', margin: '0.5rem 0 0.25rem 0' }}>
-                      Scegli il Fondo della Ciotola
-                    </h4>
-                    <p style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.72)', margin: 0 }}>
-                      Chicchi selezionati a cottura vapore o insalata fresca per creare il fondo ideale.
-                    </p>
-                  </div>
+                  <span
+                    style={{
+                      backgroundColor: 'rgba(232, 212, 154, 0.12)',
+                      border: '1px solid rgba(232, 212, 154, 0.3)',
+                      color: 'var(--color-gold-soft)',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.08em',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: 'var(--radius-full)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    01 / LE BASI
+                  </span>
 
                   <span
                     style={{
@@ -496,39 +488,31 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'flex-start',
+                    alignItems: 'center',
                     flexWrap: 'wrap',
                     gap: '1rem',
-                    marginBottom: '1.5rem',
-                    paddingBottom: '1.25rem',
+                    marginBottom: '1.25rem',
+                    paddingBottom: '1rem',
                     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                   }}
                 >
-                  <div>
-                    <span
-                      style={{
-                        backgroundColor: 'rgba(232, 212, 154, 0.12)',
-                        border: '1px solid rgba(232, 212, 154, 0.3)',
-                        color: 'var(--color-gold-soft)',
-                        fontSize: '0.76rem',
-                        fontWeight: 800,
-                        letterSpacing: '0.08em',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: 'var(--radius-full)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                      }}
-                    >
-                      02 / LE PROTEINE DEL BANCO
-                    </span>
-                    <h4 className="font-serif" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', margin: '0.5rem 0 0.25rem 0' }}>
-                      Il Cuore Marinaro della Pescheria
-                    </h4>
-                    <p style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.72)', margin: 0 }}>
-                      Pesce freschissimo sfilettato al momento, crudi nobili abbattuti a norma e preparazioni calde espresse.
-                    </p>
-                  </div>
+                  <span
+                    style={{
+                      backgroundColor: 'rgba(232, 212, 154, 0.12)',
+                      border: '1px solid rgba(232, 212, 154, 0.3)',
+                      color: 'var(--color-gold-soft)',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.08em',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: 'var(--radius-full)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    02 / LE PROTEINE DEL BANCO
+                  </span>
 
                   <span
                     style={{
@@ -588,39 +572,31 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'flex-start',
+                    alignItems: 'center',
                     flexWrap: 'wrap',
                     gap: '1rem',
-                    marginBottom: '1.75rem',
-                    paddingBottom: '1.25rem',
+                    marginBottom: '1.25rem',
+                    paddingBottom: '1rem',
                     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                   }}
                 >
-                  <div>
-                    <span
-                      style={{
-                        backgroundColor: 'rgba(232, 212, 154, 0.12)',
-                        border: '1px solid rgba(232, 212, 154, 0.3)',
-                        color: 'var(--color-gold-soft)',
-                        fontSize: '0.76rem',
-                        fontWeight: 800,
-                        letterSpacing: '0.08em',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: 'var(--radius-full)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                      }}
-                    >
-                      03 / I TOPPING & LE FRESCHEZZE
-                    </span>
-                    <h4 className="font-serif" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', margin: '0.5rem 0 0.25rem 0' }}>
-                      Texture, Ortaggi & Tocchi Gourmet
-                    </h4>
-                    <p style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.72)', margin: 0 }}>
-                      Organizzati per note sensoriali: croccantezza, freschezza vegetale, morbidezza e tipicità locali.
-                    </p>
-                  </div>
+                  <span
+                    style={{
+                      backgroundColor: 'rgba(232, 212, 154, 0.12)',
+                      border: '1px solid rgba(232, 212, 154, 0.3)',
+                      color: 'var(--color-gold-soft)',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.08em',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: 'var(--radius-full)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    03 / I TOPPING & LE FRESCHEZZE
+                  </span>
 
                   <span
                     style={{
@@ -699,39 +675,31 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'flex-start',
+                    alignItems: 'center',
                     flexWrap: 'wrap',
                     gap: '1rem',
-                    marginBottom: '1.75rem',
-                    paddingBottom: '1.25rem',
+                    marginBottom: '1.25rem',
+                    paddingBottom: '1rem',
                     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                   }}
                 >
-                  <div>
-                    <span
-                      style={{
-                        backgroundColor: 'rgba(232, 212, 154, 0.12)',
-                        border: '1px solid rgba(232, 212, 154, 0.3)',
-                        color: 'var(--color-gold-soft)',
-                        fontSize: '0.76rem',
-                        fontWeight: 800,
-                        letterSpacing: '0.08em',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: 'var(--radius-full)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                      }}
-                    >
-                      04 / LE SALSE ARTIGIANALI
-                    </span>
-                    <h4 className="font-serif" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', margin: '0.5rem 0 0.25rem 0' }}>
-                      Emulsioni & Condimenti di Mare
-                    </h4>
-                    <p style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.72)', margin: 0 }}>
-                      Preparate fresche per legare gli ingredienti, con profili delicati, agrodolci, speziati e liguri.
-                    </p>
-                  </div>
+                  <span
+                    style={{
+                      backgroundColor: 'rgba(232, 212, 154, 0.12)',
+                      border: '1px solid rgba(232, 212, 154, 0.3)',
+                      color: 'var(--color-gold-soft)',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.08em',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: 'var(--radius-full)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    04 / LE SALSE ARTIGIANALI
+                  </span>
 
                   <span
                     style={{
@@ -984,14 +952,16 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                   Fritti sempre espressi: caldi e croccanti al momento
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.82)', lineHeight: 1.55 }}>
-                  Per garantire la tipica fragranza del pescato ligure, friggiamo solo all'ordine. Puoi chiamarci al{' '}
-                  <strong style={{ color: 'var(--color-gold-soft)' }}>019 692623</strong> pochi minuti prima del tuo arrivo per trovarli caldi e fumanti senza attendere!
+                  Per garantire la tipica fragranza del pescato ligure, friggiamo solo all'ordine. Puoi inviarci un messaggio WhatsApp al{' '}
+                  <strong style={{ color: 'var(--color-gold-soft)' }}>{FEATURES.WHATSAPP_DISPLAY}</strong> pochi minuti prima del tuo arrivo per trovarli caldi e fumanti senza attendere!
                 </p>
               </div>
 
               <a
-                href={FEATURES.PHONE_TEL}
-                className="btn btn-coral"
+                href={`https://wa.me/${FEATURES.WHATSAPP_NUMBER}?text=${encodeURIComponent('Ciao Pescheria Pessano, vorrei prenotare dei coni fritti d\'asporto:')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-whatsapp"
                 style={{
                   padding: '0.8rem 1.6rem',
                   fontSize: '0.92rem',
@@ -999,8 +969,8 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                   textDecoration: 'none',
                 }}
               >
-                <Phone size={16} />
-                <span>Chiama 019 692623</span>
+                <MessageCircle size={16} />
+                <span>Prenota su WhatsApp ({FEATURES.WHATSAPP_DISPLAY})</span>
               </a>
             </div>
           </div>

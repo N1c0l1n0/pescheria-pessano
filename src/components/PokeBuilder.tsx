@@ -865,7 +865,7 @@ export const PokeBuilder: React.FC = () => {
   // Direct KDS Order Submission & Live Tracking Redirect
   const handleDirectOrderSubmit = async () => {
     if (!FEATURES.ONLINE_ORDERING) {
-      alert('Il servizio di ordinazione online sarà attivo a breve. Per ordinare subito chiama la pescheria al 019 692623!');
+      alert(`Il servizio di ordinazione online sarà attivo a breve. Per prenotare subito inviaci un messaggio WhatsApp al ${FEATURES.WHATSAPP_DISPLAY}!`);
       return;
     }
 
@@ -1266,7 +1266,7 @@ export const PokeBuilder: React.FC = () => {
                 subtitle={
                   FEATURES.ONLINE_ORDERING
                     ? "Servono per identificare l'ordine al banco e aggiornarti sullo stato."
-                    : 'Esplora liberamente gli abbinamenti. Per ordinare oggi, siamo a tua disposizione al 019 692623.'
+                    : `Esplora liberamente gli abbinamenti. Per prenotare oggi, scrivici su WhatsApp a ${FEATURES.WHATSAPP_DISPLAY}.`
                 }
               />
 
@@ -1275,7 +1275,7 @@ export const PokeBuilder: React.FC = () => {
                 <span>
                   {FEATURES.ONLINE_ORDERING
                     ? "Il telefono è unico per tutto l'ordine. Il nome identifica il referente al ritiro o in consegna."
-                    : '💡 Modalità Vetrina: puoi comporre liberamente la tua Poke e scoprire ingredienti e prezzi. Per ordinare oggi chiamaci al 019 692623!'}
+                    : `💡 Modalità Vetrina: puoi comporre liberamente la tua Poke e scoprire ingredienti e prezzi. Per prenotare oggi inviaci un messaggio WhatsApp al ${FEATURES.WHATSAPP_DISPLAY}!`}
                 </span>
               </div>
 
@@ -2336,13 +2336,15 @@ export const PokeBuilder: React.FC = () => {
                       <span>Ordini Online in Attivazione</span>
                     </div>
                     <div>
-                      Il servizio di carrello online sarà attivo a breve. Per ordinare questa combinazione, chiamaci subito al banco o scrivici su WhatsApp:
+                      Il servizio di carrello online sarà attivo a breve. Per prenotare questa combinazione, inviaci un messaggio WhatsApp:
                     </div>
                   </div>
 
                   <a
-                    href={FEATURES.PHONE_TEL}
-                    className="btn btn-coral"
+                    href={buildWhatsAppOrderUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-whatsapp"
                     style={{
                       width: '100%',
                       padding: '0.9rem 0.75rem',
@@ -2355,34 +2357,27 @@ export const PokeBuilder: React.FC = () => {
                       gap: '0.5rem',
                     }}
                   >
-                    <Phone size={18} />
-                    <span>Chiama per Ordinare ({FEATURES.PHONE_NUMBER})</span>
+                    <MessageCircle size={18} />
+                    <span>Prenota su WhatsApp ({FEATURES.WHATSAPP_DISPLAY})</span>
                   </a>
 
                   <a
-                    href={buildWhatsAppOrderUrl()}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={FEATURES.PHONE_TEL}
                     style={{
                       width: '100%',
-                      padding: '0.8rem 0.75rem',
-                      fontSize: '0.88rem',
+                      padding: '0.65rem 0.75rem',
+                      fontSize: '0.82rem',
                       justifyContent: 'center',
                       textAlign: 'center',
                       textDecoration: 'none',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '0.5rem',
-                      backgroundColor: 'rgba(37, 211, 102, 0.16)',
-                      border: '1px solid #25D366',
-                      color: '#4ADE80',
-                      fontWeight: 700,
-                      borderRadius: 'var(--radius-full)',
-                      transition: 'background-color 0.2s ease',
+                      gap: '0.4rem',
+                      color: 'rgba(255, 255, 255, 0.7)',
                     }}
                   >
-                    <MessageCircle size={18} />
-                    <span>Invia Selezione su WhatsApp</span>
+                    <Phone size={14} />
+                    <span>Oppure chiama il negozio ({FEATURES.PHONE_NUMBER})</span>
                   </a>
                 </div>
               )}
@@ -2464,8 +2459,10 @@ export const PokeBuilder: React.FC = () => {
             </button>
           ) : (
             <a
-              href={FEATURES.PHONE_TEL}
-              className="btn btn-coral"
+              href={buildWhatsAppOrderUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-whatsapp"
               style={{
                 padding: '0.72rem 1.15rem',
                 fontSize: '0.88rem',
@@ -2477,8 +2474,8 @@ export const PokeBuilder: React.FC = () => {
                 gap: '0.45rem',
               }}
             >
-              <Phone size={15} />
-              <span>Chiama Ora</span>
+              <MessageCircle size={15} />
+              <span>Prenota WhatsApp</span>
             </a>
           )}
         </div>

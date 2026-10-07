@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PRODUCTS, Product } from '../data/products';
 import { Search, Wine, ChefHat, MessageCircle, Info, X } from 'lucide-react';
+import { FEATURES } from '../constants/features';
 
 export const ProductCatalog: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'fresco' | 'gastronomia'>('all');
@@ -291,18 +292,18 @@ export const ProductCatalog: React.FC = () => {
                   </button>
 
                   <a
-                    href={`https://wa.me/39019692623?text=Ciao%20Pescheria%20Pessano,%20vorrei%20ordinare:%20${encodeURIComponent(product.name)}`}
+                    href={`https://wa.me/${FEATURES.WHATSAPP_NUMBER}?text=${encodeURIComponent(`Ciao Pescheria Pessano, vorrei prenotare: ${product.name}`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-coral"
+                    className="btn btn-whatsapp"
                     style={{
                       padding: '0.65rem 1rem',
                       fontSize: '0.85rem',
                     }}
-                    title="Ordina su WhatsApp"
+                    title="Prenota su WhatsApp"
                   >
                     <MessageCircle size={16} />
-                    <span>Ordina</span>
+                    <span>Prenota</span>
                   </a>
                 </div>
 
@@ -426,14 +427,15 @@ export const ProductCatalog: React.FC = () => {
                   </div>
 
                   <a
-                    href={`https://wa.me/39019692623?text=Ciao%20Pescheria%20Pessano,%20vorrei%20ordinare:%20${encodeURIComponent(selectedProduct.name)}`}
+                    href={`https://wa.me/${FEATURES.WHATSAPP_NUMBER}?text=${encodeURIComponent(`Ciao Pescheria Pessano, vorrei prenotare: ${selectedProduct.name}`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-coral"
+                    className="btn btn-whatsapp"
                     style={{ padding: '0.85rem 1.5rem', fontSize: '0.95rem' }}
+                    title="Prenota su WhatsApp"
                   >
                     <MessageCircle size={18} />
-                    <span>Ordina su WhatsApp</span>
+                    <span>Prenota su WhatsApp</span>
                   </a>
                 </div>
 

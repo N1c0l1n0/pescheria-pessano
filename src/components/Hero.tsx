@@ -1,5 +1,6 @@
 import React from 'react';
-import { Phone, MapPin, Star, Clock, Anchor, Sparkles } from 'lucide-react';
+import { MapPin, Star, Clock, Anchor, Sparkles, MessageCircle } from 'lucide-react';
+import { FEATURES } from '../constants/features';
 import { getStoreStatus } from '../utils/openingHours';
 
 export const Hero: React.FC = () => {
@@ -141,12 +142,15 @@ export const Hero: React.FC = () => {
               </a>
 
               <a
-                href="tel:019692623"
-                className="btn btn-ghost-light"
-                style={{ fontSize: '0.925rem', whiteSpace: 'nowrap' }}
+                href={FEATURES.WHATSAPP_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-whatsapp-hero"
+                title="Prenota su WhatsApp (+39 345 948 5857)"
+                aria-label="Invia messaggio WhatsApp per prenotare al +39 345 948 5857"
               >
-                <Phone size={16} color="var(--color-sea-blue)" />
-                <span>019 692623</span>
+                <MessageCircle size={17} color="#25D366" strokeWidth={2.2} />
+                <span>Prenota su WhatsApp</span>
               </a>
 
               <a

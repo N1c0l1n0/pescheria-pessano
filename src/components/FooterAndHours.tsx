@@ -3,6 +3,8 @@ import { MapPin, Phone, Clock, Star, MessageCircle, Anchor } from 'lucide-react'
 import { WEEKLY_SCHEDULE, getStoreStatus } from '../utils/openingHours';
 import { GoogleMapEmbed } from './GoogleMapEmbed';
 import { MAPS_EMBED_URL, MAPS_EXTERNAL_URL } from '../constants/cookieConsent';
+import { COMPANY_VAT_NUMBER } from '../constants/legalCopy';
+import { FEATURES } from '../constants/features';
 
 export const FooterAndHours: React.FC = () => {
   const currentStatus = getStoreStatus();
@@ -168,14 +170,15 @@ export const FooterAndHours: React.FC = () => {
               </a>
 
               <a
-                href="https://wa.me/39019692623"
+                href={FEATURES.WHATSAPP_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn btn-coral"
+                className="btn btn-whatsapp"
                 style={{ justifyContent: 'flex-start', padding: '0.75rem 1.25rem' }}
+                title="Prenota su WhatsApp (+39 345 948 5857)"
               >
                 <MessageCircle size={18} />
-                <span>WhatsApp Ordini: 019 692623</span>
+                <span>WhatsApp Prenotazioni: {FEATURES.WHATSAPP_DISPLAY}</span>
               </a>
             </div>
 
@@ -284,7 +287,7 @@ export const FooterAndHours: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '1.5rem' }}>
-            <span>P.IVA 019692623</span>
+            <span>P.IVA {COMPANY_VAT_NUMBER}</span>
             <span>Privacy Policy</span>
             <span>Cookie Policy</span>
           </div>

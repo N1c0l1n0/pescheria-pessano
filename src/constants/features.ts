@@ -20,10 +20,12 @@ export const FEATURES = {
   SHOW_COMING_SOON_NOTICE: true,
 
   /**
-   * Recapiti telefonici e WhatsApp per le ordinazioni
+   * Recapiti telefonici e WhatsApp per le prenotazioni e informazioni
    */
   PHONE_NUMBER: '019 692623',
   PHONE_TEL: 'tel:019692623',
-  WHATSAPP_NUMBER: '39019692623',
-  WHATSAPP_LINK: 'https://wa.me/39019692623?text=Ciao%20Pescheria%20Pessano,%20vorrei%20ordinare:',
+  WHATSAPP_NUMBER: '393459485857',
+  WHATSAPP_DISPLAY: '+39 345 948 5857',
+  WHATSAPP_LINK: 'https://wa.me/393459485857?text=Ciao%20Pescheria%20Pessano,%20vorrei%20prenotare:',
 };
+

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, Menu, X } from 'lucide-react';
+import { MessageCircle, Menu, X } from 'lucide-react';
+import { FEATURES } from '../constants/features';
 import { getStoreStatus } from '../utils/openingHours';
 import { useSectionNavigate } from '../utils/navigation';
 
@@ -126,17 +127,17 @@ export const Header: React.FC = () => {
             </a>
 
             <a
-              href="tel:019692623"
-              className="btn btn-coral header-phone-btn"
-              style={{
-                padding: '0.5rem 0.95rem',
-                fontSize: '0.85rem',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}
+              href={FEATURES.WHATSAPP_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="header-whatsapp-btn"
+              title="Prenota su WhatsApp (+39 345 948 5857)"
+              aria-label="Prenota con messaggio WhatsApp al +39 345 948 5857"
             >
-              <Phone size={16} />
-              <span className="header-phone-text">019 692623</span>
+              <MessageCircle size={17} strokeWidth={2.2} />
+              <span className="header-whatsapp-text-full">Prenota su WhatsApp</span>
+              <span className="header-whatsapp-text-mobile">WhatsApp</span>
+              <span className="header-whatsapp-dot" title="WhatsApp attivo" />
             </a>
 
             <button

@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, ShieldCheck } from 'lucide-react';
+import { Phone, ShieldCheck, MessageCircle } from 'lucide-react';
 import { useSectionNavigate } from '../utils/navigation';
 import { useCookieConsent } from '../context/CookieConsentContext';
+import { COMPANY_VAT_NUMBER } from '../constants/legalCopy';
+import { FEATURES } from '../constants/features';
 
 export const Footer: React.FC = () => {
   const { navigateToSection } = useSectionNavigate();
@@ -84,22 +86,44 @@ export const Footer: React.FC = () => {
             </a>
           </div>
 
-          {/* Direct Phone */}
-          <a
-            href="tel:019692623"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              color: 'var(--color-gold-soft)',
-              textDecoration: 'none',
-              fontWeight: 700,
-              fontSize: '0.95rem',
-            }}
-          >
-            <Phone size={16} />
-            <span>019 692623</span>
-          </a>
+          {/* Direct WhatsApp & Phone */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+            <a
+              href={FEATURES.WHATSAPP_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                color: '#4ADE80',
+                textDecoration: 'none',
+                fontWeight: 700,
+                fontSize: '0.92rem',
+              }}
+              title="Prenota su WhatsApp (+39 345 948 5857)"
+            >
+              <MessageCircle size={16} />
+              <span>WhatsApp: {FEATURES.WHATSAPP_DISPLAY}</span>
+            </a>
+
+            <a
+              href={FEATURES.PHONE_TEL}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                color: 'var(--color-gold-soft)',
+                textDecoration: 'none',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+              }}
+              title="Telefono fisso pescheria"
+            >
+              <Phone size={15} />
+              <span>{FEATURES.PHONE_NUMBER}</span>
+            </a>
+          </div>
         </div>
 
         {/* Informative Note & Copyright */}
@@ -116,7 +140,7 @@ export const Footer: React.FC = () => {
           }}
         >
           <div>
-            © {new Date().getFullYear()} Pescheria Pessano — Via Avvocato Emanuele Rossi, 17, Finale Ligure (SV)
+            © {new Date().getFullYear()} Pescheria Pessano — Via Avvocato Emanuele Rossi, 17, Finale Ligure (SV) — P.IVA {COMPANY_VAT_NUMBER}
           </div>
 
           {/* Privacy & Cookie Links */}

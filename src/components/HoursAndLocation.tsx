@@ -1,8 +1,9 @@
 import React from 'react';
-import { Clock, MapPin, Phone, Star } from 'lucide-react';
+import { Clock, MapPin, Phone, Star, MessageCircle } from 'lucide-react';
 import { WEEKLY_SCHEDULE, getStoreStatus } from '../utils/openingHours';
 import { GoogleMapEmbed } from './GoogleMapEmbed';
 import { MAPS_EMBED_URL, MAPS_EXTERNAL_URL } from '../constants/cookieConsent';
+import { FEATURES } from '../constants/features';
 
 export const HoursAndLocation: React.FC = () => {
   const currentStatus = getStoreStatus();
@@ -217,15 +218,37 @@ export const HoursAndLocation: React.FC = () => {
                 </div>
               </div>
 
-              {/* Call CTA */}
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+              {/* WhatsApp Primary + Phone Secondary CTA */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem' }}>
                 <a
-                  href="tel:019692623"
-                  className="btn btn-coral"
-                  style={{ flex: 1, padding: '0.85rem 1.25rem', fontSize: '0.95rem' }}
+                  href={FEATURES.WHATSAPP_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-whatsapp"
+                  style={{ width: '100%', padding: '0.85rem 1.25rem', fontSize: '0.95rem', justifyContent: 'center' }}
+                  title="Prenota su WhatsApp (+39 345 948 5857)"
                 >
-                  <Phone size={18} />
-                  <span>Chiama: 019 692623</span>
+                  <MessageCircle size={18} />
+                  <span>Prenota su WhatsApp ({FEATURES.WHATSAPP_DISPLAY})</span>
+                </a>
+
+                <a
+                  href={FEATURES.PHONE_TEL}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.45rem',
+                    color: 'var(--color-ocean-dark)',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    padding: '0.35rem',
+                  }}
+                  title="Chiama la pescheria al 019 692623"
+                >
+                  <Phone size={14} />
+                  <span>Telefono Negozio: {FEATURES.PHONE_NUMBER}</span>
                 </a>
               </div>
 

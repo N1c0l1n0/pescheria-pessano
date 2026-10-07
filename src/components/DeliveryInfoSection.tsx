@@ -1,5 +1,6 @@
 import React from 'react';
-import { Truck, ShieldCheck, ThermometerSnowflake, Clock, MapPin, PhoneCall } from 'lucide-react';
+import { Truck, ShieldCheck, ThermometerSnowflake, Clock, MapPin, PhoneCall, MessageCircle } from 'lucide-react';
+import { FEATURES } from '../constants/features';
 
 export const DeliveryInfoSection: React.FC = () => {
   return (
@@ -106,22 +107,25 @@ export const DeliveryInfoSection: React.FC = () => {
 
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <a
-                href="https://wa.me/39019692623?text=Ciao%20Pescheria%20Pessano,%20vorrei%20prenotare%20una%20consegna%20a%20domicilio"
+                href={`https://wa.me/${FEATURES.WHATSAPP_NUMBER}?text=${encodeURIComponent('Ciao Pescheria Pessano, vorrei prenotare una consegna a domicilio')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn btn-coral"
-                style={{ padding: '0.9rem 1.75rem' }}
+                className="btn btn-whatsapp"
+                style={{ padding: '0.9rem 1.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                title="Prenota su WhatsApp (+39 345 948 5857)"
               >
+                <MessageCircle size={18} />
                 <span>Ordina a Domicilio via WhatsApp</span>
               </a>
 
               <a
-                href="tel:019692623"
+                href={FEATURES.PHONE_TEL}
                 className="btn btn-ocean"
                 style={{ padding: '0.9rem 1.75rem' }}
+                title="Chiama la pescheria al 019 692623"
               >
                 <PhoneCall size={18} />
-                <span>Chiama 019 692623</span>
+                <span>Chiama {FEATURES.PHONE_NUMBER}</span>
               </a>
             </div>
 

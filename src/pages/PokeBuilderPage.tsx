@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Phone, Sparkles } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Sparkles } from 'lucide-react';
 import { Header } from '../components/Header';
 import { PokeBuilder } from '../components/PokeBuilder';
 import { Footer } from '../components/Footer';
@@ -118,20 +118,26 @@ export const PokeBuilderPage: React.FC = () => {
                   <span>Ordini Online in Arrivo</span>
                 </div>
                 <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.88)', lineHeight: 1.45, flex: 1, minWidth: '240px' }}>
-                  Puoi consultare e comporre il tuo piatto in anteprima! Per ordinare oggi, chiamaci direttamente al banco:
+                  Puoi consultare e comporre il tuo piatto in anteprima! Per prenotare oggi, inviaci un messaggio WhatsApp:
                 </div>
                 <a
-                  href={FEATURES.PHONE_TEL}
-                  className="btn btn-coral"
+                  href={FEATURES.WHATSAPP_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-whatsapp"
                   style={{
-                    padding: '0.45rem 0.9rem',
+                    padding: '0.45rem 0.95rem',
                     fontSize: '0.84rem',
                     whiteSpace: 'nowrap',
                     textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
                   }}
+                  title="Prenota su WhatsApp (+39 345 948 5857)"
                 >
-                  <Phone size={14} />
-                  <span>019 692623</span>
+                  <MessageCircle size={15} />
+                  <span>WhatsApp ({FEATURES.WHATSAPP_DISPLAY})</span>
                 </a>
               </div>
             )}
@@ -168,7 +174,9 @@ export const PokeBuilderPage: React.FC = () => {
                 </div>
               </a>
               <a
-                href={FEATURES.ONLINE_ORDERING ? '#ordine-invia' : FEATURES.PHONE_TEL}
+                href={FEATURES.ONLINE_ORDERING ? '#ordine-invia' : FEATURES.WHATSAPP_LINK}
+                target={FEATURES.ONLINE_ORDERING ? undefined : '_blank'}
+                rel={FEATURES.ONLINE_ORDERING ? undefined : 'noopener noreferrer'}
                 className="order-process-step"
                 onClick={FEATURES.ONLINE_ORDERING ? scrollToOrderSection('ordine-invia') : undefined}
               >
@@ -176,11 +184,11 @@ export const PokeBuilderPage: React.FC = () => {
                   <ProcessTrackIcon />
                 </div>
                 <div className="order-process-copy">
-                  <strong>{FEATURES.ONLINE_ORDERING ? 'Invia e segui' : 'Ordina al telefono'}</strong>
+                  <strong>{FEATURES.ONLINE_ORDERING ? 'Invia e segui' : 'Prenota su WhatsApp'}</strong>
                   <span>
                     {FEATURES.ONLINE_ORDERING
                       ? "Il banco riceve l'ordine. Tu lo tracci dal vivo."
-                      : 'Chiama lo 019 692623 per il ritiro rapido.'}
+                      : `Scrivici al ${FEATURES.WHATSAPP_DISPLAY} per il ritiro rapido.`}
                   </span>
                 </div>
               </a>

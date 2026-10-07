@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Wine, ChefHat, Truck, CheckCircle2, Sparkles, MessageCircle } from 'lucide-react';
+import { FEATURES } from '../constants/features';
 
 export const AiAgentsSection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'sommelier' | 'delivery'>('sommelier');
@@ -407,11 +408,12 @@ export const AiAgentsSection: React.FC = () => {
                 </div>
 
                 <a
-                  href={`https://wa.me/39019692623?text=Ciao%20Pescheria%20Pessano,%20vorrei%20prenotare%20una%20consegna%20a%20domicilio%20per%20${encodeURIComponent(deliveryResult.city)}%20nella%20${encodeURIComponent(deliveryResult.slot)}`}
+                  href={`https://wa.me/${FEATURES.WHATSAPP_NUMBER}?text=${encodeURIComponent(`Ciao Pescheria Pessano, vorrei prenotare una consegna a domicilio per ${deliveryResult.city} nella ${deliveryResult.slot}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-coral"
+                  className="btn btn-whatsapp"
                   style={{ width: '100%', padding: '0.9rem' }}
+                  title="Prenota su WhatsApp"
                 >
                   <MessageCircle size={20} />
                   <span>Ordina Subito via WhatsApp per {deliveryResult.city}</span>

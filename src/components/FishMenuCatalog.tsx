@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Waves, Anchor, Sparkles, Search, Info, X, ShieldCheck, Phone } from 'lucide-react';
+import { Waves, Anchor, Sparkles, Search, Info, X, ShieldCheck, MessageCircle } from 'lucide-react';
 import { useFishCatalog } from '../hooks/useFishCatalog';
 import type { FishItem } from '../types/fishCatalog';
 import { FEATURES } from '../constants/features';
@@ -327,7 +327,7 @@ export const FishMenuCatalog: React.FC = () => {
               <p style={{ fontSize: '0.85rem', color: 'var(--color-sea-blue)', margin: 0 }}>
                 {FEATURES.ONLINE_ORDERING
                   ? 'Scegli la pezzatura, richiedi pulizia e sfilettatura gratuite e ritira al banco quando preferisci.'
-                  : 'Scegli la pezzatura, richiedi pulizia e sfilettatura gratuite. Prenota al banco o chiamaci al 019 692623.'}
+                  : `Scegli la pezzatura, richiedi pulizia e sfilettatura gratuite. Prenota al banco o inviaci un messaggio WhatsApp a ${FEATURES.WHATSAPP_DISPLAY}.`}
               </p>
             </div>
           </div>
@@ -361,23 +361,15 @@ export const FishMenuCatalog: React.FC = () => {
             </a>
 
             <a
-              href="tel:019692623"
-              style={{
-                padding: '0.7rem 1.25rem',
-                borderRadius: 'var(--radius-full)',
-                backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.875rem',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-              }}
+              href={FEATURES.WHATSAPP_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-whatsapp-banner"
+              title="Prenota su WhatsApp (+39 345 948 5857)"
+              aria-label="Invia messaggio WhatsApp per prenotare il pescato del giorno"
             >
-              <Phone size={15} color="var(--color-sea-blue)" />
-              <span>Chiama 019 692623</span>
+              <MessageCircle size={16} color="#25D366" strokeWidth={2.2} />
+              <span>Prenota su WhatsApp</span>
             </a>
           </div>
         </div>
@@ -562,8 +554,10 @@ export const FishMenuCatalog: React.FC = () => {
               ) : null}
 
               <a
-                href="tel:019692623"
-                className="btn btn-coral"
+                href={`https://wa.me/${FEATURES.WHATSAPP_NUMBER}?text=${encodeURIComponent(`Ciao Pescheria Pessano, vorrei prenotare: ${selectedFish.name}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-whatsapp"
                 style={{
                   textDecoration: 'none',
                   fontSize: '0.875rem',
@@ -576,8 +570,8 @@ export const FishMenuCatalog: React.FC = () => {
                 }}
                 onClick={() => setSelectedFish(null)}
               >
-                <Phone size={15} />
-                <span>Chiama per Prenotare (019 692623)</span>
+                <MessageCircle size={15} />
+                <span>Prenota su WhatsApp ({FEATURES.WHATSAPP_DISPLAY})</span>
               </a>
             </div>
           </div>
