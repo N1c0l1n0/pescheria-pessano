@@ -3,7 +3,7 @@ import { MapPin, Phone, Clock, Star, MessageCircle, Anchor } from 'lucide-react'
 import { WEEKLY_SCHEDULE, getStoreStatus } from '../utils/openingHours';
 import { GoogleMapEmbed } from './GoogleMapEmbed';
 import { MAPS_EMBED_URL, MAPS_EXTERNAL_URL } from '../constants/cookieConsent';
-import { COMPANY_VAT_NUMBER } from '../constants/legalCopy';
+import { COMPANY_VAT_NUMBER, COMPANY_REA, COMPANY_PEC } from '../constants/legalCopy';
 import { FEATURES } from '../constants/features';
 
 export const FooterAndHours: React.FC = () => {
@@ -286,8 +286,10 @@ export const FooterAndHours: React.FC = () => {
             <span>© {new Date().getFullYear()} Pescheria Pessano - Finale Ligure (SV). Tutti i diritti riservati.</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
             <span>P.IVA {COMPANY_VAT_NUMBER}</span>
+            <span>REA {COMPANY_REA}</span>
+            <span>PEC: {COMPANY_PEC}</span>
             <span>Privacy Policy</span>
             <span>Cookie Policy</span>
           </div>

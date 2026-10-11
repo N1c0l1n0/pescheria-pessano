@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Phone, ShieldCheck, MessageCircle } from 'lucide-react';
 import { useSectionNavigate } from '../utils/navigation';
 import { useCookieConsent } from '../context/CookieConsentContext';
-import { COMPANY_VAT_NUMBER } from '../constants/legalCopy';
+import { COMPANY_VAT_NUMBER, COMPANY_REA, COMPANY_PEC, PRIVACY_CONTROLLER_NAME } from '../constants/legalCopy';
 import { FEATURES } from '../constants/features';
 
 export const Footer: React.FC = () => {
@@ -139,8 +139,8 @@ export const Footer: React.FC = () => {
             color: 'rgba(255, 255, 255, 0.65)',
           }}
         >
-          <div>
-            © {new Date().getFullYear()} Pescheria Pessano — Via Avvocato Emanuele Rossi, 17, Finale Ligure (SV) — P.IVA {COMPANY_VAT_NUMBER}
+          <div style={{ lineHeight: 1.6 }}>
+            © {new Date().getFullYear()} {PRIVACY_CONTROLLER_NAME} — Via Avvocato Emanuele Rossi, 17, Finale Ligure (SV) — P.IVA {COMPANY_VAT_NUMBER} — REA {COMPANY_REA} — PEC: {COMPANY_PEC}
           </div>
 
           {/* Privacy & Cookie Links */}
