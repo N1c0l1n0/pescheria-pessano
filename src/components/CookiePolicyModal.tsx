@@ -1,5 +1,6 @@
 import React from 'react';
 import { Info, X } from 'lucide-react';
+import { PRIVACY_CONTROLLER_NAME } from '../constants/legalCopy';
 
 type CookiePolicyModalProps = {
   open: boolean;
@@ -74,33 +75,34 @@ export const CookiePolicyModal: React.FC<CookiePolicyModalProps> = ({ open, onCl
 
         <div style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
           <p style={{ marginBottom: '0.75rem' }}>
-            Questo sito web <strong>non utilizza cookie di profilazione</strong>, tracciamento pubblicitario o
-            strumenti di monitoraggio comportamentale (Google Analytics, Meta Pixel, ecc.).
+            La presente informativa descrive l&apos;utilizzo dei cookie e degli strumenti di archiviazione locale
+            da parte del sito web di <strong>{PRIVACY_CONTROLLER_NAME}</strong>, configurato come vetrina informativa.
           </p>
           <p style={{ marginBottom: '0.75rem' }}>
-            <strong>Archiviazione locale tecnica (sempre attiva):</strong> utilizziamo{' '}
+            Questo sito web <strong>non utilizza cookie di profilazione</strong>, tracciamento pubblicitario o
+            strumenti di monitoraggio comportamentale degli utenti (come Google Analytics, Meta Pixel, ecc.).
+          </p>
+          <p style={{ marginBottom: '0.75rem' }}>
+            <strong>Archiviazione locale tecnica (sempre attiva):</strong> utilizziamo unicamente{' '}
             <strong>localStorage</strong> per:
           </p>
           <ul style={{ margin: '0 0 0.75rem 1.1rem', padding: 0 }}>
             <li>
-              <code>pessano_cookie_consent</code> — preferenza cookie Maps (fino a revoca)
-            </li>
-            <li>
-              <code>pescheria_pessano_orders_store</code> — backup locale stato ordine per tracking e KDS (durata sessione/dispositivo)
+              <code>pessano_cookie_consent</code> — preferenza cookie Maps (memorizza l&apos;accettazione o il
+              rifiuto della mappa interattiva fino a revoca o cancellazione della cache del browser).
             </li>
           </ul>
           <p style={{ marginBottom: '0.75rem' }}>
-            Non impostiamo cookie di profilazione. Le notifiche browser compaiono solo se l&apos;utente ha già concesso il
-            permesso nelle impostazioni del dispositivo; il sito non richiede permessi push al primo accesso.
+            Nessun dato personale, identificativo di carrello o informazione di profilazione viene memorizzato durante la navigazione della vetrina.
           </p>
           <p style={{ marginBottom: '0.75rem' }}>
-            <strong>Font (sempre attivi, nessuna terza parte):</strong> Playfair Display, Plus Jakarta Sans e Barlow
-            Condensed sono self-hosted. Nessuna richiesta a Google Fonts.
+            <strong>Font (sempre attivi, nessuna terza parte):</strong> i caratteri Playfair Display, Plus Jakarta Sans e Barlow
+            Condensed sono self-hosted sui nostri server. Nessuna richiesta o tracciamento viene effettuato verso Google Fonts.
           </p>
           <p style={{ marginBottom: '0.75rem' }}>
-            <strong>Google Maps (consenso richiesto):</strong> la mappa interattiva è fornita da{' '}
-            <strong>Google Ireland Limited</strong> e può impostare cookie di terze parti. Finalità: mostrare la
-            posizione della pescheria. Base giuridica: consenso. Consulta la{' '}
+            <strong>Google Maps (consenso richiesto):</strong> la mappa interattiva della nostra sede è fornita da{' '}
+            <strong>Google Ireland Limited</strong> e viene caricata <em>esclusivamente previo tuo consenso esplicito</em>.
+            In caso di consenso, Google può impostare cookie tecnici o di preferenza. Consulta la{' '}
             <a
               href="https://policies.google.com/privacy"
               target="_blank"
@@ -122,11 +124,11 @@ export const CookiePolicyModal: React.FC<CookiePolicyModalProps> = ({ open, onCl
           </p>
           <p style={{ marginBottom: '0.75rem' }}>
             <strong>Link esterni:</strong> i link verso Google Maps o WhatsApp aprono servizi di terze parti solo dopo il tuo
-            click; in quel caso si applicano le rispettive informative privacy.
+            click volontario; in quel caso si applicano le rispettive informative privacy.
           </p>
           <p style={{ margin: 0 }}>
-            Puoi revocare o modificare il consenso in qualsiasi momento tramite il link{' '}
-            <strong>Gestisci cookie</strong> nel footer del sito.
+            Puoi modificare o revocare il consenso espresso in qualsiasi momento tramite il link{' '}
+            <strong>Gestisci cookie</strong> presente nel footer del sito.
           </p>
         </div>
 
