@@ -9,7 +9,9 @@ import {
   PRIVACY_CONTROLLER_ADDRESS,
   PRIVACY_CONTROLLER_NAME,
   PRIVACY_RETENTION_CONSENT,
+  PRIVACY_RETENTION_ORDERS,
 } from '../constants/legalCopy';
+import { FEATURES } from '../constants/features';
 
 type PrivacyPolicyModalProps = {
   open: boolean;
@@ -94,20 +96,45 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ open, on
             </a>
             .
           </p>
+
+          {!FEATURES.ONLINE_ORDERING ? (
+            <>
+              {/* Modalità Sito Vetrina */}
+              <p style={{ marginBottom: '0.75rem' }}>
+                <strong>Natura del sito (Sito Vetrina) e dati personali:</strong> Il presente sito ha natura puramente illustrativa ed informativa (&quot;sito vetrina&quot;) volta a presentare l&apos;attività, il banco del pescato e le specialità gastronomiche da asporto. <strong>Il sito non raccoglie dati personali dell&apos;utente tramite moduli di checkout, carrelli e-commerce o sistemi di tracking ordini</strong> (funzionalità di ordine online disattivate). La semplice consultazione delle pagine non richiede alcuna registrazione né l&apos;inserimento di dati identificativi.
+              </p>
+              <p style={{ marginBottom: '0.75rem' }}>
+                <strong>Nessuna profilazione:</strong> La navigazione sul sito non comporta alcuna attività di profilazione, tracciamento comportamentale né l&apos;utilizzo di cookie pubblicitari o pixel di monitoraggio. Non vengono memorizzati dati personali degli utenti sui nostri server.
+              </p>
+              <p style={{ marginBottom: '0.75rem' }}>
+                <strong>Contatti volontari dell&apos;utente:</strong> Eventuali contatti avvengono esclusivamente su iniziativa spontanea dell&apos;utente tramite chiamata telefonica tradizionale (<strong>{PRIVACY_CONTACT_PHONE}</strong>) o mediante il collegamento all&apos;applicazione WhatsApp (Meta Platforms Ireland Ltd.). In tali circostanze, i recapiti e le comunicazioni trasmesse volontariamente sono trattati per dare riscontro alle richieste informative o per accordi diretti al banco (Art. 6(1)(b) e (f) GDPR). L&apos;utilizzo di WhatsApp rimanda a una piattaforma terza soggetta alla relativa informativa privacy di Meta Platforms.
+              </p>
+            </>
+          ) : (
+            <>
+              {/* Modalità Ordini Online Attivi */}
+              <p style={{ marginBottom: '0.75rem' }}>
+                <strong>Dati raccolti e finalità (Ordini Online):</strong> Durante la composizione e l&apos;inoltro dell&apos;ordine vengono richiesti: nome referente, recapito telefonico, eventuale indirizzo di consegna a domicilio e note di preparazione. Tali dati sono trattati esclusivamente per l&apos;esecuzione dell&apos;ordine, l&apos;identificazione al banco, la consegna e il monitoraggio dello stato di avanzamento (Base giuridica: Art. 6(1)(b) GDPR - esecuzione di misure contrattuali).
+              </p>
+              <p style={{ marginBottom: '0.75rem' }}>
+                <strong>Database Cloud e Destinatari:</strong> Per la memorizzazione e sincronizzazione in tempo reale degli ordini ci avvaliamo del fornitore tecnologico <strong>Supabase Inc.</strong> (database cloud ospitato con adozione delle Standard Contractual Clauses per eventuali trasferimenti). I dati sono accessibili unicamente al personale autorizzato della pescheria. Non cediamo né vendiamo informazioni a terzi per scopi pubblicitari.
+              </p>
+              <p style={{ marginBottom: '0.75rem' }}>
+                <strong>Comunicazioni di servizio:</strong> Gli aggiornamenti sullo stato dell&apos;ordine (conferma, preparazione, disponibilità per il ritiro o consegna) avvengono tramite live tracking su link personale, chiamata o avvisi WhatsApp (Meta Platforms Ireland Ltd.).
+              </p>
+            </>
+          )}
+
           <p style={{ marginBottom: '0.75rem' }}>
-            <strong>Natura del sito (Sito Vetrina) e dati personali:</strong> Il presente sito ha natura puramente illustrativa ed informativa (&quot;sito vetrina&quot;) volta a presentare l&apos;attività, il banco del pescato e le specialità gastronomiche da asporto. <strong>Il sito non raccoglie dati personali dell&apos;utente tramite moduli di checkout, carrelli e-commerce o sistemi di tracking ordini</strong> (funzionalità di ordine online disattivate). La semplice consultazione delle pagine non richiede alcuna registrazione né l&apos;inserimento di dati identificativi.
+            <strong>Conservazione dei dati:</strong> {PRIVACY_RETENTION_ORDERS} {PRIVACY_RETENTION_CONSENT}
           </p>
+
           <p style={{ marginBottom: '0.75rem' }}>
-            <strong>Nessuna profilazione:</strong> La navigazione sul sito non comporta alcuna attività di profilazione, tracciamento comportamentale né l&apos;utilizzo di cookie pubblicitari o pixel di monitoraggio. Non vengono memorizzati dati personali degli utenti sui nostri server.
+            <strong>Mappa Google Maps:</strong> Per facilitare la localizzazione della pescheria è integrata la mappa interattiva di Google Maps (Google Ireland Limited), attivata unicamente previo tuo esplicito consenso tramite il banner cookie. In assenza di consenso la mappa rimane disattivata.
           </p>
+
           <p style={{ marginBottom: '0.75rem' }}>
-            <strong>Contatti volontari dell&apos;utente:</strong> Eventuali contatti avvengono esclusivamente su iniziativa spontanea dell&apos;utente tramite chiamata telefonica tradizionale (<strong>{PRIVACY_CONTACT_PHONE}</strong>) o mediante il collegamento all&apos;applicazione WhatsApp (Meta Platforms Ireland Ltd.). In tali circostanze, i recapiti e le comunicazioni trasmesse volontariamente sono trattati esclusivamente per dare riscontro alle richieste informative o per accordi diretti al banco (Art. 6(1)(b) e (f) GDPR). L&apos;utilizzo di WhatsApp rimanda a una piattaforma terza soggetta alla relativa informativa privacy di Meta Platforms.
-          </p>
-          <p style={{ marginBottom: '0.75rem' }}>
-            <strong>Servizi di terze parti e conservazione:</strong> Per facilitare la localizzazione del negozio è presente la mappa interattiva di Google Maps (Google Ireland Limited), attivata unicamente previo esplicito consenso dell&apos;utente tramite il banner cookie. {PRIVACY_RETENTION_CONSENT} Non vengono ceduti né diffusi dati a terzi per scopi promozionali.
-          </p>
-          <p style={{ marginBottom: '0.75rem' }}>
-            <strong>Diritti dell&apos;interessato:</strong> Ai sensi degli artt. 15-22 del GDPR, l&apos;utente ha diritto in qualsiasi momento di richiedere l&apos;accesso ai propri dati, la rettifica, la cancellazione, la limitazione del trattamento, l&apos;opposizione al trattamento o la portabilità, nonché di proporre reclamo al{' '}
+            <strong>Diritti dell&apos;interessato:</strong> Ai sensi degli artt. 15-22 del GDPR, hai diritto in qualsiasi momento di richiedere l&apos;accesso ai tuoi dati, la rettifica, la cancellazione, la limitazione del trattamento, l&apos;opposizione o la portabilità, nonché di proporre reclamo al{' '}
             <a
               href="https://www.garanteprivacy.it"
               target="_blank"
@@ -126,8 +153,11 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ open, on
             </a>{' '}
             o telefonare al <strong>{PRIVACY_CONTACT_PHONE}</strong>.
           </p>
+
           <p style={{ margin: 0 }}>
-            <strong>Sicurezza:</strong> La trasmissione delle pagine del sito è protetta mediante protocollo crittografato HTTPS con certificato SSL valido, a tutela della riservatezza e dell&apos;integrità della connessione.
+            <strong>Sicurezza:</strong> La trasmissione delle pagine e dei dati è protetta mediante protocollo crittografato HTTPS con certificato SSL valido.
+            {FEATURES.ONLINE_ORDERING &&
+              " L'accesso all'area di gestione ordini del personale è protetto da credenziali di sicurezza; il live tracking per il cliente è protetto da identificativo univoco riservato fornito al momento della conferma."}
           </p>
         </div>
 

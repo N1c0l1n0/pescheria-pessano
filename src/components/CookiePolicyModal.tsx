@@ -1,6 +1,7 @@
 import React from 'react';
 import { Info, X } from 'lucide-react';
 import { PRIVACY_CONTROLLER_NAME } from '../constants/legalCopy';
+import { FEATURES } from '../constants/features';
 
 type CookiePolicyModalProps = {
   open: boolean;
@@ -76,7 +77,10 @@ export const CookiePolicyModal: React.FC<CookiePolicyModalProps> = ({ open, onCl
         <div style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
           <p style={{ marginBottom: '0.75rem' }}>
             La presente informativa descrive l&apos;utilizzo dei cookie e degli strumenti di archiviazione locale
-            da parte del sito web di <strong>{PRIVACY_CONTROLLER_NAME}</strong>, configurato come vetrina informativa.
+            da parte del sito web di <strong>{PRIVACY_CONTROLLER_NAME}</strong>
+            {FEATURES.ONLINE_ORDERING
+              ? ', inclusa la piattaforma di composizione e gestione degli ordini online.'
+              : ', configurato come vetrina informativa.'}
           </p>
           <p style={{ marginBottom: '0.75rem' }}>
             Questo sito web <strong>non utilizza cookie di profilazione</strong>, tracciamento pubblicitario o
@@ -88,12 +92,20 @@ export const CookiePolicyModal: React.FC<CookiePolicyModalProps> = ({ open, onCl
           </p>
           <ul style={{ margin: '0 0 0.75rem 1.1rem', padding: 0 }}>
             <li>
-              <code>pessano_cookie_consent</code> — preferenza cookie Maps (memorizza l&apos;accettazione o il
-              rifiuto della mappa interattiva fino a revoca o cancellazione della cache del browser).
+              <code>pessano_cookie_consent</code> — memorizza la scelta espressa dall&apos;utente (accettazione o
+              rifiuto) in merito al caricamento della mappa interattiva (fino a revoca o cancellazione della cache del browser).
             </li>
+            {FEATURES.ONLINE_ORDERING && (
+              <li>
+                <code>pescheria_pessano_orders_store</code> — backup locale tecnico dello stato dell&apos;ordine
+                (necessario per consentire il tracking in tempo reale e il recupero della sessione sul dispositivo del cliente).
+              </li>
+            )}
           </ul>
           <p style={{ marginBottom: '0.75rem' }}>
-            Nessun dato personale, identificativo di carrello o informazione di profilazione viene memorizzato durante la navigazione della vetrina.
+            {FEATURES.ONLINE_ORDERING
+              ? "L'archiviazione tecnica è strettamente funzionale all'esecuzione del servizio richiesto dal cliente. Non vengono installati tracker pubblicitari."
+              : 'Nessun dato personale, identificativo di carrello o informazione di profilazione viene memorizzato durante la navigazione della vetrina.'}
           </p>
           <p style={{ marginBottom: '0.75rem' }}>
             <strong>Font (sempre attivi, nessuna terza parte):</strong> i caratteri Playfair Display, Plus Jakarta Sans e Barlow
