@@ -18,7 +18,7 @@ export const HoursAndLocation: React.FC = () => {
       }}
     >
       <div className="container">
-        
+
         {/* Section Header */}
         <div className="section-header">
           <div className="section-kicker">Vienici a Trovare</div>
@@ -55,12 +55,12 @@ export const HoursAndLocation: React.FC = () => {
                   width: '42px',
                   height: '42px',
                   borderRadius: '50%',
-                    backgroundColor: 'var(--color-ocean-dark)',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 0 0 1px rgba(201, 162, 39, 0.35)',
+                  backgroundColor: 'var(--color-ocean-dark)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 0 1px rgba(201, 162, 39, 0.35)',
                 }}
               >
                 <Clock size={20} color="var(--color-sea-blue)" />
@@ -276,7 +276,7 @@ export const HoursAndLocation: React.FC = () => {
                       ))}
                     </div>
                     <div style={{ fontSize: '0.775rem', color: 'var(--color-text-muted)' }}>
-                      197 Recensioni Google
+                      200+ Google
                     </div>
                   </div>
                 </div>

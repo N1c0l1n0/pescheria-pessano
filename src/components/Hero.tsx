@@ -92,7 +92,7 @@ export const Hero: React.FC = () => {
             </div>
             <span style={{ opacity: 0.35 }}>|</span>
             <span style={{ color: 'rgba(255, 255, 255, 0.88)', fontWeight: 500 }}>
-              197 Recensioni
+              200+ Recensioni
             </span>
             <span style={{ opacity: 0.35 }}>•</span>
             <span style={{ color: 'var(--color-sea-blue)', fontWeight: 600 }}>

@@ -22,7 +22,7 @@ export const FooterAndHours: React.FC = () => {
       }}
     >
       <div className="container">
-        
+
         {/* Main Grid: Hours Table, Contact Info & Map */}
         <div
           style={{
@@ -216,7 +216,7 @@ export const FooterAndHours: React.FC = () => {
                     ))}
                   </div>
                   <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>
-                    Basato su <strong>197 recensioni Google</strong>
+                    Basato su <strong>200+ recensioni Google</strong>
                   </div>
                 </div>
               </div>
@@ -239,9 +239,9 @@ export const FooterAndHours: React.FC = () => {
                   color: 'rgba(255, 255, 255, 0.9)',
                 }}
               >
-                "Fritto misto e acciughe fritte buonissime. La numero uno per me. Prezzi modici e soprattutto qualità e pesce fresco."
+                “Pesce fresco e fritto al momento non ha eguali. Qualità e gentilezza dei proprietari vanno oltre le 5 stelle.”
                 <div style={{ fontSize: '0.775rem', color: 'var(--color-sea-blue)', marginTop: '0.4rem', fontWeight: 600 }}>
-                  — Daniele F. (Recensione Google)
+                  — Flavio C. (Recensione Google)
                 </div>
               </div>
 

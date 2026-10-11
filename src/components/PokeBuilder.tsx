@@ -26,6 +26,15 @@ import type { FishItem } from '../types/fishCatalog';
 import { useFishCatalog } from '../hooks/useFishCatalog';
 import { useCookieConsent } from '../context/CookieConsentContext';
 import { FEATURES } from '../constants/features';
+import {
+  FORMATS,
+  BASI,
+  PROTEINE,
+  INGREDIENTI,
+  SALSE,
+  type PokeFormatOption as FormatOption,
+  type PokeOptionItem as OptionItem,
+} from '../data/pokeMenu';
 
 type CategoryTabIconProps = {
   size?: number;
@@ -60,119 +69,7 @@ const FriedConeIcon: React.FC<CategoryTabIconProps> = ({ size = 18 }) => (
   </svg>
 );
 
-interface FormatOption {
-  id: string;
-  name: string;
-  price: number;
-  maxBasi: number;
-  maxProteine: number;
-  maxSecondari: number;
-  maxSalse: number;
-}
-
-const FORMATS: FormatOption[] = [
-  {
-    id: 'regular',
-    name: 'Formato Regular',
-    price: 10,
-    maxBasi: 1,
-    maxProteine: 1,
-    maxSecondari: 3,
-    maxSalse: 2,
-  },
-  {
-    id: 'regularPlus',
-    name: 'Formato Regular + 1 Proteina',
-    price: 12,
-    maxBasi: 1,
-    maxProteine: 2,
-    maxSecondari: 3,
-    maxSalse: 2,
-  },
-  {
-    id: 'xl',
-    name: 'Formato XL',
-    price: 15,
-    maxBasi: 2,
-    maxProteine: 3,
-    maxSecondari: 5,
-    maxSalse: 4,
-  },
-];
-
-const BASI = [
-  'Riso Bianco',
-  'Riso Venere',
-  'Insalata',
-  'Metà Riso e Metà Insalata',
-];
-
-interface OptionItem {
-  name: string;
-  extraPrice: number;
-}
-
-const PROTEINE: OptionItem[] = [
-  { name: 'Salmone Crudo', extraPrice: 0 },
-  { name: 'Salmone Scottato', extraPrice: 0 },
-  { name: 'Tonno Crudo', extraPrice: 0 },
-  { name: 'Tonno Scottato', extraPrice: 0 },
-  { name: 'Gambero Cotto', extraPrice: 0 },
-  { name: 'Pollo Grigliato', extraPrice: 0 },
-  { name: 'Tofu', extraPrice: 0 },
-  { name: 'Gambero in Tempura', extraPrice: 1 },
-  { name: 'Polpo', extraPrice: 1 },
-  { name: 'Salmone in Tempura', extraPrice: 2 },
-  { name: 'Tonno in Tempura', extraPrice: 2 },
-];
-
-const INGREDIENTI: OptionItem[] = [
-  { name: 'Alghe Wakame', extraPrice: 0 },
-  { name: 'Avocado', extraPrice: 0 },
-  { name: 'Carota', extraPrice: 0 },
-  { name: 'Cetriolo', extraPrice: 0 },
-  { name: 'Cipolla Crispy', extraPrice: 0 },
-  { name: 'Cipolla Rossa', extraPrice: 0 },
-  { name: 'Edamame', extraPrice: 0 },
-  { name: 'Granella di Nocciole', extraPrice: 0 },
-  { name: 'Mais', extraPrice: 0 },
-  { name: 'Mandorle', extraPrice: 0 },
-  { name: 'Mozzarelline', extraPrice: 0 },
-  { name: 'Nachos', extraPrice: 0 },
-  { name: 'Philadelphia', extraPrice: 0 },
-  { name: 'Pomodorini Datterini', extraPrice: 0 },
-  { name: 'Scaglie di Cocco', extraPrice: 0 },
-  { name: 'Scaglie di Grana', extraPrice: 0 },
-  { name: 'Semi di Girasole', extraPrice: 0 },
-  { name: 'Semi di Papavero', extraPrice: 0 },
-  { name: 'Surimi', extraPrice: 0 },
-  { name: 'Zenzero', extraPrice: 0 },
-  { name: 'Zucchine Cotte', extraPrice: 0 },
-  { name: 'Cipolla Caramellata', extraPrice: 1 },
-  { name: 'Feta', extraPrice: 1 },
-  { name: 'Granella di Pistacchio', extraPrice: 1 },
-  { name: 'Mango', extraPrice: 1 },
-  { name: 'Olive Taggiasche', extraPrice: 1 },
-];
-
-const SALSE: OptionItem[] = [
-  { name: 'Glassa Balsamica', extraPrice: 0 },
-  { name: 'Maionese', extraPrice: 0 },
-  { name: 'Maio Spicy', extraPrice: 0 },
-  { name: 'Maio Tabasco', extraPrice: 0 },
-  { name: 'Miele', extraPrice: 0 },
-  { name: 'Olio', extraPrice: 0 },
-  { name: 'Olio Piccante', extraPrice: 0 },
-  { name: 'Crema di Avocado', extraPrice: 0 },
-  { name: 'Salsa Agrodolce', extraPrice: 0 },
-  { name: 'Salsa Agropiccante', extraPrice: 0 },
-  { name: 'Salsa Rosa', extraPrice: 0 },
-  { name: 'Salsa Teryaki', extraPrice: 0 },
-  { name: 'Salsa Yogurt', extraPrice: 0 },
-  { name: 'Soia', extraPrice: 0 },
-  { name: 'Spicy Mango', extraPrice: 0 },
-  { name: 'Pesto', extraPrice: 1 },
-];
+export type { FormatOption, OptionItem };
 
 export interface FriedProductOption {
   id: string;

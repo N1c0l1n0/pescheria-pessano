@@ -3,8 +3,8 @@ import { Star, ExternalLink } from 'lucide-react';
 
 const REVIEWS = [
   {
-    quote: 'Fritto misto e acciughe fritte buonissime. La numero uno per me. Prezzi modici e soprattutto qualità e pesce fresco.',
-    author: 'Daniele F.',
+    quote: 'Pesce fresco e fritto al momento non ha eguali. Qualità e gentilezza dei proprietari vanno oltre le 5 stelle.',
+    author: 'Flavio C.',
   },
   {
     quote: 'Abbiamo mangiato frittura di pesce e un poke semplicemente deliziosi! Croccante al punto giusto, leggero e per nulla unto, si sentiva tutta la freschezza del pesce. Porzioni abbondanti e servizio cortese e veloce. Si vede che qui il pesce è una cosa seria! Ottimo rapporto qualità-prezzo. Torneremo sicuramente, consigliatissimo!',
@@ -97,7 +97,7 @@ export const TrustSection: React.FC = () => {
               ))}
             </div>
             <p style={{ fontSize: '0.875rem', color: 'var(--color-sea-blue)', margin: '0 0 1rem 0' }}>
-              197 recensioni su Google
+              200+ recensioni su Google
             </p>
             <a
               href="https://www.google.com/maps/search/?api=1&query=Pescheria+Pessano+Finale+Ligure"

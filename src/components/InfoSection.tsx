@@ -25,11 +25,11 @@ export const InfoSection: React.FC = () => {
           </p>
         </div>
 
-        {/* 4 Minimalist Service Cards */}
+        {/* 3 Minimalist Service Cards */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: '1.5rem',
           }}
         >
@@ -134,7 +134,7 @@ export const InfoSection: React.FC = () => {
 
             <ul style={{ listStyle: 'none', padding: 0, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.84rem', color: 'var(--color-ocean-dark)', fontWeight: 600 }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Ingredienti freschi e salutari
+                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Ingredienti freschi
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Pesce fresco tagliato al momento
@@ -199,9 +199,6 @@ export const InfoSection: React.FC = () => {
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Coni di calamari e acciughe
               </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={16} color="#22C55E" style={{ flexShrink: 0 }} /> Specialità liguri pronte
-              </li>
             </ul>
             <a
               href="#poke-fritti"
@@ -213,9 +210,23 @@ export const InfoSection: React.FC = () => {
             </a>
           </div>
 
-          {/* Card 4: Prenotazioni al banco e telefoniche */}
+        </div>
+
+        {/* Card 4: Prenotazioni al banco e telefoniche - Centrata */}
+        <div
+          style={{
+            marginTop: '1.5rem',
+            display: 'flex',
+            justifyContent: 'center',
+            width: '100%',
+          }}
+        >
           <div
             className="glass-panel service-card"
+            style={{
+              width: '100%',
+              maxWidth: '380px',
+            }}
           >
             <div
               className="service-icon"
@@ -275,7 +286,6 @@ export const InfoSection: React.FC = () => {
               <ArrowRight size={15} />
             </a>
           </div>
-
         </div>
 
       </div>

@@ -91,7 +91,7 @@ export const PesceBotWidget: React.FC<PesceBotWidgetProps> = ({ isOpen, onToggle
     }
 
     if (q.includes('dove') || q.includes('indirizzo') || q.includes('trovate') || q.includes('telefono')) {
-      return `📍 Ci trovi a Finale Ligure in Via Avvocato Emanuele Rossi, 17 (17024 SV).\nTelefono Negozio: ${FEATURES.PHONE_NUMBER}.\nWhatsApp Prenotazioni: ${FEATURES.WHATSAPP_DISPLAY}.\nValutazione clienti: 4.4 su 5 stelle con 197 recensioni Google!`;
+      return `📍 Ci trovi a Finale Ligure in Via Avvocato Emanuele Rossi, 17 (17024 SV).\nTelefono Negozio: ${FEATURES.PHONE_NUMBER}.\nWhatsApp Prenotazioni: ${FEATURES.WHATSAPP_DISPLAY}.\nValutazione clienti: 4.4 su 5 stelle con 200+ recensioni Google!`;
     }
 
     return `Grazie per la domanda! Alla Pescheria Pessano selezioniamo solo il miglior pesce fresco del Mar Ligure e piatti di gastronomia pronti. Puoi scriverci su WhatsApp al ${FEATURES.WHATSAPP_DISPLAY} per prenotare subito, oppure contattare il negozio al ${FEATURES.PHONE_NUMBER}!`;

@@ -2,188 +2,14 @@ import React, { useState } from 'react';
 import { Sparkles, Flame, Utensils, Check, MessageCircle } from 'lucide-react';
 import { FEATURES } from '../constants/features';
 
-interface FormatInfo {
-  name: string;
-  price: string;
-  badge?: string;
-  description: string;
-}
-
-const POKE_FORMATS: FormatInfo[] = [
-  {
-    name: 'Formato Regular',
-    price: '€ 10,00',
-    description: '1 Base · 1 Proteina · 3 Ingredienti · 2 Salse · Semi di sesamo',
-  },
-  {
-    name: 'Regular + 1 Proteina',
-    price: '€ 12,00',
-    badge: 'Più Scelta',
-    description: '1 Base · 2 Proteine · 3 Ingredienti · 2 Salse · Semi di sesamo',
-  },
-  {
-    name: 'Formato XL',
-    price: '€ 15,00',
-    badge: 'Ricco & Completo',
-    description: '2 Basi · 3 Proteine · 5 Ingredienti · 4 Salse · Semi di sesamo',
-  },
-];
-
-interface PokeBaseItem {
-  id: string;
-  name: string;
-  desc: string;
-}
-
-const POKE_BASES: PokeBaseItem[] = [
-  {
-    id: 'riso-bianco',
-    name: 'Riso Bianco per Sushi',
-    desc: 'Chicco tondo compatto, condito delicatamente con aceto di riso naturale.',
-  },
-  {
-    id: 'riso-venere',
-    name: 'Riso Venere Integrale',
-    desc: 'Pregiato riso nero italiano dal caratteristico aroma tostato e consistenza corposa.',
-  },
-  {
-    id: 'insalata',
-    name: 'Insalata Misticanza',
-    desc: 'Selezione di foglie tenere e freschissime del giorno, per una base verde e dissetante.',
-  },
-  {
-    id: 'meta-meta',
-    name: 'Metà Riso e Metà Insalata',
-    desc: 'La freschezza delle foglie verdi unita alla morbidezza e alla pienezza del riso.',
-  },
-];
-
-interface PokeProteinItem {
-  name: string;
-  extraPrice?: number;
-  highlight?: boolean;
-}
-
-const POKE_PROTEINS: PokeProteinItem[] = [
-  { name: 'Salmone Norvegese Crudo', highlight: true },
-  { name: 'Salmone Scottato alla fiamma' },
-  { name: 'Tonno Rosso Crudo', highlight: true },
-  { name: 'Tonno Scottato alla fiamma' },
-  { name: 'Gambero Cotto del Mediterraneo' },
-  { name: 'Polpo Verace a vapore', extraPrice: 1 },
-  { name: 'Gambero in Tempura dorata', extraPrice: 1 },
-  { name: 'Salmone in Tempura', extraPrice: 2 },
-  { name: 'Tonno in Tempura', extraPrice: 2 },
-  { name: 'Pollo Grigliato alle erbe' },
-  { name: 'Tofu naturale marinato' },
-];
-
-interface ToppingSubcategory {
-  categoryName: string;
-  subtitle: string;
-  items: Array<{ name: string; extraPrice?: number; isLocal?: boolean }>;
-}
-
-const POKE_TOPPING_CATEGORIES: ToppingSubcategory[] = [
-  {
-    categoryName: 'Freschezza & Ortaggi del Giorno',
-    subtitle: 'Verdure selezionate al mattino, croccanti, idratanti e ricche di vitamine',
-    items: [
-      { name: 'Avocado fresco a fette' },
-      { name: 'Alghe Wakame marinate' },
-      { name: 'Edamame al vapore' },
-      { name: 'Pomodorini Datterini' },
-      { name: 'Cetrioli a rondelle' },
-      { name: 'Carote a julienne' },
-      { name: 'Cipolla Rossa di Tropea' },
-      { name: 'Mais dolce' },
-      { name: 'Zucchine trifolate' },
-      { name: 'Zenzero rosa marinato' },
-      { name: 'Surimi sfilacciato' },
-    ],
-  },
-  {
-    categoryName: 'Croccanti, Semi & Frutta Secca',
-    subtitle: 'Per dare consistenza, texture e una nota tostata irresistibile ad ogni boccone',
-    items: [
-      { name: 'Cipolla Crispy croccante' },
-      { name: 'Granella di Nocciole' },
-      { name: 'Mandorle tostate' },
-      { name: 'Nachos artigianali' },
-      { name: 'Semi di Girasole e Papavero' },
-      { name: 'Scaglie di Cocco' },
-    ],
-  },
-  {
-    categoryName: 'Creme & Latticini',
-    subtitle: 'Morbidezza e sapidità per avvolgere gli ingredienti con delicatezza',
-    items: [
-      { name: 'Philadelphia fresco' },
-      { name: 'Mozzarelline fresche' },
-      { name: 'Scaglie di Grana Padano DOP' },
-    ],
-  },
-  {
-    categoryName: 'I Nostri Extra Gourmet (+1,00€)',
-    subtitle: 'Ingredienti speciali e tipicità del territorio per un tocco ricercato',
-    items: [
-      { name: 'Olive Taggiasche liguri', extraPrice: 1, isLocal: true },
-      { name: 'Granella di Pistacchio', extraPrice: 1 },
-      { name: 'Mango a cubetti fresco', extraPrice: 1 },
-      { name: 'Feta greca DOP', extraPrice: 1 },
-      { name: 'Cipolla Caramellata', extraPrice: 1 },
-    ],
-  },
-];
-
-interface SauceSubcategory {
-  categoryName: string;
-  subtitle: string;
-  items: Array<{ name: string; spicy?: boolean; extraPrice?: number }>;
-}
-
-const POKE_SAUCE_CATEGORIES: SauceSubcategory[] = [
-  {
-    categoryName: 'Le Classiche & Delicate',
-    subtitle: 'Equilibrate e pulite, studiate per rispettare il sapore autentico del pesce',
-    items: [
-      { name: 'Salsa di Soia classica' },
-      { name: 'Olio EVO Riviera Ligure' },
-      { name: 'Glassa di Aceto Balsamico' },
-      { name: 'Maionese classica' },
-      { name: 'Salsa Rosa delicata' },
-      { name: 'Salsa allo Yogurt fresco' },
-      { name: 'Miele millefiori' },
-    ],
-  },
-  {
-    categoryName: 'Esotiche & Fruttate',
-    subtitle: 'Armonie agrodolci, agrumate e orientali',
-    items: [
-      { name: 'Crema di Avocado e lime' },
-      { name: 'Salsa Teriyaki giapponese' },
-      { name: 'Salsa Agrodolce' },
-      { name: 'Spicy Mango agrodolce' },
-    ],
-  },
-  {
-    categoryName: 'Note Piccanti & Decise',
-    subtitle: 'Sferzate di intensità calibrate per chi ama il gusto vivo',
-    items: [
-      { name: 'Spicy Mayo artigianale', spicy: true },
-      { name: 'Maio Tabasco decisa', spicy: true },
-      { name: 'Salsa Agropiccante', spicy: true },
-      { name: 'Olio Piccante aromatizzato', spicy: true },
-    ],
-  },
-  {
-    categoryName: 'L’Eccellenza del Nostro Territorio',
-    subtitle: 'Il profumo inconfondibile della Liguria nella tua poke bowl',
-    items: [
-      { name: 'Pesto fresco alla Genovese DOP', extraPrice: 1 },
-    ],
-  },
-];
+import {
+  POKE_FORMATS,
+  POKE_BASES,
+  POKE_PROTEINS,
+  POKE_TOPPING_SHOWCASE_CATEGORIES,
+  POKE_SAUCE_SHOWCASE_CATEGORIES,
+  POKE_SESAME_NOTE,
+} from '../data/pokeMenu';
 
 
 const FRITTI_ITEMS = [
@@ -263,10 +89,6 @@ export const PokeAndFrittiShowcase: React.FC = () => {
           <h2 className="section-title" style={{ color: 'white' }}>
             Poke Bowl su Misura & Coni Fritti Espressi
           </h2>
-          <p className="section-lede" style={{ color: 'rgba(255, 255, 255, 0.82)' }}>
-            Dalla creatività del nostro banco nascono le Poke Bowl personalizzate con pesce freschissimo tagliato al momento
-            e i celebri coni fritti di mare dorati e croccanti. Consulta gli ingredienti e ordina al banco o telefonicamente.
-          </p>
 
           {/* Tab Switcher */}
           <div className="poke-showcase-tabs">
@@ -378,7 +200,7 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                         </div>
                       </div>
                       <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-gold-soft)' }}>
-                        {fmt.price}
+                        € {fmt.price},00
                       </div>
                     </div>
                   ))}
@@ -610,7 +432,7 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {POKE_TOPPING_CATEGORIES.map((cat, idx) => (
+                  {POKE_TOPPING_SHOWCASE_CATEGORIES.map((cat, idx) => (
                     <div
                       key={cat.categoryName}
                       style={{
@@ -713,7 +535,7 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
-                  {POKE_SAUCE_CATEGORIES.map((cat, idx) => (
+                  {POKE_SAUCE_SHOWCASE_CATEGORIES.map((cat, idx) => (
                     <div
                       key={cat.categoryName}
                       style={{
@@ -785,7 +607,7 @@ export const PokeAndFrittiShowcase: React.FC = () => {
                   >
                     <Sparkles size={18} color="var(--color-gold-soft)" style={{ flexShrink: 0 }} />
                     <div style={{ fontSize: '0.86rem', color: 'rgba(255, 255, 255, 0.88)', lineHeight: 1.5 }}>
-                      <strong style={{ color: 'var(--color-gold-soft)' }}>Tocco finale: Semi di Sesamo Tostato</strong> — Sempre disponibili su richiesta: aggiungiamo una spolverata di sesamo tostato per completare il sapore e l’estetica della tua poke bowl.
+                      <strong style={{ color: 'var(--color-gold-soft)' }}>Semi di Sesamo (SI / NO)</strong> — {POKE_SESAME_NOTE}
                     </div>
                   </div>
                 </div>
