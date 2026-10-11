@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Flame, Utensils, Check, MessageCircle } from 'lucide-react';
+import { Sparkles, Flame, Utensils, Check, MessageCircle, ShieldCheck, Info } from 'lucide-react';
 import { FEATURES } from '../constants/features';
 
 import {
@@ -801,6 +801,190 @@ export const PokeAndFrittiShowcase: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Food Safety & Allergen Notice Card (Reg. UE 1169/2011 & Reg. CE 853/2004) */}
+        <div className="food-safety-notice-card" aria-label="Informazioni su allergeni e sicurezza alimentare">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.09)',
+              paddingBottom: '1.15rem',
+            }}
+          >
+            <div style={{ maxWidth: '680px' }}>
+              <div
+                className="food-safety-badge"
+                style={{
+                  backgroundColor: 'rgba(232, 212, 154, 0.12)',
+                  border: '1px solid rgba(232, 212, 154, 0.28)',
+                  color: 'var(--color-gold-soft)',
+                  marginBottom: '0.6rem',
+                }}
+              >
+                <ShieldCheck size={13} />
+                <span>Sicurezza Alimentare & Trasparenza</span>
+              </div>
+              <h3
+                className="font-serif"
+                style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 700,
+                  color: 'white',
+                  margin: 0,
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Trasparenza sugli Ingredienti & Tutela del Consumatore
+              </h3>
+              <p
+                style={{
+                  margin: '0.35rem 0 0 0',
+                  fontSize: '0.86rem',
+                  color: 'rgba(255, 255, 255, 0.76)',
+                  lineHeight: 1.55,
+                }}
+              >
+                La freschezza del pescato si unisce a protocolli sanitari certificati: dal banco gastronomia alle preparazioni d'asporto a Finale Ligure.
+              </p>
+            </div>
+          </div>
+
+          <div className="food-safety-grid">
+            {/* Box 1: Allergeni (Reg. UE 1169/2011) */}
+            <div className="food-safety-subcard">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                <div
+                  className="food-safety-icon-wrap"
+                  style={{
+                    backgroundColor: 'rgba(232, 212, 154, 0.14)',
+                    border: '1px solid rgba(232, 212, 154, 0.35)',
+                  }}
+                >
+                  <Info size={19} color="var(--color-gold-soft)" />
+                </div>
+                <span
+                  className="food-safety-badge"
+                  style={{
+                    backgroundColor: 'rgba(232, 212, 154, 0.1)',
+                    border: '1px solid rgba(232, 212, 154, 0.24)',
+                    color: 'var(--color-gold-soft)',
+                  }}
+                >
+                  Reg. UE 1169/2011
+                </span>
+              </div>
+
+              <div>
+                <h4
+                  style={{
+                    fontSize: '1.02rem',
+                    fontWeight: 700,
+                    color: 'white',
+                    margin: '0 0 0.45rem 0',
+                    lineHeight: 1.35,
+                  }}
+                >
+                  Avviso Allergeni & Intolleranze
+                </h4>
+                <p
+                  style={{
+                    fontSize: '0.84rem',
+                    color: 'rgba(255, 255, 255, 0.82)',
+                    lineHeight: 1.55,
+                    margin: 0,
+                  }}
+                >
+                  Gentile cliente, le informazioni dettagliate sulla presenza di ingredienti o sostanze che possono provocare allergie o intolleranze alimentari sono fornite dal personale. Ti invitiamo a comunicare qualsiasi allergia o intolleranza prima di ordinare al banco, al telefono o via WhatsApp.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 'auto',
+                  paddingTop: '0.65rem',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  fontSize: '0.78rem',
+                  color: 'rgba(255, 255, 255, 0.68)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                }}
+              >
+                <Utensils size={13} color="var(--color-gold-soft)" style={{ flexShrink: 0 }} />
+                <span>Registro e documentazione allergeni consultabili su richiesta al banco</span>
+              </div>
+            </div>
+
+            {/* Box 2: Pesce crudo e abbattimento (Reg. CE 853/2004) */}
+            <div className="food-safety-subcard">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                <div
+                  className="food-safety-icon-wrap"
+                  style={{
+                    backgroundColor: 'rgba(143, 182, 204, 0.15)',
+                    border: '1px solid rgba(143, 182, 204, 0.35)',
+                  }}
+                >
+                  <ShieldCheck size={19} color="var(--color-sea-blue)" />
+                </div>
+                <span
+                  className="food-safety-badge"
+                  style={{
+                    backgroundColor: 'rgba(143, 182, 204, 0.1)',
+                    border: '1px solid rgba(143, 182, 204, 0.24)',
+                    color: 'var(--color-sea-blue)',
+                  }}
+                >
+                  Reg. CE 853/2004
+                </span>
+              </div>
+
+              <div>
+                <h4
+                  style={{
+                    fontSize: '1.02rem',
+                    fontWeight: 700,
+                    color: 'white',
+                    margin: '0 0 0.45rem 0',
+                    lineHeight: 1.35,
+                  }}
+                >
+                  Pesce Crudo & Bonifica Preventiva
+                </h4>
+                <p
+                  style={{
+                    fontSize: '0.84rem',
+                    color: 'rgba(255, 255, 255, 0.82)',
+                    lineHeight: 1.55,
+                    margin: 0,
+                  }}
+                >
+                  A garanzia di massima freschezza e sicurezza, tutto il pesce destinato al consumo a crudo (salmone, tonno, tartare) è sottoposto a bonifica preventiva tramite abbattimento a freddo conforme ai requisiti del Reg. CE 853/2004.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 'auto',
+                  paddingTop: '0.65rem',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  fontSize: '0.78rem',
+                  color: 'rgba(255, 255, 255, 0.68)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                }}
+              >
+                <ShieldCheck size={13} color="var(--color-sea-blue)" style={{ flexShrink: 0 }} />
+                <span>Profilassi Anisakis certificata a freddo continuo per tutelare gusto e sicurezza</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
       </div>
     </section>
