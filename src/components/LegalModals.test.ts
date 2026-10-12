@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import fs from 'fs';
-import path from 'path';
+// @ts-ignore
+import fs from 'node:fs';
 
 describe('Legal Modals dynamic policy text', () => {
-  const privacyModalPath = path.resolve(__dirname, 'PrivacyPolicyModal.tsx');
-  const cookieModalPath = path.resolve(__dirname, 'CookiePolicyModal.tsx');
-  const legalCopyPath = path.resolve(__dirname, '../constants/legalCopy.ts');
+  const privacyModalPath = new URL('./PrivacyPolicyModal.tsx', import.meta.url);
+  const cookieModalPath = new URL('./CookiePolicyModal.tsx', import.meta.url);
+  const legalCopyPath = new URL('../constants/legalCopy.ts', import.meta.url);
 
   it('PrivacyPolicyModal supports both showcase and online ordering modes', () => {
     const content = fs.readFileSync(privacyModalPath, 'utf-8');
